@@ -1,0 +1,7 @@
+3dxyz
+#a 3 3 u v w 
+ fde delxyz c8g2
+ fbc delxyz q4g2
+#b 0 6 dxx dyy dzz dyz dxz dxy 
+ fde selxyz c8g2
+#
