@@ -1,0 +1,200 @@
+aec27g3
+defi
+disp u,v,w,
+var u1 v1 w1 u2 v2 w2 u3 v3 w3 u4
+var v4 w4 u5 v5 w5 u6 v6 w6 u7 v7
+var w7 u8 v8 w8
+refc rx,ry,rz,
+coor x,y,z,
+func = exx,eyy,ezz,eyz,exz,exy,
+dord 1,1,1,
+$cc double pe,pv,fx,fy,fz,rou,alpha;
+$cc exx=+(eyz+eyz)*eyz+(eyz+exz)*eyz+(eyz+exy)*eyz;
+$cc eyy=+(exz+eyz)*exz+(exz+exz)*exz+(exz+exy)*exz;
+$cc ezz=+(exy+eyz)*exy+(exy+exz)*exy+(exy+exy)*exy;
+$cc exxr=(eyzr+eyzr)*eyzr-(eyzi+eyzi)*eyzi+(eyzr+exzr)*eyzr-(eyzi+exzi)*eyzi+(eyzr+exyr)*eyzr-(eyzi+exyi)*eyzi
+$cc exxi=(eyzr+eyzr)*eyzi+(eyzi+eyzi)*eyzr+(eyzr+exzr)*eyzi+(eyzi+exzi)*eyzr+(eyzr+exyr)*eyzi+(eyzi+exyi)*eyzr
+$cc eyyr=(exzr+eyzr)*exzr-(exzi+eyzi)*exzi+(exzr+exzr)*exzr-(exzi+exzi)*exzi+(exzr+exyr)*exzr-(exzi+exyi)*exzi
+$cc eyyi=(exzr+eyzr)*exzi+(exzi+eyzi)*exzr+(exzr+exzr)*exzi+(exzi+exzi)*exzr+(exzr+exyr)*exzi+(exzi+exyi)*exzr
+$cc ezzr=(exyr+eyzr)*exyr-(exyi+eyzi)*exyi+(exyr+exzr)*exyr-(exyi+exzi)*exyi+(exyr+exyr)*exyr-(exyi+exyi)*exyi
+$cc ezzi=(exyr+eyzr)*exyi+(exyi+eyzi)*exyr+(exyr+exzr)*exyi+(exyi+exzi)*exyr+(exyr+exyr)*exyi+(exyi+exyi)*exyr
+$cc ur=(((ur+vr)*wr-(ui+vi)*wi)*ur+((ur+vr)*wi+(ui+vi)*wr)*ui)/(ur*ur+ui*ui)
+$cc ui=(-((ur+vr)*wr-(ui+vi)*wi)*ui+((ur+vr)*wi+(ui+vi)*wr)*ur)/(ur*ur+ui*ui)
+mate pe pv fx fy fz rou alpha 1.0e10 0.3 0.0 0.0 0.0 3000.0 0.6
+$i
+$CC r0=0.0;
+$CC for (i=1; i<=nnode; ++i) r0+=^coorr[1][i];
+$CC r0*=1.0e-003/nnode;
+$CC for (i=1; i<=nnode; ++i) {
+$CC if (^coorr[1][i]<r0) ^coorr[1][i]=r0; }
+
+shap
+u=
+u1 = (1.-rx)/2*(1.-ry)/2*(1.-rz)/2
+u2 = (1.+rx)/2*(1.-ry)/2*(1.-rz)/2
+u3 = (1.+rx)/2*(1.+ry)/2*(1.-rz)/2
+u4 = (1.-rx)/2*(1.+ry)/2*(1.-rz)/2
+u5 = (1.-rx)/2*(1.-ry)/2*(1.+rz)/2
+u6 = (1.+rx)/2*(1.-ry)/2*(1.+rz)/2
+u7 = (1.+rx)/2*(1.+ry)/2*(1.+rz)/2
+u8 = (1.-rx)/2*(1.+ry)/2*(1.+rz)/2
+
+v=
+v1 = (1.-rx)/2*(1.-ry)/2*(1.-rz)/2
+v2 = (1.+rx)/2*(1.-ry)/2*(1.-rz)/2
+v3 = (1.+rx)/2*(1.+ry)/2*(1.-rz)/2
+v4 = (1.-rx)/2*(1.+ry)/2*(1.-rz)/2
+v5 = (1.-rx)/2*(1.-ry)/2*(1.+rz)/2
+v6 = (1.+rx)/2*(1.-ry)/2*(1.+rz)/2
+v7 = (1.+rx)/2*(1.+ry)/2*(1.+rz)/2
+v8 = (1.-rx)/2*(1.+ry)/2*(1.+rz)/2
+
+w=
+v1 = (1.-rx)/2*(1.-ry)/2*(1.-rz)/2
+v2 = (1.+rx)/2*(1.-ry)/2*(1.-rz)/2
+v3 = (1.+rx)/2*(1.+ry)/2*(1.-rz)/2
+v4 = (1.-rx)/2*(1.+ry)/2*(1.-rz)/2
+v5 = (1.-rx)/2*(1.-ry)/2*(1.+rz)/2
+v6 = (1.+rx)/2*(1.-ry)/2*(1.+rz)/2
+v7 = (1.+rx)/2*(1.+ry)/2*(1.+rz)/2
+v8 = (1.-rx)/2*(1.+ry)/2*(1.+rz)/2
+
+tran
+x=
+
+y=
+
+z=
+
+gaus = 27
+ 0.774596669241482  0.774596669241482  0.774596669241482 0.1714677640603571
+ 0.774596669241482  0.774596669241482  0.000000000000000 0.2743484224965708
+ 0.774596669241482  0.774596669241482 -0.774596669241482 0.1714677640603571
+ 0.774596669241482  0.000000000000000  0.774596669241482 0.2743484224965708
+ 0.774596669241482  0.000000000000000  0.000000000000000 0.4389574759945125
+ 0.774596669241482  0.000000000000000 -0.774596669241482 0.2743484224965708
+ 0.774596669241482 -0.774596669241482  0.774596669241482 0.1714677640603571
+ 0.774596669241482 -0.774596669241482  0.000000000000000 0.2743484224965708
+ 0.774596669241482 -0.774596669241482 -0.774596669241482 0.1714677640603571
+ 0.000000000000000  0.774596669241482  0.774596669241482 0.2743484224965708
+ 0.000000000000000  0.774596669241482  0.000000000000000 0.4389574759945125
+ 0.000000000000000  0.774596669241482 -0.774596669241482 0.2743484224965708
+ 0.000000000000000  0.000000000000000  0.774596669241482 0.43895747599451246
+ 0.000000000000000  0.000000000000000  0.000000000000000 0.7023319615912186
+ 0.000000000000000  0.000000000000000 -0.774596669241482 0.43895747599451246
+ 0.000000000000000 -0.774596669241482  0.774596669241482 0.2743484224965708
+ 0.000000000000000 -0.774596669241482  0.000000000000000 0.4389574759945125
+ 0.000000000000000 -0.774596669241482 -0.774596669241482 0.2743484224965708
+-0.774596669241482  0.774596669241482  0.774596669241482 0.1714677640603571
+-0.774596669241482  0.774596669241482  0.000000000000000 0.2743484224965708
+-0.774596669241482  0.774596669241482 -0.774596669241482 0.1714677640603571
+-0.774596669241482  0.000000000000000  0.774596669241482 0.2743484224965708
+-0.774596669241482  0.000000000000000  0.000000000000000 0.4389574759945125
+-0.774596669241482  0.000000000000000 -0.774596669241482 0.2743484224965708
+-0.774596669241482 -0.774596669241482  0.774596669241482 0.1714677640603571
+-0.774596669241482 -0.774596669241482  0.000000000000000 0.2743484224965708
+-0.774596669241482 -0.774596669241482 -0.774596669241482 0.1714677640603571
+
+func
+$CC vol = 1.0;
+$cc fact = pe/(1.0+pv)/(1.0-pv*2.0)*vol;
+$cc shear = (0.5-pv);
+exx=+[a/r]
+
+eyy=+[b/o]
+
+ezz=+[c/z]
+
+exx=+[a/r]
+
+exy=+[a/o]
+
+eyx=+[c/o]
+
+eyy=+[c/z]
+
+eyz=+[b/r]*(pv+pv)+[b/r]*(pv+(1.-pv))+[b/r]*(pv+pv)-[a/o]
+
+exz=+[a/z]*(pv+(1.-kk))+[a/z]*(pv+pv)+[a/z]*(pv+pv)-[c/r]
+
+exy=+[a/o]*(pv+(1.-kk))+[a/o]*(pv+pv)+[a/o]*(pv+pv)-[b/r]
+
+$cc exx=+exx+exx;
+$cc exy=+eyx+exy;
+$cc eyx=+exy+eyx;
+$cc eyy=+eyy+eyy;
+
+stif
+dist=+[exx;exx]*(1.-kk)*fact
++[exx;eyy]*pv*fact
++[exx;ezz]*pv*fact
++[eyy;exx]*pv*fact
++[eyy;eyy]*(1.-pv)*fact
++[eyy;ezz]*pv*fact
++[ezz;exx]*pv*fact
++[ezz;eyy]*pv*fact
++[ezz;ezz]*(1.-pv)*fact
++[eyz;eyz]*shear*fact
++[exz;exz]*shear*fact
++[exy;exy]*shear*fact
+
+mass
+lump =
++[rou]u1
++[rou]u2
++[rou]u3
++[rou]u4
++[rou]u5
++[rou]u6
++[rou]u7
++[rou]u8
++[rou]v1
++[rou]v2
++[rou]v3
++[rou]v4
++[rou]v5
++[rou]v6
++[rou]v7
++[rou]v8
++[rou]w1
++[rou]w2
++[rou]w3
++[rou]w4
++[rou]w5
++[rou]w6
++[rou]w7
++[rou]w8
+
+damp
+lump =
++[rou*alpha]u1
++[rou*alpha]u2
++[rou*alpha]u3
++[rou*alpha]u4
++[rou*alpha]u5
++[rou*alpha]u6
++[rou*alpha]u7
++[rou*alpha]u8
++[rou*alpha]v1
++[rou*alpha]v2
++[rou*alpha]v3
++[rou*alpha]v4
++[rou*alpha]v5
++[rou*alpha]v6
++[rou*alpha]v7
++[rou*alpha]v8
++[rou*alpha]w1
++[rou*alpha]w2
++[rou*alpha]w3
++[rou*alpha]w4
++[rou*alpha]w5
++[rou*alpha]w6
++[rou*alpha]w7
++[rou*alpha]w8
+
+load
+load=+[u]*fx*vol
++[v]*fy*vol
++[w]*fz*vol
+
+end

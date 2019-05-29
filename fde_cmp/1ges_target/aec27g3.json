@@ -1,0 +1,161 @@
+{
+    "code": {
+        "BFmate": [
+            "Insr_C: double pe,pv,fx,fy,fz,rou,alpha;",
+            "Tnsr_Asgn: ev_i = +(ep_i+ep_j)*ep_i",
+            "Cplx_Asgn: ev_i = +(ep_i+ep_j)*ep_i",
+            "Cplx_Asgn: u=(u+v)*w/u",
+            "Oprt_Asgn: singular.roz"
+        ],
+        "func": [
+            "Oprt_Asgn: vol.xyz",
+            "Insr_C: fact = pe/(1.0+pv)/(1.0-pv*2.0)*vol;",
+            "Insr_C: shear = (0.5-pv);",
+            "Oprt_Asgn: [fe_i_j]=gradv.xyz(r,o,z,a,b,c)",
+            "Func_Asgn: ev_i=fe[1,5,9]",
+            "Func_Asgn: em_i_j=fe[1,2,8,9]",
+            "Func_Asgn: [fe_i_j]=+[fe_i_j]*(sm_j_i+sm_k_i)-[fe_j_i]",
+            "Func_Asgn: ep_i=fe[6,3,2]",
+            "Tnsr_Asgn: em_i_j = +em_j_i + em_i_j"
+        ]
+    },
+    "disp": [
+        "u",
+        "v",
+        "w"
+    ],
+    "coef": [
+        "un",
+        "vn",
+        "wn"
+    ],
+    "vect": {
+        "u": [
+            "u",
+            "v",
+            "w"
+        ],
+        "ev": [
+            "exx",
+            "eyy",
+            "ezz"
+        ],
+        "ep": [
+            "eyz",
+            "exz",
+            "exy"
+        ],
+        "f": [
+            "fx",
+            "fy",
+            "fz"
+        ]
+    },
+    "coor": [
+        "x",
+        "y",
+        "z"
+    ],
+    "func": [
+        "exx",
+        "eyy",
+        "ezz",
+        "eyz",
+        "exz",
+        "exy"
+    ],
+    "fmatr": {
+        "fe": [
+            "3",
+            "3",
+            [
+                "+[a/r]*((1.-kk)+(1.-kk))+[a/r]*((1.-kk)+pv)+[a/r]*((1.-kk)+pv)-[a/r]",
+                "+[a/o]*(pv+(1.-kk))+[a/o]*(pv+pv)+[a/o]*(pv+pv)-[b/r]",
+                "+[a/z]*(pv+(1.-kk))+[a/z]*(pv+pv)+[a/z]*(pv+pv)-[c/r]"
+            ],
+            [
+                "+[a/o]*(pv+(1.-kk))+[a/o]*(pv+pv)+[a/o]*(pv+pv)-[b/r]",
+                "+[a/z]*(pv+(1.-kk))+[a/z]*(pv+pv)+[a/z]*(pv+pv)-[c/r]",
+                "+[b/r]*(pv+pv)+[b/r]*(pv+(1.-pv))+[b/r]*(pv+pv)-[a/o]"
+            ],
+            [
+                "+[a/z]*(pv+(1.-kk))+[a/z]*(pv+pv)+[a/z]*(pv+pv)-[c/r]",
+                "+[b/r]*(pv+pv)+[b/r]*(pv+(1.-pv))+[b/r]*(pv+pv)-[a/o]",
+                "+[b/o]*((1.-pv)+pv)+[b/o]*((1.-pv)+(1.-pv))+[b/o]*((1.-pv)+pv)-[b/o]"
+            ]
+        ]
+    },
+    "shap": {
+        "c8": [
+            "u",
+            "v",
+            "w"
+        ]
+    },
+    "gaus": "g3",
+    "mate": {
+        "default": {
+            "pe": "1.0e10",
+            "pv": "0.3",
+            "fx": "0.0",
+            "fy": "0.0",
+            "fz": "0.0",
+            "rou": "3000.0",
+            "alpha": "0.6"
+        }
+    },
+    "mass": [
+        "lump",
+        "rou"
+    ],
+    "damp": [
+        "lump",
+        "rou*alpha"
+    ],
+    "matrix": {
+        "sm": [
+            [
+                "(1.-kk)",
+                "pv",
+                "pv"
+            ],
+            [
+                "pv",
+                "(1.-pv)",
+                "pv"
+            ],
+            [
+                "pv",
+                "pv",
+                "(1.-pv)"
+            ]
+        ],
+        "em": [
+            [
+                "exx",
+                "exy"
+            ],
+            [
+                "eyx",
+                "eyy"
+            ]
+        ]
+    },
+    "stif": [
+        "dist",
+        "+[ev_i;ev_j]*sm_i_j*fact",
+        "+[ep_i;ep_i]*shear*fact"
+    ],
+    "load": [
+        "+[u_i]*f_i*vol"
+    ],
+    "coef_shap": {
+        "c8": [
+            "un",
+            "vn",
+            "wn"
+        ]
+    },
+    "singular": "$i\n$CC r0=0.0;\n$CC for (i=1; i<=nnode; ++i) r0+=^coorr[1][i];\n$CC r0*=1.0e-003/nnode;\n$CC for (i=1; i<=nnode; ++i) {\n$CC if (^coorr[1][i]<r0) ^coorr[1][i]=r0; }\n",
+    "vol": "$CC vol = 1.0;\n"
+}
