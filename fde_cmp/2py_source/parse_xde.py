@@ -40,13 +40,13 @@ def parse_xde(gesname, coortype, keywd_tag, xde_lists, list_addr, keyws_reg,file
             stitchline = ''
             
         # 1.2 skip comment line and blank line
-        if line[0] == '\\' or line[0] == '\n' \
-        or (line[0] == '/' and line[1] == '/'):
+        if regx.match(r'\s*[\\(//)]*\n',line,regx.I) != None:
             continue
             
         # 1.3 identify commentbegin with '//'
         if line.find('//') != -1:
             line = line.split('//')[0]+'\n'
+            if regx.match(r'\$CC \n',line,regx.I) != None: continue
             
         # 1.4 retrieve the keywords
         regxrp = regx.search(keyws_reg,line,regx.I)
@@ -87,6 +87,10 @@ def parse_xde(gesname, coortype, keywd_tag, xde_lists, list_addr, keyws_reg,file
                      
                     xde_lists['code']['func'].append(line.strip())
                     list_addr['code']['func'].append(i)
+
+                elif keywd_tag['matrixtag'] != 0 :
+                    xde_lists['matrix'][matrixname].append(line.strip())
+                    list_addr['matrix'][matrixname].append(i)
             
             # 1.4.3 find maxtrix declaration
             elif keywd_tag['matrixtag'] != 0 :
@@ -127,6 +131,9 @@ def parse_xde(gesname, coortype, keywd_tag, xde_lists, list_addr, keyws_reg,file
                 
             elif regxrp.group().lower() == 'fvect':
                 pushcomdeclar('fvect',i, line, xde_lists, list_addr)
+                line_list = line.strip().split()
+                if len(line_list) == 2:
+                    xde_lists['fvect'][line_list[1]].append('1')
                 
             elif regxrp.group().find('$')!= -1 or regxrp.group().find('@')!= -1:
                 if regxrp.group().lower() == '$cp':
@@ -321,13 +328,13 @@ def parse_xde(gesname, coortype, keywd_tag, xde_lists, list_addr, keyws_reg,file
     mate_dict['default'] = {}
     mate_var = []
     mate_val = []
-    is_float = r'^[-+]?([0-9]+\.[0-9]*|[0-9]*\.[0-9]+)(e[0-9]*)?$'
+    is_var = r'[a-z]\w*'
     
     for strs in xde_lists['mate']:
-        if regx.search(is_float,strs,regx.I) == None :
-            mate_var.append(strs)
-        else:
+        if regx.match(is_var,strs,regx.I) == None :
             mate_val.append(strs)
+        else:
+            mate_var.append(strs)
     
     var_i = 0
     for var in mate_var:
@@ -420,7 +427,10 @@ def parse_xde(gesname, coortype, keywd_tag, xde_lists, list_addr, keyws_reg,file
                     pass
                 
                 elif regxrp.group().lower() == '@r':
-                    pass
+                    code_strs = code_strs[3:len(code_strs)]
+                    expr = code_strs.split('=')
+                    xde_lists['code'][code_place][code_i-1] \
+                    = 'Func_Asgn: ['+ expr[0].rstrip()+']='+expr[1].lstrip().replace('[','').replace(']','')
     #print(code)
 
     # 3.6 parsing 'matrix'

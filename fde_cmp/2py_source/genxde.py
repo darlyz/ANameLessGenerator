@@ -50,14 +50,14 @@ def main(argvs=None):
     gesfile = open('../1ges_target/'+argvs[2]+'.ges1', mode='w')
     xde2ges(argvs[2],argvs[3],keywd_tag,xde_lists,list_addr,keyws_reg,gesfile)
     gesfile.close()
-    
-    end   = time()
-    print ('parsing time: {}s'.format(end-start))
 
     import json
     file = open('../1ges_target/'+argvs[2]+'.json',mode='w')
     file.write(json.dumps(xde_lists,indent=4))
     file.close()
+    
+    end   = time()
+    print ('parsing time: {}s'.format(end-start))
 
     from xde2md import xde2md
     mdfile = open('../1ges_target/'+argvs[1]+'.md', mode='w')

@@ -38,9 +38,9 @@ def check_xde(xde_lists,list_addr,shap_tag,gaus_tag):
             declares += xde_lists[strs]
 
     # check mate
-    is_float = r'^[-+]?([0-9]+\.[0-9]*|[0-9]*\.[0-9]+)(e[0-9]*)?$'
+    is_var = r'[a-z]\w*'
     for vara in xde_lists['mate']:
-        if regx.search(is_float,vara,regx.I) == None :
+        if regx.match(is_var,vara,regx.I) != None :
             if vara not in c_declares['BFmate']:
                 not_declare(list_addr['mate'],vara,'')
 

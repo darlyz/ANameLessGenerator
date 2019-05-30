@@ -131,7 +131,7 @@ def xde2ges(gesname,coortype,keywd_tag,xde_lists,list_addr,keyws_reg,file):
         for shap_type in xde_lists['shap'].keys():
             
             shap_func = 'd'+dim+shap_type+'.sub'
-            path_shap = pfelacpath+'ges\\ges.lib'
+            path_shap = pfelacpath+'ges/ges.lib'
             file_shap = open(path_shap, mode='r')
             shap_find = 0
             shap_string = ''
@@ -203,7 +203,7 @@ def xde2ges(gesname,coortype,keywd_tag,xde_lists,list_addr,keyws_reg,file):
             or shap_tag[0].lower()=='q' \
             or shap_tag[0].lower()=='c':
             
-                path_gaus = pfelacpath+'ges\\gaus.pnt'
+                path_gaus = pfelacpath+'ges/gaus.pnt'
                 file_gaus = open(path_gaus, mode='r')
                 gaus_find = 0
                 gaus_axis = []
@@ -259,7 +259,7 @@ def xde2ges(gesname,coortype,keywd_tag,xde_lists,list_addr,keyws_reg,file):
             # 9.1.2 triangle shap
             elif shap_tag[0].lower()=='t':
             
-                path_gaus = pfelacpath+'ges\\gaust.pnt'
+                path_gaus = pfelacpath+'ges/gaust.pnt'
                 file_gaus = open(path_gaus, mode='r')
                 gaus_find = 0
                 gaus_string = ''
@@ -290,7 +290,7 @@ def xde2ges(gesname,coortype,keywd_tag,xde_lists,list_addr,keyws_reg,file):
             # 9.1.3  tetrahedron shap    
             elif shap_tag[0].lower()=='w':
             
-                path_gaus = pfelacpath+'ges\\gausw.pnt'
+                path_gaus = pfelacpath+'ges/gausw.pnt'
                 file_gaus = open(path_gaus, mode='r')
                 gaus_find = 0
                 gaus_string = ''
@@ -322,7 +322,7 @@ def xde2ges(gesname,coortype,keywd_tag,xde_lists,list_addr,keyws_reg,file):
         
         # 9.2 node integral    
         else:
-            path_gaus = pfelacpath+'ges\\ges.lib'
+            path_gaus = pfelacpath+'ges/ges.lib'
             file_gaus = open(path_gaus, mode='r')
             gaus_find = 0
             gaus_string = ''
@@ -403,66 +403,117 @@ def xde2ges(gesname,coortype,keywd_tag,xde_lists,list_addr,keyws_reg,file):
 
     file.close()
 
+    import json
+    file = open('../1ges_target/code_use_dict.json',mode='w')
+    file.write(json.dumps(code_use_dict,indent=4))
+    file.close()
+
 def release_code(xde_lists,code_place,pfelacpath,code_use_dict):
     
     for strs in xde_lists['code'][code_place]:
         
         regxrp = regx.search(r'Insr|Tnsr|Cplx|Oprt|Func',strs,regx.I)
-        
-        # Insert C code
-        if   regxrp.group() == 'Insr':
-            code_use_dict[code_place].append(strs.replace('Insr_C:','$cc')+'\n')
-        
-        # Tensor expr summation
-        elif regxrp.group() == 'Tnsr':
-        
-            vector_expr = strs.replace('Tnsr_Asgn: ','')
-            left_var  = vector_expr.split('=')[0].strip()
-            righ_expr = vector_expr.split('=')[1].strip()
 
-            expr_list = idx_summation(left_var,righ_expr,xde_lists)
-            for exprs in expr_list:
-                code_use_dict[code_place].append('$cc '+exprs+';\n')
-
-        # complex expr expansion    
-        elif regxrp.group() == 'Cplx':
-            complex_expr = strs.replace('Cplx_Asgn: ','')
-            left_var  = complex_expr.split('=')[0].strip()
-            righ_expr = complex_expr.split('=')[1].strip()
-
-            # if complex expr is a tensor expr, make summation first
-            if left_var .find('_') != -1 \
-            or righ_expr.find('_') != -1 :
+        if regxrp == None:
+            code_use_dict[code_place].append(strs+'\n')
+        else:
+        
+            # Insert C code
+            if   regxrp.group() == 'Insr':
+                code_use_dict[code_place].append(strs.replace('Insr_C:','$cc')+'\n')
+            
+            # Tensor expr summation
+            elif regxrp.group() == 'Tnsr':
+            
+                vector_expr = strs.replace('Tnsr_Asgn: ','')
+                left_var  = vector_expr.split('=')[0].strip()
+                righ_expr = vector_expr.split('=')[1].strip()
+    
                 expr_list = idx_summation(left_var,righ_expr,xde_lists)
                 for exprs in expr_list:
-                    cmplx_list = exprs.split('=')
-                    aa = cmplx_expr(cmplx_list[1])
-                    for ri,cmplexpr in zip(['r','i'],aa.complex_list):
-                        code_use_dict[code_place].append('$cc {}{}={}\n'.format(cmplx_list[0],ri,cmplexpr))
-            else:
-                bb = cmplx_expr(righ_expr)
-                i = 0
-                for ri,cmplexpr in zip(['r','i'],bb.complex_list):
-                    code_use_dict[code_place].append('$cc {}{}={}\n'.format(left_var,ri,cmplexpr))
-                i += 1
-
-        # the operator resault assignment
-        elif regxrp.group() == 'Oprt':
-            path_oprt = pfelacpath+'ges\\pde.lib'
-            file_oprt = open(path_oprt, mode='r')
-            oprt_expr = strs.replace('Oprt_Asgn: ','')
-            
-            # singularity and volume operators
-            for oprt_key in ['singular','vol']:
-                if oprt_expr.find(oprt_key) != -1:
+                    code_use_dict[code_place].append('$cc '+exprs+';\n')
+    
+            # complex expr expansion    
+            elif regxrp.group() == 'Cplx':
+                complex_expr = strs.replace('Cplx_Asgn: ','')
+                left_var  = complex_expr.split('=')[0].strip()
+                righ_expr = complex_expr.split('=')[1].strip()
+    
+                # if complex expr is a tensor expr, make summation first
+                if left_var .find('_') != -1 \
+                or righ_expr.find('_') != -1 :
+                    expr_list = idx_summation(left_var,righ_expr,xde_lists)
+                    for exprs in expr_list:
+                        cmplx_list = exprs.split('=')
+                        aa = cmplx_expr(cmplx_list[1])
+                        for ri,cmplexpr in zip(['r','i'],aa.complex_list):
+                            code_use_dict[code_place].append('$cc {}{}={}\n'.format(cmplx_list[0],ri,cmplexpr))
+                else:
+                    bb = cmplx_expr(righ_expr)
+                    i = 0
+                    for ri,cmplexpr in zip(['r','i'],bb.complex_list):
+                        code_use_dict[code_place].append('$cc {}{}={}\n'.format(left_var,ri,cmplexpr))
+                    i += 1
+    
+            # the operator resault assignment
+            elif regxrp.group() == 'Oprt':
+                path_oprt = pfelacpath+'ges/pde.lib'
+                file_oprt = open(path_oprt, mode='r')
+                oprt_expr = strs.replace('Oprt_Asgn: ','')
+                
+                # singularity and volume operators
+                for oprt_key in ['singular','vol']:
+                    if oprt_expr.find(oprt_key) != -1:
+                        oprt_strs = ''
+                        oprt_find = 0
+    
+                        for line in file_oprt.readlines():
+                            oprt_start_file = regx.match('sub '+oprt_expr+'\(',line,regx.I)
+                            oprt_end_file   = regx.match('end '+oprt_expr,line,regx.I)
+                            if oprt_start_file != None:
+                                oprt_find = 1
+                                continue
+                            if oprt_end_file   != None:
+                                oprt_find = 0
+                                continue
+                            if oprt_find == 1:
+                                oprt_strs+=line
+    
+                        xde_lists[oprt_key] = oprt_strs
+    
+                # other operators as grad, div, curl...
+                if  oprt_expr.find('singular') == -1 \
+                and oprt_expr.find('vol') == -1 :
+    
+                    # split aa=grad.xy(x,y,u) to aa, grad.xy, [x,y,u]
+                    left_var  = oprt_expr.split('=')[0]
+                    righ_expr = oprt_expr.split('=')[1]
+                    oprt_name = righ_expr.split('(')[0]
+                    oprt_vars = righ_expr.split('(')[1].rstrip(')').split(',')
+                    temp_vars = []
+    
+                    # expand vector variable list [x_i,a_i...] --> [x,y,z,a1,a2,...]
+                    for vara in oprt_vars:
+                        if vara.count('_') == 0:
+                            temp_vars.append(vara)
+                        elif vara.count('_') == 1:
+                            vect_var = vara.split('_')[0]
+                            temp_vars += xde_lists['vect'][vect_var]
+                        elif vara.count('_') == 2:
+                            matr_var = vara.split('_')[0]
+                            for matr_row in xde_lists['matrix'][matr_var]:
+                                temp_vars += matr_row
+                    oprt_vars = temp_vars.copy()
+    
                     oprt_strs = ''
                     oprt_find = 0
-
+                    # find operator in pde.lib
                     for line in file_oprt.readlines():
-                        oprt_start_file = regx.search('sub '+oprt_expr,line,regx.I)
-                        oprt_end_file   = regx.search('end '+oprt_expr,line,regx.I)
+                        oprt_start_file = regx.search('sub '+oprt_name+'\(',line,regx.I)
+                        oprt_end_file   = regx.search('end '+oprt_name,line,regx.I)
                         if oprt_start_file != None:
                             oprt_find = 1
+                            temp_vars = line.split('(')[1].rstrip().rstrip(')').split(',').copy()
                             continue
                         if oprt_end_file   != None:
                             oprt_find = 0
@@ -470,205 +521,164 @@ def release_code(xde_lists,code_place,pfelacpath,code_use_dict):
                         if oprt_find == 1:
                             oprt_strs+=line
 
-                    xde_lists[oprt_key] = oprt_strs
+                    # replace default variable by operator variable
+                    if len(oprt_vars) == len(temp_vars):
+                        for oprt_var, temp_var in zip(oprt_vars, temp_vars):
+                            oprt_strs = oprt_strs.replace(temp_var,oprt_var)
 
-            # other operators as grad, div, curl...
-            if  oprt_expr.find('singular') == -1 \
-            and oprt_expr.find('vol') == -1 :
-
-                # split aa=grad.xy(x,y,u) to aa, grad.xy, [x,y,u]
-                left_var  = oprt_expr.split('=')[0]
-                righ_expr = oprt_expr.split('=')[1]
-                oprt_name = righ_expr.split('(')[0]
-                oprt_vars = righ_expr.split('(')[1].rstrip(')').split(',')
-                temp_vars = []
-
-                # expand vector variable list [x_i,a_i...] --> [x,y,z,a1,a2,...]
-                for vara in oprt_vars:
-                    if vara.count('_') == 0:
-                        temp_vars.append(vara)
-                    elif vara.count('_') == 1:
-                        vect_var = vara.split('_')[0]
-                        temp_vars += xde_lists['vect'][vect_var]
-                    elif vara.count('_') == 2:
-                        matr_var = vara.split('_')[0]
-                        for matr_row in xde_lists['matrix'][matr_var]:
-                            temp_vars += matr_row
-                oprt_vars = temp_vars.copy()
-
-                oprt_strs = ''
-                oprt_find = 0
-                # find operator in pde.lib
-                for line in file_oprt.readlines():
-                    oprt_start_file = regx.search('sub '+oprt_name,line,regx.I)
-                    oprt_end_file   = regx.search('end '+oprt_name,line,regx.I)
-                    if oprt_start_file != None:
-                        oprt_find = 1
-                        temp_vars = line.split('(')[1].rstrip().rstrip(')').split(',').copy()
-                        continue
-                    if oprt_end_file   != None:
-                        oprt_find = 0
-                        continue
-                    if oprt_find == 1:
-                        oprt_strs+=line
-                
-                # replace default variable by operator variable
-                if len(oprt_vars) == len(temp_vars):
-                    for dflt_var, oprt_var in zip(temp_vars,oprt_vars):
-                        oprt_strs = oprt_strs.replace(dflt_var,oprt_var)
-
-                # assign to a temporary list type of 'fvect' or 'fmatr' 
-                # used for derivative of 'disp' variables in Func_Asgn step
-                if  left_var[0]  == '[' \
-                and left_var[-1] == ']' :
-                    oprt_list = oprt_strs.rstrip().split('\n')
-                    if left_var.count('_') == 0:
-                        oprt_expr = left_var.lstrip('[').rstrip(']')+'='
-                        for vara in oprt_list:
-                            oprt_expr += vara
-                        code_use_dict[code_place].append(oprt_expr)
-                    elif left_var.count('_') == 1:
-                        oprt_expr = left_var.lstrip('[').rstrip(']').split('_')[0]
-                        for vara in oprt_list:
-                            xde_lists['fvect'][oprt_expr].append(vara)
-
-                    elif left_var.count('_') == 2:
-                        oprt_expr = left_var.lstrip('[').rstrip(']').split('_')[0]
-                        row = int(xde_lists['fmatr'][oprt_expr][0])
-                        clm = int(xde_lists['fmatr'][oprt_expr][1])
-                        for iii in range(row):
-                            xde_lists['fmatr'][oprt_expr].append([])
-                            for jjj in range(clm):
-                                xde_lists['fmatr'][oprt_expr][iii+2].append(oprt_list[iii*row+jjj])
-
-                # assign to derivative of distributed known variables such as last step 'disp' resault
-                elif left_var[0]  != '[' \
-                and  left_var[-1] != ']' :
-                    oprt_strs = oprt_strs.replace('[','{').replace(']','}')
-                    oprt_list = oprt_strs.rstrip().split('\n')
-                    if left_var.count('_') == 0:
-                        oprt_expr = left_var.lstrip('[').rstrip(']')+'='
-                        for vara in oprt_list:
-                            oprt_expr += vara
-                        code_use_dict[code_place].append(oprt_expr)
-                    elif left_var.count('_') == 1:
-                        oprt_expr = left_var.lstrip('[').rstrip(']').split('_')[0]
-                        if len(xde_lists['vect'][oprt_expr]) == len(oprt_list):
-                            for iii in range(len(oprt_list)):
-                                code_use_dict[code_place].append(xde_lists['vect'][oprt_expr][iii]+'='+oprt_list[iii])
-                    elif left_var.count('_') == 2:
-                        oprt_expr = left_var.lstrip('[').rstrip(']').split('_')[0]
-                        matr_len = 0
-                        for lists in xde_lists['matrix'][oprt_expr]:
-                            matr_len += len(lists)
-                        if matr_len == len(oprt_list):
-                            iii = 0
+                    # assign to a temporary list type of 'fvect' or 'fmatr' 
+                    # used for derivative of 'disp' variables in Func_Asgn step
+                    if  left_var[0]  == '[' \
+                    and left_var[-1] == ']' :
+                        oprt_list = oprt_strs.rstrip().split('\n')
+                        if left_var.count('_') == 0:
+                            oprt_expr = left_var.lstrip('[').rstrip(']')+'='
+                            for vara in oprt_list:
+                                oprt_expr += vara
+                            code_use_dict[code_place].append(oprt_expr)
+                        elif left_var.count('_') == 1:
+                            oprt_expr = left_var.lstrip('[').rstrip(']').split('_')[0]
+                            for vara in oprt_list:
+                                xde_lists['fvect'][oprt_expr].append(vara)
+    
+                        elif left_var.count('_') == 2:
+                            oprt_expr = left_var.lstrip('[').rstrip(']').split('_')[0]
+                            row = int(xde_lists['fmatr'][oprt_expr][0])
+                            clm = int(xde_lists['fmatr'][oprt_expr][1])
+                            for iii in range(row):
+                                xde_lists['fmatr'][oprt_expr].append([])
+                                for jjj in range(clm):
+                                    xde_lists['fmatr'][oprt_expr][iii+2].append(oprt_list[iii*row+jjj])
+    
+                    # assign to derivative of distributed known variables such as last step 'disp' resault
+                    elif left_var[0]  != '[' \
+                    and  left_var[-1] != ']' :
+                        oprt_strs = oprt_strs.replace('[','{').replace(']','}')
+                        oprt_list = oprt_strs.rstrip().split('\n')
+                        if left_var.count('_') == 0:
+                            oprt_expr = left_var.lstrip('[').rstrip(']')+'='
+                            for vara in oprt_list:
+                                oprt_expr += vara
+                            code_use_dict[code_place].append(oprt_expr)
+                        elif left_var.count('_') == 1:
+                            oprt_expr = left_var.lstrip('[').rstrip(']').split('_')[0]
+                            if len(xde_lists['vect'][oprt_expr]) == len(oprt_list):
+                                for iii in range(len(oprt_list)):
+                                    code_use_dict[code_place].append(xde_lists['vect'][oprt_expr][iii]+'='+oprt_list[iii])
+                        elif left_var.count('_') == 2:
+                            oprt_expr = left_var.lstrip('[').rstrip(']').split('_')[0]
+                            matr_len = 0
                             for lists in xde_lists['matrix'][oprt_expr]:
-                                for strss in lists:
-                                    code_use_dict[code_place].append('$cv '+strss+'='+oprt_list[iii]+'\n')
-                                    iii += 1
-            file_oprt.close()
-
-        elif regxrp.group() == 'Func':
-            left_var  = strs.split(' ')[1].split('=')[0]
-            righ_expr = strs.split(' ')[1].split('=')[1]
-
-            # assign the temporary list type of 'fvect' or 'fmatr'
-            # to the list type of 'vect' or 'matrix'
-            if  left_var[0]  != '[' \
-            and left_var[-1] != ']' :
-                if regx.search(r'[a-z]+[0-9a-z]*\[[0-9]',righ_expr,regx.I) != None \
-                and righ_expr[-1] == ']':
-
-                    righ_var = righ_expr.split('[')[0]
-                    righ_idx = righ_expr.split('[')[1].rstrip(']').split(',')
-
-                    if left_var.count('_') == 0:
-                        oprt_expr = left_var+'='
-
-                        if 'fvect' in xde_lists \
-                        and righ_var in xde_lists['fvect']:
-                            for idx in righ_idx:
-                                oprt_expr += xde_lists['fvect'][righ_var][int(idx)]
-
-                        elif 'fmatr' in xde_lists \
-                        and righ_var in xde_lists['fmatr']:
-
-                            row = int(xde_lists['fmatr'][righ_var][0])
-                            clm = int(xde_lists['fmatr'][righ_var][1])
-                            fmatr = xde_lists['fmatr'][righ_var][2:len(xde_lists['fmatr'][righ_var])]
-
-                            for idx in righ_idx:
-                                oprt_expr += fmatr[math.ceil(int(idx)/clm)-1][int(idx)%clm-1]
-
-                        code_use_dict[code_place].append(oprt_expr+'\n\n')
-
-                    elif left_var.count('_') == 1: 
-                        left_vara_name = left_var.split('_')[0]
-                        oprt_expr_list = []
-
-                        if len(xde_lists['vect'][left_vara_name]) == len(righ_idx):
+                                matr_len += len(lists)
+                            if matr_len == len(oprt_list):
+                                iii = 0
+                                for lists in xde_lists['matrix'][oprt_expr]:
+                                    for strss in lists:
+                                        code_use_dict[code_place].append('$cv '+strss+'='+oprt_list[iii]+'\n')
+                                        iii += 1
+                file_oprt.close()
+    
+            elif regxrp.group() == 'Func':
+                left_var  = strs.split(' ')[1].split('=')[0]
+                righ_expr = strs.split(' ')[1].split('=')[1]
+    
+                # assign the temporary list type of 'fvect' or 'fmatr'
+                # to the list type of 'vect' or 'matrix'
+                if  left_var[0]  != '[' \
+                and left_var[-1] != ']' :
+                    if regx.search(r'[a-z]+[0-9a-z]*\[([0-9],)*[0-9]?\]',righ_expr,regx.I) != None \
+                    and righ_expr[-1] == ']':
+                        print(righ_expr)
+    
+                        righ_var = righ_expr.split('[')[0]
+                        righ_idx = righ_expr.split('[')[1].rstrip(']').split(',')
+    
+                        if left_var.count('_') == 0:
+                            oprt_expr = left_var+'='
+    
                             if 'fvect' in xde_lists \
                             and righ_var in xde_lists['fvect']:
-                                for vara,idx in zip(xde_lists['vect'][left_vara_name],righ_idx):
-                                    oprt_expr_list.append(vara+'='+xde_lists['fvect'][righ_var][int(idx)]+'\n\n')
-
+                                for idx in righ_idx:
+                                    oprt_expr += xde_lists['fvect'][righ_var][int(idx)]
+    
                             elif 'fmatr' in xde_lists \
                             and righ_var in xde_lists['fmatr']:
+    
                                 row = int(xde_lists['fmatr'][righ_var][0])
                                 clm = int(xde_lists['fmatr'][righ_var][1])
                                 fmatr = xde_lists['fmatr'][righ_var][2:len(xde_lists['fmatr'][righ_var])]
-                                for vara,idx in zip(xde_lists['vect'][left_vara_name],righ_idx):
-                                    oprt_expr_list.append(vara+'='+fmatr[math.ceil(int(idx)/clm)-1][int(idx)%clm-1]+'\n\n')
-
-                        code_use_dict[code_place] += oprt_expr_list
-
+    
+                                for idx in righ_idx:
+                                    oprt_expr += fmatr[math.ceil(int(idx)/clm)-1][int(idx)%clm-1]
+    
+                            code_use_dict[code_place].append(oprt_expr+'\n\n')
+    
+                        elif left_var.count('_') == 1: 
+                            left_vara_name = left_var.split('_')[0]
+                            oprt_expr_list = []
+    
+                            if len(xde_lists['vect'][left_vara_name]) == len(righ_idx):
+                                if 'fvect' in xde_lists \
+                                and righ_var in xde_lists['fvect']:
+                                    for vara,idx in zip(xde_lists['vect'][left_vara_name],righ_idx):
+                                        oprt_expr_list.append(vara+'='+xde_lists['fvect'][righ_var][int(idx)]+'\n\n')
+    
+                                elif 'fmatr' in xde_lists \
+                                and righ_var in xde_lists['fmatr']:
+                                    row = int(xde_lists['fmatr'][righ_var][0])
+                                    clm = int(xde_lists['fmatr'][righ_var][1])
+                                    fmatr = xde_lists['fmatr'][righ_var][2:len(xde_lists['fmatr'][righ_var])]
+                                    for vara,idx in zip(xde_lists['vect'][left_vara_name],righ_idx):
+                                        oprt_expr_list.append(vara+'='+fmatr[math.ceil(int(idx)/clm)-1][int(idx)%clm-1]+'\n\n')
+    
+                            code_use_dict[code_place] += oprt_expr_list
+    
+                        elif left_var.count('_') == 2:
+                            left_vara_name = left_var.split('_')[0]
+                            oprt_expr_list = []
+                            matr_len = 0
+                            for lists in xde_lists['matrix'][left_vara_name]:
+                                matr_len += len(lists)
+    
+                            if matr_len == len(righ_idx):
+                                if 'fvect' in xde_lists \
+                                and righ_var in xde_lists['fvect']:
+                                    idx = 0
+                                    for lists in xde_lists['matrix'][left_vara_name]:
+                                        for vara in lists:
+                                            idx+=1
+                                            oprt_expr_list.append(vara+'='+xde_lists['fvect'][righ_var][idx]+'\n\n')
+    
+                                elif 'fmatr' in xde_lists \
+                                and righ_var in xde_lists['fmatr']:
+                                    fmatr = xde_lists['fmatr'][righ_var][2:len(xde_lists['fmatr'][righ_var])]
+                                    i = 0
+                                    for matr_row in xde_lists['matrix'][left_vara_name]:
+                                        for matr_vara in matr_row:
+                                            idx = righ_idx[i]
+                                            oprt_expr_list.append(matr_vara+'='+fmatr[math.ceil(int(idx)/clm)-1][int(idx)%clm-1]+'\n\n')
+                                            i += 1
+    
+                            code_use_dict[code_place] += oprt_expr_list
+    
+                # assign the temporary list type of 'fvect' or 'fmatr'
+                # to the list type of 'fvect' or 'fmatr'
+                elif left_var[0]  == '[' \
+                and  left_var[-1] == ']' : 
+                    vector_expr = strs.replace('Func_Asgn: ','').replace('[','').replace(']','')
+                    left_var  = vector_expr.split('=')[0].strip()
+                    righ_expr = vector_expr.split('=')[1].strip()
+                    expr_list = idx_summation(left_var,righ_expr,xde_lists)
+    
+                    if left_var.count('_') == 1:
+                        left_var = left_var.split('_')[0]
+                        for ii in range(1,len(xde_lists['fvect'][left_var])):
+                            xde_lists['fvect'][left_var][ii] \
+                                = expr_list[ii-1].split('=')[1].replace('++','+').replace('-+','-')
                     elif left_var.count('_') == 2:
-                        left_vara_name = left_var.split('_')[0]
-                        oprt_expr_list = []
-                        matr_len = 0
-                        for lists in xde_lists['matrix'][left_vara_name]:
-                            matr_len += len(lists)
-
-                        if matr_len == len(righ_idx):
-                            if 'fvect' in xde_lists \
-                            and righ_var in xde_lists['fvect']:
-                                idx = 0
-                                for lists in xde_lists['matrix'][left_vara_name]:
-                                    for vara in lists:
-                                        idx+=1
-                                        oprt_expr_list.append(vara+'='+xde_lists['fvect'][righ_var][idx]+'\n\n')
-
-                            elif 'fmatr' in xde_lists \
-                            and righ_var in xde_lists['fmatr']:
-                                fmatr = xde_lists['fmatr'][righ_var][2:len(xde_lists['fmatr'][righ_var])]
-                                i = 0
-                                for matr_row in xde_lists['matrix'][left_vara_name]:
-                                    for matr_vara in matr_row:
-                                        idx = righ_idx[i]
-                                        oprt_expr_list.append(matr_vara+'='+fmatr[math.ceil(int(idx)/clm)-1][int(idx)%clm-1]+'\n\n')
-                                        i += 1
-
-                        code_use_dict[code_place] += oprt_expr_list
-
-            # assign the temporary list type of 'fvect' or 'fmatr'
-            # to the list type of 'fvect' or 'fmatr'
-            elif left_var[0]  == '[' \
-            and  left_var[-1] == ']' : 
-                vector_expr = strs.replace('Func_Asgn: ','').replace('[','').replace(']','')
-                left_var  = vector_expr.split('=')[0].strip()
-                righ_expr = vector_expr.split('=')[1].strip()
-                expr_list = idx_summation(left_var,righ_expr,xde_lists)
-
-                if left_var.count('_') == 1:
-                    left_var = left_var.split('_')[0]
-                    for ii in range(1,len(xde_lists['fvect'][left_var])):
-                        xde_lists['fvect'][left_var][ii] \
-                            = expr_list[ii-1].split('=')[1].replace('++','+').replace('-+','-')
-                elif left_var.count('_') == 2:
-                    left_var = left_var.split('_')[0]
-                    for ii in range(2,len(xde_lists['fmatr'][left_var])):
-                        for jj in range(len(xde_lists['fmatr'][left_var][2])):
-                            xde_lists['fmatr'][left_var][ii][jj] \
-                                = expr_list[ii-2+jj].split('=')[1].replace('++','+').replace('-+','-')
+                        left_var = left_var.split('_')[0]
+                        for ii in range(2,len(xde_lists['fmatr'][left_var])):
+                            for jj in range(len(xde_lists['fmatr'][left_var][2])):
+                                xde_lists['fmatr'][left_var][ii][jj] \
+                                    = expr_list[ii-2+jj].split('=')[1].replace('++','+').replace('-+','-')
 
