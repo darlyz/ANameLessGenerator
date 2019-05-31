@@ -173,6 +173,8 @@ def xde2ges(gesname,coortype,keywd_tag,xde_lists,list_addr,keyws_reg,file):
         trans_list = main_shap_string.split('\n')
         trans_list.remove('')
         tran_list = []
+
+        print(shap_type,shap_tag)
         
         # 9.2.1 add '()'
         for strs in trans_list:
@@ -427,7 +429,7 @@ def release_code(xde_lists,code_place,pfelacpath,code_use_dict):
             
                 vector_expr = strs.replace('Tnsr_Asgn: ','')
                 left_var  = vector_expr.split('=')[0].strip()
-                righ_expr = vector_expr.split('=')[1].strip()
+                righ_expr = vector_expr.split('=')[1].strip().strip(';')
     
                 expr_list = idx_summation(left_var,righ_expr,xde_lists)
                 for exprs in expr_list:
@@ -437,7 +439,7 @@ def release_code(xde_lists,code_place,pfelacpath,code_use_dict):
             elif regxrp.group() == 'Cplx':
                 complex_expr = strs.replace('Cplx_Asgn: ','')
                 left_var  = complex_expr.split('=')[0].strip()
-                righ_expr = complex_expr.split('=')[1].strip()
+                righ_expr = complex_expr.split('=')[1].strip().strip(';')
     
                 # if complex expr is a tensor expr, make summation first
                 if left_var .find('_') != -1 \
@@ -447,12 +449,12 @@ def release_code(xde_lists,code_place,pfelacpath,code_use_dict):
                         cmplx_list = exprs.split('=')
                         aa = cmplx_expr(cmplx_list[1])
                         for ri,cmplexpr in zip(['r','i'],aa.complex_list):
-                            code_use_dict[code_place].append('$cc {}{}={}\n'.format(cmplx_list[0],ri,cmplexpr))
+                            code_use_dict[code_place].append('$cc {}{}={};\n'.format(cmplx_list[0],ri,cmplexpr))
                 else:
                     bb = cmplx_expr(righ_expr)
                     i = 0
                     for ri,cmplexpr in zip(['r','i'],bb.complex_list):
-                        code_use_dict[code_place].append('$cc {}{}={}\n'.format(left_var,ri,cmplexpr))
+                        code_use_dict[code_place].append('$cc {}{}={};\n'.format(left_var,ri,cmplexpr))
                     i += 1
     
             # the operator resault assignment
@@ -498,10 +500,15 @@ def release_code(xde_lists,code_place,pfelacpath,code_use_dict):
                             temp_vars.append(vara)
                         elif vara.count('_') == 1:
                             vect_var = vara.split('_')[0]
-                            temp_vars += xde_lists['vect'][vect_var]
+                            temp_list = xde_lists['vect'][vect_var].copy()
+                            temp_list.pop(0)
+                            temp_vars += temp_list
                         elif vara.count('_') == 2:
                             matr_var = vara.split('_')[0]
-                            for matr_row in xde_lists['matrix'][matr_var]:
+                            temp_list = xde_lists['matrix'][matr_var].copy()
+                            temp_list.pop(0)
+                            temp_list.pop(0)
+                            for matr_row in temp_list:
                                 temp_vars += matr_row
                     oprt_vars = temp_vars.copy()
     
@@ -528,6 +535,7 @@ def release_code(xde_lists,code_place,pfelacpath,code_use_dict):
 
                     # assign to a temporary list type of 'fvect' or 'fmatr' 
                     # used for derivative of 'disp' variables in Func_Asgn step
+                    # Oprt_Asgn: [a] = opr(*,*) ----------- @L opr f a * *
                     if  left_var[0]  == '[' \
                     and left_var[-1] == ']' :
                         oprt_list = oprt_strs.rstrip().split('\n')
@@ -538,19 +546,19 @@ def release_code(xde_lists,code_place,pfelacpath,code_use_dict):
                             code_use_dict[code_place].append(oprt_expr)
                         elif left_var.count('_') == 1:
                             oprt_expr = left_var.lstrip('[').rstrip(']').split('_')[0]
-                            for vara in oprt_list:
-                                xde_lists['fvect'][oprt_expr].append(vara)
+                            for ii in range(len(oprt_list)):
+                                xde_lists['fvect'][oprt_expr][ii+1] = oprt_list[ii]
     
                         elif left_var.count('_') == 2:
                             oprt_expr = left_var.lstrip('[').rstrip(']').split('_')[0]
                             row = int(xde_lists['fmatr'][oprt_expr][0])
                             clm = int(xde_lists['fmatr'][oprt_expr][1])
                             for iii in range(row):
-                                xde_lists['fmatr'][oprt_expr].append([])
                                 for jjj in range(clm):
-                                    xde_lists['fmatr'][oprt_expr][iii+2].append(oprt_list[iii*row+jjj])
-    
+                                    xde_lists['fmatr'][oprt_expr][iii+2][jjj]=oprt_list[iii*row+jjj]
+
                     # assign to derivative of distributed known variables such as last step 'disp' resault
+                    # Oprt_Asgn: a = opr(*,*) ----------- @L opr [svm] a * *
                     elif left_var[0]  != '[' \
                     and  left_var[-1] != ']' :
                         oprt_strs = oprt_strs.replace('[','{').replace(']','}')
@@ -562,17 +570,19 @@ def release_code(xde_lists,code_place,pfelacpath,code_use_dict):
                             code_use_dict[code_place].append(oprt_expr)
                         elif left_var.count('_') == 1:
                             oprt_expr = left_var.lstrip('[').rstrip(']').split('_')[0]
-                            if len(xde_lists['vect'][oprt_expr]) == len(oprt_list):
+                            if len(xde_lists['vect'][oprt_expr]) == len(oprt_list)+1:
                                 for iii in range(len(oprt_list)):
-                                    code_use_dict[code_place].append(xde_lists['vect'][oprt_expr][iii]+'='+oprt_list[iii])
+                                    code_use_dict[code_place].append(xde_lists['vect'][oprt_expr][iii+1]+'='+oprt_list[iii])
                         elif left_var.count('_') == 2:
                             oprt_expr = left_var.lstrip('[').rstrip(']').split('_')[0]
-                            matr_len = 0
-                            for lists in xde_lists['matrix'][oprt_expr]:
-                                matr_len += len(lists)
+                            matr_len = int(xde_lists['matrix'][oprt_expr][0]) \
+                                     * int(xde_lists['matrix'][oprt_expr][1])
+                            temp_list = xde_lists['matrix'][oprt_expr].copy()
+                            temp_list.pop(0)
+                            temp_list.pop(0)
                             if matr_len == len(oprt_list):
                                 iii = 0
-                                for lists in xde_lists['matrix'][oprt_expr]:
+                                for lists in temp_list:
                                     for strss in lists:
                                         code_use_dict[code_place].append('$cv '+strss+'='+oprt_list[iii]+'\n')
                                         iii += 1
@@ -586,12 +596,23 @@ def release_code(xde_lists,code_place,pfelacpath,code_use_dict):
                 # to the list type of 'vect' or 'matrix'
                 if  left_var[0]  != '[' \
                 and left_var[-1] != ']' :
+
+                    # Func_Asgn: a = b[*,*] --------- @W a b * *
                     if regx.search(r'[a-z]+[0-9a-z]*\[([0-9],)*[0-9]?\]',righ_expr,regx.I) != None \
                     and righ_expr[-1] == ']':
-                        print(righ_expr)
     
                         righ_var = righ_expr.split('[')[0]
-                        righ_idx = righ_expr.split('[')[1].rstrip(']').split(',')
+                        if righ_expr[-1] == ']' and righ_expr[-2] == '[':
+                            if 'fvect' in xde_lists \
+                            and righ_var in xde_lists['fvect']:
+                                righ_idx = list(range(int(xde_lists['fvect'][righ_var][0])))
+                            elif 'fmatr' in xde_lists \
+                            and righ_var in xde_lists['fmatr']:
+                                righ_idx = list(range(int(xde_lists['fvect'][righ_var][0]) \
+                                                     *int(xde_lists['fvect'][righ_var][1])))
+                            righ_idx = [x + 1 for x in righ_idx]
+                        else:
+                            righ_idx = righ_expr.split('[')[1].rstrip(']').split(',')
     
                         if left_var.count('_') == 0:
                             oprt_expr = left_var+'='
@@ -616,11 +637,13 @@ def release_code(xde_lists,code_place,pfelacpath,code_use_dict):
                         elif left_var.count('_') == 1: 
                             left_vara_name = left_var.split('_')[0]
                             oprt_expr_list = []
+                            temp_list = xde_lists['vect'][left_vara_name].copy()
+                            temp_list.pop(0)
     
-                            if len(xde_lists['vect'][left_vara_name]) == len(righ_idx):
+                            if len(temp_list) == len(righ_idx):
                                 if 'fvect' in xde_lists \
                                 and righ_var in xde_lists['fvect']:
-                                    for vara,idx in zip(xde_lists['vect'][left_vara_name],righ_idx):
+                                    for vara,idx in zip(temp_list,righ_idx):
                                         oprt_expr_list.append(vara+'='+xde_lists['fvect'][righ_var][int(idx)]+'\n\n')
     
                                 elif 'fmatr' in xde_lists \
@@ -628,7 +651,7 @@ def release_code(xde_lists,code_place,pfelacpath,code_use_dict):
                                     row = int(xde_lists['fmatr'][righ_var][0])
                                     clm = int(xde_lists['fmatr'][righ_var][1])
                                     fmatr = xde_lists['fmatr'][righ_var][2:len(xde_lists['fmatr'][righ_var])]
-                                    for vara,idx in zip(xde_lists['vect'][left_vara_name],righ_idx):
+                                    for vara,idx in zip(temp_list,righ_idx):
                                         oprt_expr_list.append(vara+'='+fmatr[math.ceil(int(idx)/clm)-1][int(idx)%clm-1]+'\n\n')
     
                             code_use_dict[code_place] += oprt_expr_list
@@ -636,15 +659,18 @@ def release_code(xde_lists,code_place,pfelacpath,code_use_dict):
                         elif left_var.count('_') == 2:
                             left_vara_name = left_var.split('_')[0]
                             oprt_expr_list = []
-                            matr_len = 0
-                            for lists in xde_lists['matrix'][left_vara_name]:
-                                matr_len += len(lists)
+                            matr_len = xde_lists['matrix'][left_vara_name][0] \
+                                     * xde_lists['matrix'][left_vara_name][1]
+
+                            temp_list = xde_lists['vect'][left_vara_name].copy()
+                            temp_list.pop(0)
+                            temp_list.pop(0)
     
                             if matr_len == len(righ_idx):
                                 if 'fvect' in xde_lists \
                                 and righ_var in xde_lists['fvect']:
                                     idx = 0
-                                    for lists in xde_lists['matrix'][left_vara_name]:
+                                    for lists in temp_list:
                                         for vara in lists:
                                             idx+=1
                                             oprt_expr_list.append(vara+'='+xde_lists['fvect'][righ_var][idx]+'\n\n')
@@ -653,13 +679,15 @@ def release_code(xde_lists,code_place,pfelacpath,code_use_dict):
                                 and righ_var in xde_lists['fmatr']:
                                     fmatr = xde_lists['fmatr'][righ_var][2:len(xde_lists['fmatr'][righ_var])]
                                     i = 0
-                                    for matr_row in xde_lists['matrix'][left_vara_name]:
+                                    for matr_row in temp_list:
                                         for matr_vara in matr_row:
                                             idx = righ_idx[i]
                                             oprt_expr_list.append(matr_vara+'='+fmatr[math.ceil(int(idx)/clm)-1][int(idx)%clm-1]+'\n\n')
                                             i += 1
     
                             code_use_dict[code_place] += oprt_expr_list
+
+                            print('2',oprt_expr_list)
     
                 # assign the temporary list type of 'fvect' or 'fmatr'
                 # to the list type of 'fvect' or 'fmatr'
@@ -673,12 +701,12 @@ def release_code(xde_lists,code_place,pfelacpath,code_use_dict):
                     if left_var.count('_') == 1:
                         left_var = left_var.split('_')[0]
                         for ii in range(1,len(xde_lists['fvect'][left_var])):
-                            xde_lists['fvect'][left_var][ii] \
-                                = expr_list[ii-1].split('=')[1].replace('++','+').replace('-+','-')
+                            xde_lists['fvect'][left_var][ii] = \
+                                expr_list[ii-1].split('=')[1].replace('++','+').replace('-+','-')
                     elif left_var.count('_') == 2:
                         left_var = left_var.split('_')[0]
                         for ii in range(2,len(xde_lists['fmatr'][left_var])):
                             for jj in range(len(xde_lists['fmatr'][left_var][2])):
-                                xde_lists['fmatr'][left_var][ii][jj] \
-                                    = expr_list[ii-2+jj].split('=')[1].replace('++','+').replace('-+','-')
+                                xde_lists['fmatr'][left_var][ii][jj] = \
+                                    expr_list[ii-2+jj].split('=')[1].replace('++','+').replace('-+','-')
 

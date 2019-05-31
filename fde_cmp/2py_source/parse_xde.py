@@ -85,7 +85,7 @@ def parse_xde(gesname, coortype, keywd_tag, xde_lists, list_addr, keyws_reg,file
                 elif keywd_tag['paragraph'] == 'func' \
                      and 'func' in xde_lists['code']:
                      
-                    xde_lists['code']['func'].append(line.strip())
+                    xde_lists['code']['func'].append(line.strip()+'\n')
                     list_addr['code']['func'].append(i)
 
                 elif keywd_tag['matrixtag'] != 0 :
@@ -352,8 +352,36 @@ def parse_xde(gesname, coortype, keywd_tag, xde_lists, list_addr, keyws_reg,file
     if 'damp' in xde_lists:
         if xde_lists['damp'][0] == '%1':
             xde_lists['damp'][0] = 'lump'
-            
-    # 3.5 parsing code
+
+    # 3.5 parsing fvect, fmatr, vect, matrix
+    if 'fvect' in xde_lists:
+        for lists in xde_lists['fvect'].values():
+            if len(lists) == 1:
+                for ii in range(int(lists[0])):
+                    lists.append('')
+    if 'fmatr' in xde_lists:
+        for lists in xde_lists['fmatr'].values():
+            if len(lists) == 2:
+                for ii in range(int(lists[0])):
+                    lists.append([])
+                    for jj in range(int(lists[1])):
+                        lists[ii+2].append('')
+    if 'vect' in xde_lists:
+        for lists in xde_lists['vect'].values():
+            if not lists[0].isnumeric():
+                lists.insert(0,str(len(lists)))
+    if 'matrix' in xde_lists:
+        for lists in xde_lists['matrix'].values():
+            if  not lists[0].isnumeric() \
+            and not lists[1].isnumeric() :
+                row = len(lists)
+                clm = len(lists[0].split())
+                lists.insert(0,str(clm))
+                lists.insert(0,str(row))
+            for ii in range(2,len(lists)):
+                lists[ii] = lists[ii].split()
+
+    # 3.6 parsing code
     code = {}
     code_key = r'\$C[CPV]|@[LAWSR]'
     for code_place in xde_lists['code'].keys():
@@ -373,7 +401,7 @@ def parse_xde(gesname, coortype, keywd_tag, xde_lists, list_addr, keyws_reg,file
                     xde_lists['code'][code_place][code_i-1] \
                     = code_strs.replace(regxrp.group(),'Cplx_Asgn:')
                 
-                # 3.5.1 parsing operator
+                # 3.6.1 parsing operator
                 elif regxrp.group().lower() == '@l':
                     opr_list = code_strs.split()
                     operator_expr = opr_list[1]
@@ -406,7 +434,7 @@ def parse_xde(gesname, coortype, keywd_tag, xde_lists, list_addr, keyws_reg,file
                                 xde_lists['code'][code_place][code_i-1] = temp_str.rstrip(',')+')'
                             kk += 1
                             
-                # 3.5.2 parsing assignment
+                # 3.6.2 parsing assignment
                 elif regxrp.group().lower() == '@a':
                     code_strs = code_strs[3:len(code_strs)]
                     expr = code_strs.split('=')
@@ -432,13 +460,6 @@ def parse_xde(gesname, coortype, keywd_tag, xde_lists, list_addr, keyws_reg,file
                     xde_lists['code'][code_place][code_i-1] \
                     = 'Func_Asgn: ['+ expr[0].rstrip()+']='+expr[1].lstrip().replace('[','').replace(']','')
     #print(code)
-
-    # 3.6 parsing 'matrix'
-    if 'matrix' in xde_lists:
-        for mtrx_key in xde_lists['matrix'].keys():
-            for vec_i in range(len(xde_lists['matrix'][mtrx_key])):
-                xde_lists['matrix'][mtrx_key][vec_i] = \
-                xde_lists['matrix'][mtrx_key][vec_i].split()
 
     return False
                 

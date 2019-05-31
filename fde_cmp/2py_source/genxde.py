@@ -45,14 +45,18 @@ def main(argvs=None):
     #    print(ll,xde_lists[ll])
     #for ll in list_addr.keys():
     #    print(ll,list_addr[ll])
+
+    import json
+    file = open('../1ges_target/'+argvs[2]+'.json',mode='w')
+    file.write(json.dumps(xde_lists,indent=4))
+    file.close()
     
     from xde2ges import xde2ges
     gesfile = open('../1ges_target/'+argvs[2]+'.ges1', mode='w')
     xde2ges(argvs[2],argvs[3],keywd_tag,xde_lists,list_addr,keyws_reg,gesfile)
     gesfile.close()
-
-    import json
-    file = open('../1ges_target/'+argvs[2]+'.json',mode='w')
+    
+    file = open('../1ges_target/'+argvs[2]+'.json1',mode='w')
     file.write(json.dumps(xde_lists,indent=4))
     file.close()
     
