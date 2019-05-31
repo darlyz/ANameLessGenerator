@@ -238,7 +238,7 @@ def parse_xde(gesname, coortype, keywd_tag, xde_lists, list_addr, keyws_reg,file
         shap_dict = {}
         shap_list = xde_lists['shap'].copy()
     
-        # 3.1.1 common shap
+        # 3.1.1 common shap (maybe user declare twice or more, so the last active)
         shap_i = 0
         for shp_list in shap_list:
             if len(shp_list) == 2:
@@ -268,52 +268,83 @@ def parse_xde(gesname, coortype, keywd_tag, xde_lists, list_addr, keyws_reg,file
                     shp_list[0] = shap_form
                 
                 if shp_list[1] == '%4' or shp_list[1].isnumeric():
-                    disp_find_n = xde_lists['disp'].count(shp_list[2])
+
+                    var_list  = shp_list[2:len(shp_list)]
+                    disp_find_n = len(set(var_list)&set(xde_lists['disp']))
+
                     coef_find_n = 0
                     if 'coef' in xde_lists:
-                        coef_find_n = xde_lists['coef'].count(shp_list[2])
+                        coef_find_n = len(set(var_list)&set(xde_lists['coef']))
                         
                     shap_type = shp_list[0] + nodn
-                    var_name  = shp_list[2]
-                    
-                    if disp_find_n == 1 and coef_find_n == 0:
-                        if   shap_type == 't6':  shp_list[1] = '3'
-                        elif shap_type == 'q9':  shp_list[1] = '4'
-                        elif shap_type == 'w10': shp_list[1] = '4'
-                        elif shap_type == 'c27': shp_list[1] = '8'
+
+                    for var_name in var_list:
+                        if var_name.isnumeric(): continue
+
+                        if 'coef' not in xde_lists:
+                            if var_name not in xde_lists['disp'] :
+                                continue
                         else:
-                            print('error: line {}, mix element should to be used in 2nd shap function'.format(list_addr['shap'][shap_i]))
-                        shap_type = shp_list[0]+shp_list[1]
-                        shap_dict[comm_shap].remove(var_name)
+                            if  var_name not in xde_lists['disp'] \
+                            and var_name not in xde_lists['coef'] :
+                                continue
                         
-                        if not shap_type in shap_dict:
-                            shap_dict[shap_type] = []
-                        shap_dict[shap_type].append(var_name)
-                        
-                    elif disp_find_n == 0 and coef_find_n == 1:
-                        if   shap_tag == 't6':  shp_list[1] = '3'
-                        elif shap_tag == 'q9':  shp_list[1] = '4'
-                        elif shap_tag == 'w10': shp_list[1] = '4'
-                        elif shap_tag == 'c27': shp_list[1] = '8'
+                        if disp_find_n > 0 and coef_find_n == 0:
+                            if   shap_type == 't6':  shp_list[1] = '3'
+                            elif shap_type == 'q9':  shp_list[1] = '4'
+                            elif shap_type == 'w10': shp_list[1] = '4'
+                            elif shap_type == 'c27': shp_list[1] = '8'
+                            else:
+                                print('error: line {}, mix element should to be used in 2nd shap function'.format(list_addr['shap'][shap_i]))
+                            sub_shap_type = shp_list[0]+shp_list[1]
+                            if var_name in shap_dict[comm_shap]:
+                                shap_dict[comm_shap].remove(var_name)
+                            
+                            if not sub_shap_type in shap_dict:
+                                shap_dict[sub_shap_type] = []
+                            shap_dict[sub_shap_type].append(var_name)
+                            
+                        elif disp_find_n == 0 and coef_find_n > 0:
+                            if   shap_tag == 't6':  shp_list[1] = '3'
+                            elif shap_tag == 'q9':  shp_list[1] = '4'
+                            elif shap_tag == 'w10': shp_list[1] = '4'
+                            elif shap_tag == 'c27': shp_list[1] = '8'
+                            else:
+                                print('error: line {}, mix element should to be used in 2nd shap function'.format(list_addr['shap'][shap_i]))
+                            sub_shap_type = shp_list[0]+shp_list[1]
+                            xde_lists['coef_shap'][comm_shap].remove(var_name)
+                            
+                            if not sub_shap_type in xde_lists['coef_shap']:
+                                xde_lists['coef_shap'][sub_shap_type] = []
+                            xde_lists['coef_shap'][sub_shap_type].append(var_name)
                         else:
-                            print('error: line {}, mix element should to be used in 2nd shap function'.format(list_addr['shap'][shap_i]))
-                        shap_type = shp_list[0]+shp_list[1]
-                        xde_lists['coef_shap'][comm_shap].remove(var_name)
-                        
-                        if not shap_type in xde_lists['coef_shap']:
-                            xde_lists['coef_shap'][shap_type] = []
-                        xde_lists['coef_shap'][shap_type].append(var_name)
-                    else:
-                        print('error: line {}, disp or coef declaration fault.'.format(list_addr['shap'][shap_i]))
+                            print('error: line {}, disp or coef declaration fault.'.format(list_addr['shap'][shap_i]))
                 
-                elif shp_list[1] == '%2c':
-                    shp_list[1] = shp_list[1].replace('%2',nodn)
-                    pena_var = shp_list[2].split('_')[0]
-                    be_penal = shp_list[2].split('_')[1]
-                    print(pena_var,be_penal)
-                    if xde_lists['disp'].count(pena_var) == 1 and xde_lists['disp'].count(be_penal) == 1:
-                        shp_list[2] = be_penal
-                        shap_dict[pena_var] = shp_list
+                elif shp_list[1] == '%2c' \
+                or  (shp_list[1][-1] == 'c' \
+                and  shp_list[1][:-1].isnumeric) :
+
+                    var_list = shp_list[2:len(shp_list)]
+                    pena_var_list = []
+                    for var in var_list:
+                        if var.isnumeric(): continue
+                        if shp_list[2].find('_'):
+                            pena_var_list.append(shp_list[2].split('_')[0])
+                        else: pena_var_list.append(shp_list[2])
+
+                    pena_var_list = set(pena_var_list)&set(xde_lists['disp'])
+                    
+                    shp_list[1]   = shp_list[1].replace('%2',nodn)
+                    sub_shap_type = shp_list[0]+shp_list[1]
+                    
+                    if shp_list[1] not in shap_dict:
+                        shap_dict[sub_shap_type] = []
+
+                    for pena_var in pena_var_list :
+                        if pena_var in xde_lists['disp']:
+                            shap_dict[comm_shap].remove(pena_var)
+                            shap_dict[sub_shap_type].append(pena_var)
+
             shap_i += 1
         xde_lists['shap'] = shap_dict
     

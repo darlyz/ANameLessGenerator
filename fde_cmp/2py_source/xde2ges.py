@@ -173,8 +173,6 @@ def xde2ges(gesname,coortype,keywd_tag,xde_lists,list_addr,keyws_reg,file):
         trans_list = main_shap_string.split('\n')
         trans_list.remove('')
         tran_list = []
-
-        print(shap_type,shap_tag)
         
         # 9.2.1 add '()'
         for strs in trans_list:
@@ -659,10 +657,10 @@ def release_code(xde_lists,code_place,pfelacpath,code_use_dict):
                         elif left_var.count('_') == 2:
                             left_vara_name = left_var.split('_')[0]
                             oprt_expr_list = []
-                            matr_len = xde_lists['matrix'][left_vara_name][0] \
-                                     * xde_lists['matrix'][left_vara_name][1]
+                            matr_len = int(xde_lists['matrix'][left_vara_name][0]) \
+                                     * int(xde_lists['matrix'][left_vara_name][1])
 
-                            temp_list = xde_lists['vect'][left_vara_name].copy()
+                            temp_list = xde_lists['matrix'][left_vara_name].copy()
                             temp_list.pop(0)
                             temp_list.pop(0)
     
@@ -686,8 +684,6 @@ def release_code(xde_lists,code_place,pfelacpath,code_use_dict):
                                             i += 1
     
                             code_use_dict[code_place] += oprt_expr_list
-
-                            print('2',oprt_expr_list)
     
                 # assign the temporary list type of 'fvect' or 'fmatr'
                 # to the list type of 'fvect' or 'fmatr'
