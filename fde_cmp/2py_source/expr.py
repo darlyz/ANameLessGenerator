@@ -48,7 +48,7 @@ def expr_strs2list (expr_strs,opr_list=['+','-','*','/','(',')']):
         else:
             regx_strs += strs+'|'
     pattern = regx.compile(regx_strs.rstrip('|'))
-    
+
     expr_opr_list = pattern.findall(expr_strs)
     expr_var_list = regx.split(pattern,expr_strs)
 
@@ -57,7 +57,7 @@ def expr_strs2list (expr_strs,opr_list=['+','-','*','/','(',')']):
             expr_list.append(expr_var_list[ii])
         expr_list.append(expr_opr_list[ii])
     expr_list.append(expr_var_list[-1])
-    
+
     return expr_list
 # end expr2list()
 
@@ -67,14 +67,14 @@ def expr_strs2list (expr_strs,opr_list=['+','-','*','/','(',')']):
 #                            /     \
 #                           a       b
 def parsing_equal_grade_opr(expr_list,expr_dict,opr_list,expr_order):
-    
+
     expr_i = expr_order
     expr_name = ''
     for i in range(len(expr_list)):
-        
+
         for strs in opr_list:
             if expr_list[i] == strs:
-        
+
                 expr_i += 1
                 expr_name = 'expr_'+str(expr_i)
                 expr_dict[expr_name] = {}
@@ -86,7 +86,7 @@ def parsing_equal_grade_opr(expr_list,expr_dict,opr_list,expr_order):
                 else:
                     expr_dict[expr_name]['left'] = expr_list[i-1]
                 expr_dict[expr_name]['righ'] = expr_list[i+1]
-            
+
     return expr_i
 # end parsing_equal_grade_opr()
 
@@ -97,22 +97,22 @@ def parsing_equal_grade_opr(expr_list,expr_dict,opr_list,expr_order):
 #                                 /     \ 
 #                                b       c
 def parsing_unequal_grade_opr(expr_list,expr_dict,opr_lists,expr_order):
-    
+
     expr_i = expr_order
     for oprlist_i in range(len(opr_lists)):
-    
+
         opr_list = opr_lists[oprlist_i]
         upper_expr_lists = []
         upper_expr_locat = []
         upper_expr_i = 0
-        
+
         # draw the upper grade operator expression
         list_i = 0
         for strs in expr_list:
-        
+
             for opr_str in opr_list:
                 if strs == opr_str:
-                
+
                     upper_start_tag = 0
                     if   list_i == 1 :
                         upper_start_tag = 0
@@ -124,12 +124,12 @@ def parsing_unequal_grade_opr(expr_list,expr_dict,opr_lists,expr_order):
                         upper_expr_lists.append([])
                         upper_expr_locat.append([])
                         upper_expr_i += 1
-                            
+
                     upper_expr_lists[upper_expr_i-1].append(expr_list[list_i-1])
                     upper_expr_lists[upper_expr_i-1].append(expr_list[list_i])
                     upper_expr_locat[upper_expr_i-1].append(list_i-1)
                     upper_expr_locat[upper_expr_i-1].append(list_i)
-                    
+
                     upper_end_tag = 0
                     if   list_i == len(expr_list) - 2:
                         upper_end_tag = 0
@@ -140,16 +140,16 @@ def parsing_unequal_grade_opr(expr_list,expr_dict,opr_lists,expr_order):
                     if upper_end_tag ==0:
                         upper_expr_lists[upper_expr_i-1].append(expr_list[list_i+1])
                         upper_expr_locat[upper_expr_i-1].append(list_i+1)
-            
+
             list_i += 1
-        
+
         # parsing the upper grade operator expression and replace them in expr_list
         list_i = 0
         for upper_list in upper_expr_lists:
-        
+
             # parsing
             expr_i = parsing_equal_grade_opr(upper_list,expr_dict,opr_list,expr_i)
-            
+
             # replacing
             upper_locat = upper_expr_locat[list_i]
             for locat_i in range(len(upper_locat)):
@@ -158,14 +158,14 @@ def parsing_unequal_grade_opr(expr_list,expr_dict,opr_lists,expr_order):
                 else:
                     expr_list[int(upper_locat[locat_i])] = ''
             list_i += 1
-        
+
         # replacing
         temp_list = expr_list.copy()
         expr_list.clear()
         for strs in temp_list:
             if strs != '':
                 expr_list.append(strs)
-    
+
     return expr_i
 # end parsing_unequal_grade_opr()
 
@@ -178,56 +178,56 @@ def parsing_unequal_grade_opr(expr_list,expr_dict,opr_lists,expr_order):
 #                                                  /     \
 #                                                 c       d
 def parsing_with_bracket_opr(expr_list,expr_dict,opr_lists,expr_order):
-    
+
     expr_i = expr_order
-    
+
     # count the max level of bracket
     bracket_tag = 0
     max_bracket_level   = 0
-    for strs in expr_list:    
+    for strs in expr_list:
         if strs == '(':
             bracket_tag += 1
         elif strs == ')':
             bracket_tag -= 1
-                
+
         if  max_bracket_level < bracket_tag:
             max_bracket_level = bracket_tag
-    
-    
+
+
     for level in reversed(range(1,max_bracket_level+1)):
-        
+
         # locate the bracket
         bracket_tag = 0
         left_bracket_locat = []
         righ_bracket_locat = []
         list_i = 0
         for strs in expr_list:
-        
+
             if   strs == '(':
                 bracket_tag += 1
                 if bracket_tag == level:
                     left_bracket_locat.append(list_i)
-                    
+
             elif strs == ')':
                 if bracket_tag == level:
                     righ_bracket_locat.append(list_i)
                 bracket_tag -= 1
-                
+
             list_i += 1
-            
+
         # draw expression in bracket, parsing and replace them
         bracket_expr = []
         for bracket_i in range(len(righ_bracket_locat)):
-        
+
             bracket_expr.append([])
-            
+
             for kk in range(left_bracket_locat[bracket_i]+1, \
-                            righ_bracket_locat[bracket_i]):            
+                            righ_bracket_locat[bracket_i]):
                 bracket_expr[bracket_i].append(expr_list[kk])
-            
+
             # parsing bracket expression
             expr_i = parsing_unequal_grade_opr(bracket_expr[bracket_i],expr_dict,opr_lists,expr_i)
-            
+
             # replace the bracket expression in expr_list
             for kk in range(left_bracket_locat[bracket_i], \
                             righ_bracket_locat[bracket_i]+1):
@@ -235,16 +235,16 @@ def parsing_with_bracket_opr(expr_list,expr_dict,opr_lists,expr_order):
                     expr_list[kk] = 'expr_'+str(expr_i)
                 else:
                     expr_list[kk] = ''
-        
+
         # replace the bracket expression in expr_list
         temp_list = expr_list.copy()
         expr_list.clear()
         for strs in temp_list:
             if strs != '':
                 expr_list.append(strs)
-                    
+
     expr_i = parsing_unequal_grade_opr(expr_list,expr_dict,opr_lists,expr_i)
-    
+
     return expr_i
 # end parsing_with_bracket_opr()
 
@@ -271,7 +271,7 @@ class cmplx_expr(expr):
 
     # expand complex expression
     def complex_expand(self,expr_head):
-    
+
         expr_sub = ''
 
         for strs in ['left','righ']:
@@ -357,31 +357,31 @@ class tnsr_expr(expr): # need to release
 def vector_opr(left,righ,opr_str):
 
     vector_list = []
-    
+
     if righ == '':
         opr = ''
 
     if  isinstance(left,list) \
     and isinstance(righ,list) :
-    
+
         if  len(left) == 0 \
         and len(righ) == 0 :
             return []
-            
+
         if (len(left) != 0 and not isinstance(left[0],str)) \
         or (len(righ) != 0 and not isinstance(righ[0],str)) :
             return []
-    
+
         left_len = len(left)
         righ_len = len(righ)
         max_len  = left_len if left_len > righ_len else righ_len
         min_len  = left_len if left_len < righ_len else righ_len
-        
+
         for ii in range(max_len):
-        
+
             left_str = left[ii] if ii < left_len else ''
             righ_str = righ[ii] if ii < righ_len else ''
-            
+
             if opr_str == '/' and left_str == '':
                 left_str = '1'
                 opr = opr_str
@@ -389,10 +389,10 @@ def vector_opr(left,righ,opr_str):
                 opr = opr_str
             else:
                 opr  = opr_str if ii < min_len else ''
-                
+
             if righ_str == '':
                 opr = ''
-            
+
             vector_list.append(left_str+opr+righ_str)
 
     elif isinstance(left,list) and len(left) != 0 \
@@ -401,20 +401,20 @@ def vector_opr(left,righ,opr_str):
         if isinstance(left[0],str) :
             for ii in range(len(left)):
                 vector_list.append(left[ii]+opr_str+righ)
-        
+
     elif isinstance(left,str) \
     and  isinstance(righ,list) and len(righ) != 0 :
-    
+
         if isinstance(righ[0],str) :
             for ii in range(len(righ)):
                 vector_list.append(left+opr_str+righ[ii])
-        
+
     else:
         return []
 
     return vector_list
 # end vector_opr()
-    
+
 # [a1,a2,..] * [b1,b2,...]^T -->  a1*b1 + a2*b2 + ...
 # follow as min size law : [a1,a2,a3] * [b1,b2]^T --> a1*b1+a2*b2
 # and right item is considered as Transposition
@@ -427,19 +427,19 @@ def vector_dot_multiply(left,righ):
         left_len = len(left)
         righ_len = len(righ)
         min_len  = left_len if left_len < righ_len else righ_len
-        
+
         if righ[0] == '':
             opr = ''
-        
+
         scalar_strs = left[0]+opr+righ[0]
         for ii in range(1,min_len):
-        
+
             if righ[ii] == '':
                 opr = ''
             scalar_strs += '+'+left[ii]+opr+righ[ii]
-    
+
         return scalar_strs
-        
+
     else:
         return ''
 # end vector_dot_multiply()
@@ -457,9 +457,9 @@ def vector_dot_multiply(left,righ):
 # [ ...                  ]           [ ...                              ]
 # follow as max size law
 def tensor_opr(left,righ,opr_str):
-    
+
     tensor_list = []
-    
+
     if  isinstance(left,list) \
     and isinstance(righ,list) :
 
@@ -471,17 +471,17 @@ def tensor_opr(left,righ,opr_str):
         and isinstance(righ[0],list):
 
             for ii in range(max_len):
-    
+
                 if   isinstance(left[0][0],str):
                     left_list = left[ii].copy() if ii < left_len else []
                 elif isinstance(left[0][0],list):
                     left_list = left[ii].copy()
-    
+
                 if   isinstance(righ[0][0],str):
                     righ_list = righ[ii].copy() if ii < righ_len else []
                 elif isinstance(righ[0][0],list):
                     righ_list = righ[ii].copy()
-    
+
                 if  isinstance(left[0][0],str) \
                 and isinstance(righ[0][0],str):
                     tensor_list.append(vector_opr(left_list,righ_list,opr_str))
@@ -511,7 +511,7 @@ def tensor_opr(left,righ,opr_str):
         elif isinstance(left[0],str) \
         and  isinstance(righ[0],str):
             tensor_list = vector_opr(left,righ,opr_str)
-    
+
     elif isinstance(left,str) \
     and  isinstance(righ,list):
 
@@ -556,7 +556,7 @@ def tensor_opr(left,righ,opr_str):
 def matrix_multiply(left,righ):
     matrix_list = []
     vector_list = []
-    
+
     if  isinstance(left,list) \
     and isinstance(righ,list) :
 
@@ -569,7 +569,7 @@ def matrix_multiply(left,righ):
                 for ii in range(len(righ)):
                     matrix_list.append([])
                     for jj in range(len(left)):
-                        matrix_list[ii].append(vector_dot_multiply(left[ii],righ[jj]))        
+                        matrix_list[ii].append(vector_dot_multiply(left[ii],righ[jj]))
                 return matrix_list
             else:
                 return None
@@ -673,13 +673,13 @@ def matrix_transpose(matrix):
     and  isinstance(matrix[0][0],str) :
         for ii in range(len(matrix)):
             max_len = max_len if max_len > len(matrix[ii]) else len(matrix[ii])
-        
+
         for ii in range(max_len):
             tran_matrix.append([])
             for jj in range(len(matrix)):
                 if ii < len(matrix[jj]):
                     tran_matrix[ii].append(matrix[jj][ii])
-                
+
         return tran_matrix
     else:
         return None
@@ -691,7 +691,7 @@ def vector_add_bracket(vector_list):
         temp_list.append('('+strs+')')
     return temp_list
 # end vector_add_bracket()
-    
+
 def tensor_add_bracket(tensor_list):
     temp_list = []
     if  isinstance(tensor_list,list) \
@@ -714,10 +714,10 @@ def tensor_expr(expr_head,expr_dict):
     for strs in ['left','righ']:
         if not isinstance(expr_dict[expr_head][strs],list) \
         and expr_dict[expr_head][strs].find('expr') != -1:
-            
+
             expr_sub = expr_dict[expr_head][strs]
             expr_dict[expr_head][strs] = tensor_expr(expr_sub,expr_dict)
-            
+
             if  (expr_dict[expr_head]['opr'] == '*' \
             or   expr_dict[expr_head]['opr'] == '/') \
             and (expr_dict[expr_sub ]['opr'] == '+' \
@@ -784,7 +784,7 @@ def matrix_expr(expr_head,expr_dict):
             or   expr_dict[expr_sub ]['opr'] == '-' \
             or   expr_dict[expr_sub ]['opr'] == '*') :
                 expr_dict[expr_head][strs] = tensor_add_bracket(expr_dict[expr_head][strs])
-        
+
     if expr_dict[expr_head]['opr'] == '*' :
         #print(expr_head)
         matrix_list = matrix_multiply(expr_dict[expr_head]['left'], \
@@ -811,7 +811,7 @@ def trans_tensor_expr_list(expr_dict,xde_lists):
 
                 if len(items_list) > 1:
                     expr_dict[expr_key][item] = var_name
-                    
+
                     idx_i = 0
                     for idx in items_list:
                         if idx_i == 0:
@@ -819,8 +819,8 @@ def trans_tensor_expr_list(expr_dict,xde_lists):
                         else:
                             expr_dict[expr_key][item+'_indx'].append(idx)
                         idx_i += 1
-                
-                # vector        
+
+                # vector
                 if len(items_list) == 2:
 
                     if 'vect' in xde_lists and var_name in xde_lists['vect']:
@@ -874,19 +874,19 @@ def idx_summation(left_var,righ_expr,xde_lists):
     for keys in left_idxlen.keys():
         left_indxi[keys] = 0
 
-    
+
     righ_pack = {'righ_exp':[],'righ_len':[],'righ_rdx':[],'righ_idx':[]}
     righ_expr_list = split_expr(righ_expr)
     righ_pack['righ_exp'] = righ_expr_list
-    
+
     for expr_strs in righ_expr_list:
-        
+
         # find tensors in right expression
         righ_idxlen = {}
         righ_indxs  = []
         pattern = regx.compile(r'[a-zA-Z]+(?:_[a-zA-Z])+')
         tensor_list = pattern.findall(expr_strs)
-    
+
         # find indexs in right expression and pop non-repetitive tensors and indexs
         temp_list  = []
         for strs in tensor_list:
@@ -915,7 +915,7 @@ def idx_summation(left_var,righ_expr,xde_lists):
                 if   len(temp_idxsl) == 2:
                     if not temp_idxsl[1] in left_idxlen:
                         righ_idxlen[temp_idxsl[1]] = int(xde_lists['fvect'][temp_idxsl[0]][0])
-    
+
                 elif len(temp_idxsl) == 3:
                     if not temp_idxsl[1] in left_idxlen:
                         righ_idxlen[temp_idxsl[1]] = int(xde_lists['fmatr'][temp_idxsl[0]][0])
@@ -923,17 +923,17 @@ def idx_summation(left_var,righ_expr,xde_lists):
                         righ_idxlen[temp_idxsl[2]] = int(xde_lists['fmatr'][temp_idxsl[0]][1])
 
             else: pass
-    
+
         tensor_list = temp_list.copy()
         righ_indxs = list(righ_idxlen.keys())
         righ_indxi = {}
         for keys in righ_idxlen.keys():
             righ_indxi[keys] = 0
-        
+
         righ_pack['righ_len'].append(righ_idxlen)
         righ_pack['righ_rdx'].append(righ_indxi)
         righ_pack['righ_idx'].append(righ_indxs)
-    
+
     expr_list = []
     left_loop(0, left_var, righ_pack, tensor_dict, \
               left_indxs, left_indxi, left_idxlen, \
@@ -987,7 +987,7 @@ def righ_loop(loop_level=0, expr_item='', tensor_dict={}, \
             expr = expr.replace('_'+keys,str(vals))
         for keys,vals in fixd_idx.items():
             expr = expr.replace('_'+keys,str(vals))
-            
+
         var_list = regx.split  (r'\+|\-|\*|\/|\(|\)|\[|\]|\;',expr)
         opr_list = regx.findall(r'\+|\-|\*|\/|\(|\)|\[|\]|\;',expr)
         var1_list = []
@@ -1001,7 +1001,7 @@ def righ_loop(loop_level=0, expr_item='', tensor_dict={}, \
             expr += var1_list[ii]
             expr += opr_list[ii]
         expr += var1_list[len(opr_list)]
-        
+
         expr_sum_list.append(expr)
         return
     for ii in range(loop_len[loop_idx[loop_level]]):
@@ -1055,9 +1055,9 @@ def left_loop(loop_level=0, left_var='', righ_pack={}, tensor_dict={}, \
         expr_list.append(var)
         return
 #end left_loop()
-        
 
-# split expr to list by the lowest priority    
+
+# split expr to list by the lowest priority
 def split_expr(expr):
     expr_list = []
     bracket_count  = 0

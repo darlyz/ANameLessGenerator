@@ -69,7 +69,7 @@ def check_xde(xde_lists,list_addr,shap_tag,gaus_tag):
         if regx.match(is_var,vara,regx.I) != None :
             if vara not in c_declares['BFmate']:
                 not_declare(list_addr['mate'],vara,'\n')
-    
+
     # check vect
     if 'vect' in xde_lists:
         for vect in xde_lists['vect'].keys():
@@ -96,7 +96,7 @@ def check_xde(xde_lists,list_addr,shap_tag,gaus_tag):
         addon_info = 'may be declared as '
         not_declare('*','disp var','may be declared as \'DISP * *\' in the first garaph, and \'* *\' could be referened in \'mdi\' file.\n')
         error = True
-    
+
     # check coor
     if 'coor' in xde_lists:
         pass
@@ -109,7 +109,7 @@ def check_xde(xde_lists,list_addr,shap_tag,gaus_tag):
         nodn = regx.search(r'[1-9]+',shap_tag,regx.I).group()
 
         for shap_list,num in zip(xde_lists['shap'],list_addr['shap']):
-            
+
             if shap_list[0] == '%1':
                   shap_shap = shap_tag[0]
             else: shap_shap = shap_list[0]
@@ -137,7 +137,7 @@ def check_xde(xde_lists,list_addr,shap_tag,gaus_tag):
                        if shap_list[1] not in snodn:
                            fault_declare(num,'shap', \
                                'suggested format is \'SHAP {} {}\'.\n'.format(shap_list[0],str(snodn)))
-            
+
             # advance shap declare
             elif len(shap_list) >= 3:
                 if shap_shap != base_shap_type:
@@ -173,7 +173,7 @@ def check_xde(xde_lists,list_addr,shap_tag,gaus_tag):
                                 addon_info += Error_color + ' at line '
                                 addon_info += Empha_color + str(base_shap_line) + '.\n'
                                 fault_declare(num,'shap', addon_info)
-                            
+
                             # sub shap is not coordinate with base or not coordinate with shap_type
                             elif base_shap_node == snodn \
                             and shap_list[1].isnumeric() \
@@ -212,17 +212,17 @@ def check_xde(xde_lists,list_addr,shap_tag,gaus_tag):
                         if var_name not in xde_lists['disp'] :
                             warn_form(num,'',Empha_color + var_name +\
                                 Warnn_color + ' must be declared in disp.\n')  
-                                    
+
                         if 'coef' in xde_lists \
                         and var_name in xde_lists['coef'] :
                             warn_form(num,'',Empha_color + var_name +\
                                 Warnn_color + ' must not be declared in coef.\n')
-                    
-                    
 
-                    
 
-                    
+
+
+
+
 
     else:
         not_declare('*','shap func','may be declared as \'SHAP %1 %2\' in the first garaph')
