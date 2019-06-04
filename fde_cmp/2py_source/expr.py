@@ -858,6 +858,9 @@ def idx_summation(left_var,righ_expr,xde_lists):
             for strs, lists in xde_lists[keys].items():
                 tlist = lists[1:len(lists)]
                 for ii in range(len(tlist)):
+                    tlist[ii] = tlist[ii].lstrip('+')
+                    if len(split_expr(tlist[ii])) != 1 :
+                        tlist[ii] = '('+tlist[ii]+')'
                     tensor_dict[strs+str(ii)] = tlist[ii]
     for keys in ['matrix','fmatr']:
         if keys in xde_lists:
@@ -865,15 +868,42 @@ def idx_summation(left_var,righ_expr,xde_lists):
                 tlist = lists[2:len(lists)]
                 for ii in range(len(tlist)):
                     for jj in range(len(tlist[ii])):
+                        tlist[ii][jj] = tlist[ii][jj].lstrip('+')
+                        if len(split_expr(tlist[ii][jj])) != 1 :
+                            tlist[ii][jj] = '('+tlist[ii][jj]+')'
                         tensor_dict[strs+str(ii)+str(jj)] = tlist[ii][jj]
 
     left_var_list = []
     left_idxlen = {}
-    left_indxs  = parse_xde_type_tensor(left_var,left_var_list,left_idxlen,xde_lists)
+    #left_indxs  = parse_xde_type_tensor(left_var,left_var_list,left_idxlen,xde_lists)
+    # -- copy parse_xde_type_tensor()
+    left_var_list = left_var.split('_')
+    if ('vect'   in xde_lists and left_var_list[0] in xde_lists['vect']) \
+    or ('matrix' in xde_lists and left_var_list[0] in xde_lists['matrix']) :
+        if   len(left_var_list) == 2:
+            left_idxlen[left_var_list[1]] = int(xde_lists['vect'][left_var_list[0]][0])
+
+        elif len(left_var_list) == 3:
+            left_idxlen[left_var_list[1]] = int(xde_lists['matrix'][left_var_list[0]][0])
+            left_idxlen[left_var_list[2]] = int(xde_lists['matrix'][left_var_list[0]][1])
+
+    elif ('fvect' in xde_lists and left_var_list[0] in xde_lists['fvect']) \
+    or   ('fmatr' in xde_lists and left_var_list[0] in xde_lists['fmatr']) :
+        if   len(left_var_list) == 2:
+            left_idxlen[left_var_list[1]] = int(xde_lists['fvect'][left_var_list[0]][0])
+
+        elif len(left_var_list) == 3:
+            left_idxlen[left_var_list[1]] = int(xde_lists['fmatr'][left_var_list[0]][0])
+            left_idxlen[left_var_list[2]] = int(xde_lists['fmatr'][left_var_list[0]][1])
+
+    else: pass
+        
+    left_indxs = list(left_idxlen.keys())
+    # -- copy parse_xde_type_tensor()
+
     left_indxi = {}
     for keys in left_idxlen.keys():
         left_indxi[keys] = 0
-
 
     righ_pack = {'righ_exp':[],'righ_len':[],'righ_rdx':[],'righ_idx':[]}
     righ_expr_list = split_expr(righ_expr)
@@ -884,7 +914,7 @@ def idx_summation(left_var,righ_expr,xde_lists):
         # find tensors in right expression
         righ_idxlen = {}
         righ_indxs  = []
-        pattern = regx.compile(r'[a-zA-Z]+(?:_[a-zA-Z])+')
+        pattern = regx.compile(r'[\^a-zA-Z]+(?:_[a-zA-Z])+')
         tensor_list = pattern.findall(expr_strs)
 
         # find indexs in right expression and pop non-repetitive tensors and indexs
@@ -947,7 +977,7 @@ def idx_summation(left_var,righ_expr,xde_lists):
 def parse_xde_type_tensor(xde_tnsr,xde_tnsr_list,tnsr_dict,xde_lists):
 
     if xde_tnsr.find('_') == -1:
-        pass
+        return []
     else:
         for strs in xde_tnsr.split('_'):
             xde_tnsr_list.append(strs)

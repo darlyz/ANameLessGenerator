@@ -24,7 +24,7 @@ def main(argvs=None):
 
     keyws_reg  = r'DEFI|DISP|COEF|COOR|SHAP|GAUS|MATE|MASS|DAMP|STIF|'
     keyws_reg += r'FUNC|VECT|MATRIX|FVECT|FMATR|ARRAY|DIST|LOAD|END|'
-    keyws_reg += r'\$C[CPV]|@[LAWSR]'
+    keyws_reg += r'\$C[CPV]|\$I|@[LAWSR]|COMMON|ARRAY'
 
     keywd_tag = {'disp':0, 'coor':0, 'shap':0 , 'gaus':0, 'stif':0, 'load':0, \
                  'mate':0, 'mass':0, 'damp':0 \
@@ -63,10 +63,10 @@ def main(argvs=None):
     end   = time()
     print ('parsing time: {}s'.format(end-start))
 
-    from xde2md import xde2md
-    mdfile = open('../1ges_target/'+argvs[1]+'.md', mode='w')
-    xde2md(argvs[2],argvs[3],keywd_tag,xde_lists,list_addr,keyws_reg,mdfile)
-    mdfile.close()
+    #from xde2md import xde2md
+    #mdfile = open('../1ges_target/'+argvs[1]+'.md', mode='w')
+    #xde2md(argvs[2],argvs[3],keywd_tag,xde_lists,list_addr,keyws_reg,mdfile)
+    #mdfile.close()
 
 if __name__ == "__main__":
     exit(main())

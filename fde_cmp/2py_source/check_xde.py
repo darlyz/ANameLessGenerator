@@ -11,6 +11,8 @@ Error_color = Fore.MAGENTA
 Warnn_color = Fore.CYAN
 Empha_color = Fore.GREEN
 
+color={'Error':Fore.MAGENTA,'Warnn':Fore.CYAN,'Empha':Fore.GREEN}
+
 import re as regx
 def check_xde(xde_lists,list_addr,shap_tag,gaus_tag):
 
@@ -67,6 +69,8 @@ def check_xde(xde_lists,list_addr,shap_tag,gaus_tag):
     is_var = r'[a-z]\w*'
     for vara in xde_lists['mate']:
         if regx.match(is_var,vara,regx.I) != None :
+            if vara.find('['):
+                vara = vara.split('[')[0]
             if vara not in c_declares['BFmate']:
                 not_declare(list_addr['mate'],vara,'\n')
 
@@ -230,6 +234,8 @@ def check_xde(xde_lists,list_addr,shap_tag,gaus_tag):
 
 
     return error
+
+
 
 
 

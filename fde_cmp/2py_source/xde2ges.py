@@ -73,7 +73,7 @@ def xde2ges(gesname,coortype,keywd_tag,xde_lists,list_addr,keyws_reg,file):
                     i = 0
         file.write('\n')
 
-    # 2 write refc and coor declare
+    # 2 write refc, coor and coef declare
     if 'coor' in xde_lists:
         file.write('refc ')
         for strs in xde_lists['coor']:
@@ -81,6 +81,12 @@ def xde2ges(gesname,coortype,keywd_tag,xde_lists,list_addr,keyws_reg,file):
         file.write('\n')
         file.write('coor ')
         for strs in xde_lists['coor']:
+            file.write(strs+',')
+        file.write('\n')
+
+    if 'coef' in xde_lists:
+        file.write('coef ')
+        for strs in xde_lists['coef']:
             file.write(strs+',')
         file.write('\n')
 
@@ -97,6 +103,8 @@ def xde2ges(gesname,coortype,keywd_tag,xde_lists,list_addr,keyws_reg,file):
         for strs in xde_lists['disp']:
             file.write('1'+',')
         file.write('\n')
+
+        file.write('node '+str(nodn)+'\n')
 
     # 5 write code before mate declaration
     if 'BFmate' in code_use_dict:
@@ -162,10 +170,9 @@ def xde2ges(gesname,coortype,keywd_tag,xde_lists,list_addr,keyws_reg,file):
 
             # 9.1.3 replace shap func's disp by xde's disp and write
             for strs in xde_lists['shap'][shap_type]:
-                shap_string = shap_string.replace('u',strs)
-
+                temp_string = shap_string.replace('u',strs)
                 file.write(strs+'=\n')
-                file.write(shap_string)
+                file.write(temp_string)
                 file.write('\n')
 
         # 9.2 write tran
@@ -181,7 +188,14 @@ def xde2ges(gesname,coortype,keywd_tag,xde_lists,list_addr,keyws_reg,file):
             temp_list[0] = temp_list[0].replace(temp_num,'('+temp_num+')')
             tran_list.append(temp_list[0]+'='+temp_list[1])
 
-        # 9.2.2 replace shap func's disp by by xde's coor and write
+        # 9.2.2 replace shap func's coor by xde's coor
+        coor_i = 0
+        for coor_str in xde_lists['coor']:
+            for ii in range(len(tran_list)):
+                tran_list[ii] = tran_list[ii].replace(geslib_coor[coor_i],'r'+coor_str)
+            coor_i += 1
+
+        # 9.2.3 replace shap func's disp by by xde's coor and write
         shap_i = 0
         for strs in xde_lists['coor']:
             file.write(strs+'=\n')
@@ -189,6 +203,57 @@ def xde2ges(gesname,coortype,keywd_tag,xde_lists,list_addr,keyws_reg,file):
                 file.write(strss.replace('u',strs)+'\n')
             file.write('\n')
             shap_i += 1
+
+    # 9.3 write coef shap
+    if 'coef_shap' in xde_lists:
+        file.write('coef\n')
+        for shap_type in xde_lists['coef_shap'].keys():
+
+            shap_func = 'd'+dim+shap_type+'.sub'
+            path_shap = pfelacpath+'ges/ges.lib'
+            file_shap = open(path_shap, mode='r')
+            shap_find = 0
+            shap_string = ''
+
+            # 9.3.1 find shap function in ges.lib
+            for line in file_shap.readlines():
+                shap_start_file = regx.search('sub '+shap_func,line,regx.I)
+                shap_end_file   = regx.search('end '+shap_func,line,regx.I)
+                if shap_start_file != None:
+                    shap_find = 1
+                    continue
+                if shap_end_file   != None:
+                    shap_find = 0
+                    continue
+                if shap_find == 1:
+                    shap_string+=line
+            file_shap.close()
+
+            # 9.2.1 add '()'
+            tran_list = []
+            for strs in shap_string.split('\n'):
+                if strs != '':
+                    temp_list = strs.split('=')
+                    temp_num = regx.search(r'[0-9]+',temp_list[0],regx.I).group()
+                    temp_list[0] = temp_list[0].replace(temp_num,'('+temp_num+')')
+                    tran_list.append(temp_list[0]+'='+temp_list[1])
+
+            shap_string = ''
+            for strs in tran_list:
+                shap_string += strs+'\n'
+
+            # 9.3.2 replace shap func's coor by xde's coor
+            coor_i = 0
+            for strs in xde_lists['coor']:
+                shap_string = shap_string.replace(geslib_coor[coor_i],'r'+strs)
+                coor_i += 1
+
+            # 9.3.3 replace shap func's disp by xde's disp and write
+            for strs in xde_lists['coef_shap'][shap_type]:
+                temp_string = shap_string.replace('u',strs)
+                file.write(strs+'=\n')
+                file.write(temp_string)
+                file.write('\n')
 
     # 9 write gaus paragraph
     if 'gaus' in xde_lists:
@@ -689,20 +754,107 @@ def release_code(xde_lists,code_place,pfelacpath,code_use_dict):
                 # to the list type of 'fvect' or 'fmatr'
                 elif left_var[0]  == '[' \
                 and  left_var[-1] == ']' : 
-                    vector_expr = strs.replace('Func_Asgn: ','').replace('[','').replace(']','')
-                    left_var  = vector_expr.split('=')[0].strip()
-                    righ_expr = vector_expr.split('=')[1].strip()
-                    expr_list = idx_summation(left_var,righ_expr,xde_lists)
+                    
+                    vector_expr = strs.replace('Func_Asgn: ','')
+                    
+                    # Func_Asgn: [a] = b[*,*] --------- @S a b * *
+                    if regx.search(r'[a-z]+[0-9a-z]*\[([0-9],)*[0-9]?\]',righ_expr,regx.I) != None \
+                    and righ_expr[-1] == ']':
 
-                    if left_var.count('_') == 1:
-                        left_var = left_var.split('_')[0]
-                        for ii in range(1,len(xde_lists['fvect'][left_var])):
-                            xde_lists['fvect'][left_var][ii] = \
-                                expr_list[ii-1].split('=')[1].replace('++','+').replace('-+','-')
-                    elif left_var.count('_') == 2:
-                        left_var = left_var.split('_')[0]
-                        for ii in range(2,len(xde_lists['fmatr'][left_var])):
-                            for jj in range(len(xde_lists['fmatr'][left_var][2])):
-                                xde_lists['fmatr'][left_var][ii][jj] = \
-                                    expr_list[ii-2+jj].split('=')[1].replace('++','+').replace('-+','-')
+                        left_var  = vector_expr.split('=')[0].strip().replace('[','').replace(']','')
+                        righ_expr = vector_expr.split('=')[1].strip()
 
+                        righ_var = righ_expr.split('[')[0]
+                        if righ_expr[-1] == ']' and righ_expr[-2] == '[':
+                            if 'fvect' in xde_lists \
+                            and righ_var in xde_lists['fvect']:
+                                righ_idx = list(range(int(xde_lists['fvect'][righ_var][0])))
+                            elif 'fmatr' in xde_lists \
+                            and righ_var in xde_lists['fmatr']:
+                                righ_idx = list(range(int(xde_lists['fvect'][righ_var][0]) \
+                                                     *int(xde_lists['fvect'][righ_var][1])))
+                            righ_idx = [x + 1 for x in righ_idx]
+                        else:
+                            righ_idx = righ_expr.split('[')[1].rstrip(']').split(',')
+
+                        if left_var.count('_') == 0:
+                            
+                            oprt_expr = left_var+'='
+
+                            if 'fvect' in xde_lists \
+                            and righ_var in xde_lists['fvect']:
+                                for idx in righ_idx:
+                                    oprt_expr += xde_lists['fvect'][righ_var][int(idx)]
+
+                            elif 'fmatr' in xde_lists \
+                            and righ_var in xde_lists['fmatr']:
+
+                                row = int(xde_lists['fmatr'][righ_var][0])
+                                clm = int(xde_lists['fmatr'][righ_var][1])
+                                fmatr = xde_lists['fmatr'][righ_var][2:len(xde_lists['fmatr'][righ_var])]
+
+                                for idx in righ_idx:
+                                    oprt_expr += fmatr[math.ceil(int(idx)/clm)-1][int(idx)%clm-1]
+
+                            code_use_dict[code_place].append(oprt_expr+'\n\n')
+                            print(oprt_expr)
+
+                        elif left_var.count('_') == 1: 
+                            left_vara_name = left_var.split('_')[0]
+                            left_vara_lent = len(xde_lists['fvect'][left_vara_name])
+
+                            if left_vara_lent == len(righ_idx)+1:
+                                if 'fvect' in xde_lists \
+                                and righ_var in xde_lists['fvect']:
+                                    for idx,ii in zip(righ_idx,range(left_vara_lent)):
+                                        xde_lists['fvect'][left_vara_name][ii+1] = \
+                                        xde_lists['fvect'][righ_var][int(idx)]
+
+                                elif 'fmatr' in xde_lists \
+                                and righ_var in xde_lists['fmatr']:
+                                    row = int(xde_lists['fmatr'][righ_var][0])
+                                    clm = int(xde_lists['fmatr'][righ_var][1])
+                                    for idx,ii in zip(righ_idx,range(left_vara_lent)):
+                                        xde_lists['fvect'][left_vara_name][ii+1] = \
+                                        xde_lists['fmatr'][righ_var][math.ceil(int(idx)/clm)+1][int(idx)%clm-1]
+
+                        elif left_var.count('_') == 2:
+                            left_vara_name = left_var.split('_')[0]
+                            oprt_expr_list = []
+                            matr_len = int(xde_lists['fmatr'][left_vara_name][0]) \
+                                     * int(xde_lists['fmatr'][left_vara_name][1])
+
+                            if matr_len == len(righ_idx):
+                                if 'fvect' in xde_lists \
+                                and righ_var in xde_lists['fvect']:
+                                    for ii,idx in zip(range(matr_len),righ_idx):
+                                        xde_lists['fmatr'][left_vara_name][math.ceil(ii/clm)+1][ii%clm-1] = \
+                                              xde_lists['fvect'][righ_var][int(idx)]
+
+                                elif 'fmatr' in xde_lists \
+                                and righ_var in xde_lists['fmatr']:
+                                    for ii,idx in zip(range(matr_len),righ_idx):
+                                        xde_lists['fmatr'][left_vara_name][math.ceil(ii/clm)+1][ii%clm-1] = \
+                                              xde_lists['fmatr'][righ_var][math.ceil(int(idx)/clm)+1][int(idx)%clm-1]
+                    
+                    else:
+                        left_var  = vector_expr.split('=')[0].strip().replace('[','').replace(']','')
+                        righ_expr = vector_expr.split('=')[1].strip().replace('[','').replace(']','')
+
+                        expr_list = idx_summation(left_var,righ_expr,xde_lists)
+
+                        if left_var.count('_') == 1:
+                            left_var = left_var.split('_')[0]
+                            row = int(xde_lists['fvect'][left_var][0])
+                            for ii in range(row):
+                                xde_lists['fvect'][left_var][ii+1] = \
+                                    expr_list[ii].split('=')[1].replace('++','+').replace('-+','-')
+
+                        elif left_var.count('_') == 2:
+                            left_var = left_var.split('_')[0]
+                            row = int(xde_lists['fmatr'][left_var][0])
+                            clm = int(xde_lists['fmatr'][left_var][1])
+                            for ii in range(row):
+                                for jj in range(clm):
+                                    xde_lists['fmatr'][left_var][ii+2][jj] = \
+                                        expr_list[ii*row+jj].split('=')[1].replace('++','+').replace('-+','-')

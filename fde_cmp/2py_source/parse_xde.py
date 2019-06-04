@@ -18,6 +18,9 @@ def parse_xde(gesname, coortype, keywd_tag, xde_lists, list_addr, keyws_reg,file
     dim = regx.search(r'[1-9]+',coortype,regx.I).group()
     axi = coortype.split('d')[1]
 
+    shap_nodn = regx.search(r'[1-9]+',shap_tag,regx.I).group()
+    shap_form = shap_tag[0]
+
     i = 0
     stitchline = ''
     keywd_tag['paragraph'] = 'BFmate'
@@ -128,6 +131,10 @@ def parse_xde(gesname, coortype, keywd_tag, xde_lists, list_addr, keyws_reg,file
 
             elif regxrp.group().lower() == 'fmatr':
                 pushcomdeclar('fmatr',i, line, xde_lists, list_addr)
+                line_list = line.strip().split()
+                if len(line_list) == 2:
+                    xde_lists['fvect'][line_list[1]].append('1')
+                    xde_lists['fvect'][line_list[1]].append('1')
 
             elif regxrp.group().lower() == 'fvect':
                 pushcomdeclar('fvect',i, line, xde_lists, list_addr)
@@ -138,6 +145,15 @@ def parse_xde(gesname, coortype, keywd_tag, xde_lists, list_addr, keyws_reg,file
             elif regxrp.group().find('$')!= -1 or regxrp.group().find('@')!= -1:
                 if regxrp.group().lower() == '$cp':
                     keywd_tag['complex'] = 1
+                line = line.replace('%1',shap_form).replace('%2',shap_nodn)
+                pushcodeline (i, line, keywd_tag, xde_lists, list_addr)
+
+            elif regxrp.group().lower() == 'common':
+                line = line.replace('%1',shap_form).replace('%2',shap_nodn)
+                pushcodeline (i, line, keywd_tag, xde_lists, list_addr)
+            
+            elif regxrp.group().lower() == 'array':
+                line = line.replace('%1',shap_form).replace('%2',shap_nodn)
                 pushcodeline (i, line, keywd_tag, xde_lists, list_addr)
 
             elif regxrp.group().lower() == 'mass':
@@ -232,8 +248,6 @@ def parse_xde(gesname, coortype, keywd_tag, xde_lists, list_addr, keyws_reg,file
     # 3 second step parsing
     # 3.1 parsing shap
     if 'shap' in xde_lists:
-        nodn = regx.search(r'[1-9]+',shap_tag,regx.I).group()
-        shap_form = shap_tag[0]
         shap_type = shap_tag
         shap_dict = {}
         shap_list = xde_lists['shap'].copy()
@@ -245,7 +259,7 @@ def parse_xde(gesname, coortype, keywd_tag, xde_lists, list_addr, keyws_reg,file
                 if  shp_list[0] == '%1':
                     shp_list[0] = shap_form
                 if  shp_list[1] == '%2':
-                    shp_list[1] = nodn
+                    shp_list[1] = shap_nodn
                 shap_type = shp_list[0]+shp_list[1]
 
                 shap_dict[shap_type] = []
@@ -276,7 +290,7 @@ def parse_xde(gesname, coortype, keywd_tag, xde_lists, list_addr, keyws_reg,file
                     if 'coef' in xde_lists:
                         coef_find_n = len(set(var_list)&set(xde_lists['coef']))
 
-                    shap_type = shp_list[0] + nodn
+                    shap_type = shp_list[0] + shap_nodn
 
                     for var_name in var_list:
                         if var_name.isnumeric(): continue
@@ -334,7 +348,7 @@ def parse_xde(gesname, coortype, keywd_tag, xde_lists, list_addr, keyws_reg,file
 
                     pena_var_list = set(pena_var_list)&set(xde_lists['disp'])
 
-                    shp_list[1]   = shp_list[1].replace('%2',nodn)
+                    shp_list[1]   = shp_list[1].replace('%2',shap_nodn)
                     sub_shap_type = shp_list[0]+shp_list[1]
 
                     if shp_list[1] not in shap_dict:
@@ -414,7 +428,7 @@ def parse_xde(gesname, coortype, keywd_tag, xde_lists, list_addr, keyws_reg,file
 
     # 3.6 parsing code
     code = {}
-    code_key = r'\$C[CPV]|@[LAWSR]'
+    code_key = r'\$C[CPV]|@[LAWSR]|ARRAY'
     for code_place in xde_lists['code'].keys():
         code_i = 0
         for code_strs in xde_lists['code'][code_place]:
@@ -424,13 +438,13 @@ def parse_xde(gesname, coortype, keywd_tag, xde_lists, list_addr, keyws_reg,file
             if regxrp != None:
                 if regxrp.group().lower() == '$cc':
                     xde_lists['code'][code_place][code_i-1] \
-                    = code_strs.replace(regxrp.group(),'Insr_C:')
+                        = code_strs.replace(regxrp.group(),'Insr_C:')
                 elif regxrp.group().lower() == '$cv':
                     xde_lists['code'][code_place][code_i-1] \
-                    = code_strs.replace(regxrp.group(),'Tnsr_Asgn:')
+                        = code_strs.replace(regxrp.group(),'Tnsr_Asgn:')
                 elif regxrp.group().lower() == '$cp':
                     xde_lists['code'][code_place][code_i-1] \
-                    = code_strs.replace(regxrp.group(),'Cplx_Asgn:')
+                        = code_strs.replace(regxrp.group(),'Cplx_Asgn:')
 
                 # 3.6.1 parsing operator
                 elif regxrp.group().lower() == '@l':
@@ -441,10 +455,10 @@ def parse_xde(gesname, coortype, keywd_tag, xde_lists, list_addr, keyws_reg,file
                     if opr_list[2].lower() == 'n':
                         if operator_name.lower() == 'singular':
                             xde_lists['code'][code_place][code_i-1] \
-                            = 'Oprt_Asgn: '+operator_expr
+                                = 'Oprt_Asgn: '+operator_expr
                         elif operator_name.lower() == 'vol':
                             xde_lists['code'][code_place][code_i-1] \
-                            = 'Oprt_Asgn: '+operator_expr
+                                = 'Oprt_Asgn: '+operator_expr
                     else:
                         var_prefix = ['', '',   '',     '[']
                         var_posfix = ['', '_i', '_i_j', ']']
@@ -483,13 +497,50 @@ def parse_xde(gesname, coortype, keywd_tag, xde_lists, list_addr, keyws_reg,file
                             xde_lists['code'][code_place][code_i-1] = temp_str.rstrip(',')+']'
 
                 elif regxrp.group().lower() == '@s':
-                    pass
+                    opr_list = code_strs.split()
+                    temp_str = 'Func_Asgn: ['+opr_list[1]
+                    for strs,idxs in zip(['fvect','fmatr'],['_i]=','_i_j]=']):
+                        if  strs in xde_lists and opr_list[1] in xde_lists[strs]:
+                            temp_str += idxs+opr_list[2]+'['
+                            for ii in range(3,len(opr_list)):
+                                temp_str += opr_list[ii]+','
+                            xde_lists['code'][code_place][code_i-1] = temp_str.rstrip(',')+']'
 
                 elif regxrp.group().lower() == '@r':
                     code_strs = code_strs[3:len(code_strs)]
                     expr = code_strs.split('=')
                     xde_lists['code'][code_place][code_i-1] \
                     = 'Func_Asgn: ['+ expr[0].rstrip()+']='+expr[1].lstrip().replace('[','').replace(']','')
+
+                elif regxrp.group().lower() == 'array':
+                    code_strs = code_strs.split()[1]
+                    var_list = code_strs.split(',')
+                    xde_lists['code'][code_place][code_i-1] = 'Insr_C: double '
+                    for var_str in var_list:
+                        var = var_str.strip().split('[')[0]
+                        idx_list = regx.findall(r'\[\d+\]',var_str,regx.I)
+                        if len(idx_list) == 1:
+                            if 'vect' not in xde_lists: 
+                                xde_lists['vect'] = {}
+                            xde_lists['vect'][var] = []
+                            for idx in idx_list:
+                                xde_lists['vect'][var].append(idx.lstrip('[').rstrip(']'))
+                            for ii in range(int(xde_lists['vect'][var][0])):
+                                xde_lists['vect'][var].append(var+'['+str(ii+1)+']')
+                            var_str = var + '[' + str(int(idx_list[0].lstrip('[').rstrip(']'))+1) +']'
+                        elif len(idx_list) == 2:
+                            if 'matrix' not in xde_lists: 
+                                xde_lists['matrix'] = {}
+                            xde_lists['matrix'][var] = []
+                            for idx in idx_list:
+                                xde_lists['matrix'][var].append(idx.lstrip('[').rstrip(']'))
+                            for ii in range(int(xde_lists['matrix'][var][0])):
+                                xde_lists['matrix'][var].append([])
+                                for jj in range(int(xde_lists['matrix'][var][1])):
+                                    xde_lists['matrix'][var][ii+2].append(var+'['+str(ii+1)+']['+str(jj+1)+']')
+
+                        xde_lists['code'][code_place][code_i-1] += var_str + ','
+                    xde_lists['code'][code_place][code_i-1] = xde_lists['code'][code_place][code_i-1].rstrip(',') +';'
     #print(code)
 
     return False
@@ -501,12 +552,13 @@ def pushkeydeclar (strs, linenum, line, xde_lists, list_addr):
     else:
         list_addr[strs] = linenum
         xde_lists[strs] = []
+        line = line.replace(',',' ').replace(';',' ')
         wordlist = line.strip().split()
         for j in range(2,len(wordlist)+1): xde_lists[strs].append(wordlist[j-1])
 
 # common declare type: VECT, FMATR
 def pushcomdeclar (strs, linenum, line, xde_lists, list_addr):
-    if not strs in xde_lists: 
+    if strs not in xde_lists: 
         xde_lists[strs] = {}
         list_addr[strs] = {}
     wordlist = line.strip().split()
