@@ -1,6 +1,6 @@
 '''
  Copyright: Copyright (c) 2019
- Created: 2019-4-15
+ Created: 2019-3-30
  Author: Zhang_Licheng
  Title: main func of generate xde file to ges
  All rights reserved
@@ -17,6 +17,10 @@ def main(argvs=None):
     or argvs[1] == '--h' \
     or argvs[1] == '-H' \
     or argvs[1] == '--H':
+        print('type as: python genxde.py delxyz aec27g3 3dxyz')
+        return
+
+    if len(argvs) != 4:
         print('type as: python genxde.py delxyz aec27g3 3dxyz')
         return
 

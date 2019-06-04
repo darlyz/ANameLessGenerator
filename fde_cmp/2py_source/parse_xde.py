@@ -1,6 +1,6 @@
 '''
  Copyright: Copyright (c) 2019
- Created: 2019-4-15
+ Created: 2019-3-30
  Author: Zhang_Licheng
  Title: parse the xde file and check it
  All rights reserved
