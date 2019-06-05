@@ -386,18 +386,24 @@ def parse_xde(gesname, coor_type, xde_lists, list_addr, xdefile):
     for code_place in xde_lists['code'].keys():
         
         code_line_count = len(xde_lists['code'][code_place])
-        for code_line, code_i in zip(xde_lists['code'][code_place], range(code_line_count)):
+        for code_line, code_i \
+        in zip(xde_lists['code'][code_place], range(code_line_count)):
             code_regx = regx.match(regx_key,code_line,regx.I)
 
             if code_regx != None:
                 code_key = code_regx.group()
 
                 if   code_key.lower() == '$cc':
-                    xde_lists['code'][code_place][code_i] = code_line.replace(code_key,'Insr_Code:')
+                    xde_lists['code'][code_place][code_i] \
+                        = code_line.replace(code_key,'Insr_Code:')
+
                 elif code_key.lower() == '$cv':
-                    xde_lists['code'][code_place][code_i] = code_line.replace(code_key,'Tnsr_Asgn:')
+                    xde_lists['code'][code_place][code_i] \
+                        = code_line.replace(code_key,'Tnsr_Asgn:')
+
                 elif code_key.lower() == '$cp':
-                    xde_lists['code'][code_place][code_i] = code_line.replace(code_key,'Cplx_Asgn:')
+                    xde_lists['code'][code_place][code_i] \
+                        = code_line.replace(code_key,'Cplx_Asgn:')
 
                 # 3.6.2 parsing operator
                 elif code_key.lower() == '@l':
@@ -408,62 +414,87 @@ def parse_xde(gesname, coor_type, xde_lists, list_addr, xdefile):
 
                     if assign_type == 'n':
                         if   operator_name.lower() == 'singular':
-                            xde_lists['code'][code_place][code_i] = 'Oprt_Asgn: '+operator_expr
+                            xde_lists['code'][code_place][code_i] \
+                                = 'Oprt_Asgn: '+operator_expr
+
                         elif operator_name.lower() == 'vol':
-                            xde_lists['code'][code_place][code_i] = 'Oprt_Asgn: '+operator_expr
+                            xde_lists['code'][code_place][code_i] \
+                                = 'Oprt_Asgn: '+operator_expr
 
                     else:
                         var_prefix = ['',  '',   '',     '[']
                         var_posfix = ['',  '_i', '_i_j', ']']
                         assgn_type = ['c', 'v',  'm',    'f']
 
-                        for asgn_type, var_prefx, var_posfx in zip(assgn_type, var_prefix, var_posfix) :
+                        for    asgn_type,  var_prefx,  var_posfx \
+                        in zip(assgn_type, var_prefix, var_posfix) :
                             if assign_type == asgn_type :
                                 if asgn_type == 'f':
-                                    if   'fvect' in xde_lists and opr_list[3] in xde_lists['fvect']:
+
+                                    if   'fvect' in xde_lists \
+                                    and opr_list[3] in xde_lists['fvect']:
                                         var_posfx = '_i'   + var_posfx
-                                    elif 'fmatr' in xde_lists and opr_list[3] in xde_lists['fmatr']:
+
+                                    elif 'fmatr' in xde_lists \
+                                    and opr_list[3] in xde_lists['fmatr']:
                                         var_posfx = '_i_j' + var_posfx
 
-                                temp_str  = 'Oprt_Asgn: ' + var_prefx + opr_list[3] + var_posfx
+                                temp_str  = 'Oprt_Asgn: ' 
+                                temp_str += var_prefx + opr_list[3] + var_posfx
                                 temp_str += '=' + operator_expr + '('
 
                                 for ii in range(4,len(opr_list)):
                                     temp_str += opr_list[ii] + ','
-                                xde_lists['code'][code_place][code_i] = temp_str.rstrip(',') + ')'
+                                
+                                xde_lists['code'][code_place][code_i] \
+                                    = temp_str.rstrip(',') + ')'
 
                 # 3.6.3 parsing assignment
                 elif code_key.lower() == '@a':
                     code_line = code_line[3:len(code_line)]
                     expr = code_line.split('=')
                     xde_lists['code'][code_place][code_i] \
-                        = 'Func_Asgn: [' + expr[0].rstrip() + ']=' + expr[1].lstrip()
+                        = 'Func_Asgn: [' + expr[0].rstrip() \
+                        + ']=' + expr[1].lstrip()
 
                 elif code_key.lower() == '@r':
                     code_line = code_line[3:len(code_line)]
                     expr = code_line.split('=')
-                    xde_lists['code'][code_place][code_i-1] \
-                        = 'Func_Asgn: [' + expr[0].rstrip() + ']=' + expr[1].lstrip().replace('[','').replace(']','')
+                    xde_lists['code'][code_place][code_i] \
+                        = 'Func_Asgn: [' + expr[0].rstrip() \
+                        + ']=' + expr[1].lstrip().replace('[','').replace(']','')
 
                 elif code_key.lower() == '@w':
                     opr_list = code_line.split()
                     temp_str = 'Func_Asgn: '+opr_list[1]
+                    
                     for strs, idxs in zip(['vect','matrix'], ['_i=','_i_j=']):
-                        if  strs in xde_lists and opr_list[1] in xde_lists[strs]:
+
+                        if  strs in xde_lists \
+                        and opr_list[1] in xde_lists[strs]:
                             temp_str += idxs + opr_list[2] + '['
+
                             for ii in range(3,len(opr_list)):
                                 temp_str += opr_list[ii] + ','
-                            xde_lists['code'][code_place][code_i] = temp_str.rstrip(',') + ']'
+
+                            xde_lists['code'][code_place][code_i] \
+                                = temp_str.rstrip(',') + ']'
 
                 elif code_key.lower() == '@s':
                     opr_list = code_line.split()
                     temp_str = 'Func_Asgn: [' + opr_list[1]
+
                     for strs, idxs in zip(['fvect','fmatr'], ['_i]=','_i_j]=']):
-                        if  strs in xde_lists and opr_list[1] in xde_lists[strs]:
+
+                        if  strs in xde_lists \
+                        and opr_list[1] in xde_lists[strs]:
                             temp_str += idxs + opr_list[2] + '['
+
                             for ii in range(3,len(opr_list)):
                                 temp_str += opr_list[ii] + ','
-                            xde_lists['code'][code_place][code_i] = temp_str.rstrip(',') + ']'
+
+                            xde_lists['code'][code_place][code_i] \
+                                = temp_str.rstrip(',') + ']'
 
                 elif code_key.lower() == 'array':
                     var_list = code_line[5:len(code_line)].split(',')
@@ -482,7 +513,8 @@ def parse_xde(gesname, coor_type, xde_lists, list_addr, xdefile):
 
                             xde_lists['vect'][var_name].append(vect_len)
                             for ii in range(int(vect_len)):
-                                xde_lists['vect'][var_name].append(var_name + '[' + str(ii+1) + ']')
+                                xde_lists['vect'][var_name] \
+                                    .append(var_name + '[' + str(ii+1) + ']')
 
                             var_strs = var_name + '[' + str(int(vect_len)+1) +']'
 
@@ -496,10 +528,12 @@ def parse_xde(gesname, coor_type, xde_lists, list_addr, xdefile):
 
                             xde_lists['matrix'][var_name].append(matr_row)
                             xde_lists['matrix'][var_name].append(matr_clm)
+
                             for ii in range(int(matr_row)):
                                 xde_lists['matrix'][var_name].append([])
                                 for jj in range(int(matr_clm)):
-                                    xde_lists['matrix'][var_name][ii+2].append(var_name+'['+str(ii+1)+']['+str(jj+1)+']')
+                                    xde_lists['matrix'][var_name][ii+2] \
+                                        .append(var_name+'['+str(ii+1)+']['+str(jj+1)+']')
                         
                         temp_str += var_strs + ','
                     xde_lists['code'][code_place][code_i] = temp_str.rstrip(',') +';'
@@ -508,13 +542,15 @@ def parse_xde(gesname, coor_type, xde_lists, list_addr, xdefile):
 # key declare type1: DISP, COEF, COOR, GAUS, MATE
 def pushkeydeclar (strs, matrix_line, line, xde_lists, list_addr):
     if strs in xde_lists:
-        print('warn: line {0}, duplicated declare, {1} has been declared at line {2}'.format(matrix_line,strs,list_addr[strs]))
+        print('warn: line {0}, duplicated declare, {1} has been declared at line {2}' \
+            .format(matrix_line, strs, list_addr[strs]))
     else:
         list_addr[strs] = matrix_line
         xde_lists[strs] = []
         line = line.replace(',',' ').replace(';',' ')
         wordlist = line.split()
-        for j in range(2,len(wordlist)+1): xde_lists[strs].append(wordlist[j-1])
+        for j in range(2,len(wordlist)+1):
+            xde_lists[strs].append(wordlist[j-1])
 
 # common declare type: VECT, FMATR
 def pushcomdeclar (strs, matrix_line, line, xde_lists, list_addr):
@@ -546,7 +582,8 @@ def pushcodeline (matrix_line, line, keywd_tag, xde_lists, list_addr):
 # stif, mass, damp declare
 def pushwekdeclar (strs, matrix_line, line, keywd_tag, xde_lists, list_addr):
     if strs in xde_lists:
-        print('error: line {0}, duplicated declare, {1} has been declared at line {2}'.format(matrix_line,strs,list_addr[strs][0]))
+        print('error: line {0}, duplicated declare, {1} has been declared at line {2}' \
+            .format(matrix_line, strs, list_addr[strs][0]))
     else:
         list_addr[strs] = []
         xde_lists[strs] = []

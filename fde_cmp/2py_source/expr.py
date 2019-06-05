@@ -331,8 +331,8 @@ def complex_multiply(left,righ):
 
 def complex_division(left,righ):
     if righ != '0' and left != '0':
-        return ['('+left[0]+'*'+righ[0]+'+'+left[1]+'*'+righ[1]+')/('+righ[0]+'*'+righ[0]+'+'+righ[1]+'*'+righ[1]+')', \
-                   '(-'+left[0]+'*'+righ[1]+'+'+left[1]+'*'+righ[0]+')/('+righ[0]+'*'+righ[0]+'+'+righ[1]+'*'+righ[1]+')']
+        return ['(' +left[0]+'*'+righ[0]+'+'+left[1]+'*'+righ[1]+')/('+righ[0]+'*'+righ[0]+'+'+righ[1]+'*'+righ[1]+')', \
+                '(-'+left[0]+'*'+righ[1]+'+'+left[1]+'*'+righ[0]+')/('+righ[0]+'*'+righ[0]+'+'+righ[1]+'*'+righ[1]+')']
     elif left == '0' and righ != '0':
         return '0'
     else: return None

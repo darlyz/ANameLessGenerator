@@ -192,7 +192,8 @@ def xde2ges(gesname, coor_type, xde_lists, list_addr, gesfile):
         coor_i = 0
         for coor_str in xde_lists['coor']:
             for ii in range(len(tran_expr_list)):
-                tran_expr_list[ii] = tran_expr_list[ii].replace(geslib_coor[coor_i],'r'+coor_str)
+                tran_expr_list[ii] = \
+                    tran_expr_list[ii].replace(geslib_coor[coor_i],'r'+coor_str)
             coor_i += 1
 
         # 9.2.3 replace shap func's disp by by xde's coor and write
@@ -397,8 +398,9 @@ def xde2ges(gesname, coor_type, xde_lists, list_addr, gesfile):
 
             # 9.2.1 read gaus axis and weight in ges.lib and write
             for line in file_gaus.readlines():
-                gaus_start_file = regx.search('sub d'+ dim + xde_lists['gaus']+'.gau',line,regx.I)
-                gaus_end_file   = regx.search('end d'+ dim + xde_lists['gaus']+'.gau',line,regx.I)
+                gaus_name = ' d'+ dim + xde_lists['gaus']+'.gau'
+                gaus_start_file = regx.search('sub' + gaus_name, line,regx.I)
+                gaus_end_file   = regx.search('end' + gaus_name, line,regx.I)
                 if gaus_start_file != None:
                     gaus_find = 1
                     continue
@@ -447,7 +449,8 @@ def xde2ges(gesname, coor_type, xde_lists, list_addr, gesfile):
                     nodn = regx.search(r'\d+',shaps,regx.I).group()
                     for vara in xde_lists['shap'][shaps]:
                         for ii in range(int(nodn)):
-                            gesfile.write('+[{}]{}{}\n'.format(xde_lists[weak][1],vara,ii+1))
+                            gesfile.write('+[{}]{}{}\n' \
+                                .format(xde_lists[weak][1], vara, ii+1))
 
     # 14 write load paragraph
     gesfile.write('\nload\n')
@@ -511,11 +514,13 @@ def release_code(xde_lists,code_place,pfelacpath,code_use_dict):
                         cplx_list = expr.split('=')
                         cplx_objt = cmplx_expr(cplx_list[1])
                         for ri,cmplexpr in zip(['r','i'], cplx_objt.complex_list):
-                            code_use_dict[code_place].append('$cc {}{}={};\n'.format(cplx_list[0],ri,cmplexpr))
+                            code_use_dict[code_place] \
+                                .append('$cc {}{}={};\n'.format(cplx_list[0],ri,cmplexpr))
                 else:
                     cplx_objt = cmplx_expr(righ_expr)
                     for ri,cmplexpr in zip(['r','i'], cplx_objt.complex_list):
-                        code_use_dict[code_place].append('$cc {}{}={};\n'.format(left_vara,ri,cmplexpr))
+                        code_use_dict[code_place] \
+                            .append('$cc {}{}={};\n'.format(left_vara,ri,cmplexpr))
 
             # the operator resault assignment
             elif regxrp.group() == 'Oprt':
@@ -530,7 +535,7 @@ def release_code(xde_lists,code_place,pfelacpath,code_use_dict):
                         oprt_find = 0
 
                         for line in file_oprt.readlines():
-                            oprt_start_file = regx.match('sub '+oprt_expr+r'\(',line,regx.I)
+                            oprt_start_file = regx.match('sub '+oprt_expr,line,regx.I)
                             oprt_end_file   = regx.match('end '+oprt_expr,line,regx.I)
                             if oprt_start_file != None:
                                 oprt_find = 1
@@ -576,7 +581,7 @@ def release_code(xde_lists,code_place,pfelacpath,code_use_dict):
                     oprt_find = 0
                     # find operator in pde.lib
                     for line in file_oprt.readlines():
-                        oprt_start_file = regx.search('sub '+oprt_name+r'\(',line,regx.I)
+                        oprt_start_file = regx.search('sub '+oprt_name,line,regx.I)
                         oprt_end_file   = regx.search('end '+oprt_name,line,regx.I)
                         if oprt_start_file != None:
                             oprt_find = 1
@@ -637,7 +642,8 @@ def release_code(xde_lists,code_place,pfelacpath,code_use_dict):
                             expr = left_vara.lstrip('[').rstrip(']').split('_')[0]
                             if len(xde_lists['vect'][expr]) == len(expr_list)+1:
                                 for ii in range(len(expr_list)):
-                                    code_use_dict[code_place].append('$cv '+ xde_lists['vect'][expr][ii+1] + '=' + expr_list[ii])
+                                    code_use_dict[code_place] \
+                                        .append('$cv '+ xde_lists['vect'][expr][ii+1] + '=' + expr_list[ii])
 
                         elif left_vara.count('_') == 2:
                             expr = left_vara.lstrip('[').rstrip(']').split('_')[0]

@@ -118,8 +118,11 @@ def check_xde(xde_lists,list_addr,shap_tag,gaus_tag):
                   shap_shap = shap_tag[0]
             else: shap_shap = shap_list[0]
 
-            shap_node   = [['%2','2','3'], ['%2','3','6'], ['%2','4','9'], \
-                          ['%2','4','10'], ['%2','8','27'] ]
+            shap_node   = [['%2','2','3'], \
+                           ['%2','3','6'], \
+                           ['%2','4','9'], \
+                           ['%2','4','10'], \
+                           ['%2','8','27'] ]
             shap_type     = ['l','t','q','w','c']
             node_dgree1   = ['2','3','4','4','8']
             node_dgree1_5 = ['' ,'' ,'8','' ,'20']
