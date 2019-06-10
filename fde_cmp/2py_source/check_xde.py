@@ -14,56 +14,131 @@ Empha_color = Fore.GREEN
 color={'Error':Fore.MAGENTA,'Warnn':Fore.CYAN,'Empha':Fore.GREEN}
 
 import re as regx
-def check_xde(xde_lists,list_addr,shap_tag,gaus_tag):
+import os
+
+
+def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
 
     error = False
 
+    #ges_shap_type = regx.search(r'[ltqwc][1-9]+',gesname,regx.I).group()
+    #ges_gaus_type = regx.search(r'g[1-9]+',gesname,regx.I)
+    #if ges_gaus_type != None:
+    #    ges_gaus_type = ges_gaus_type.group()
+
+    dim = regx.search(r'[1-9]+',coor_type,regx.I).group()
+    axi = coor_type.split('d')[1]
+
+    ges_shap_nodn = regx.search(r'[1-9]+',ges_shap_type,regx.I).group()
+    ges_shap_form = ges_shap_type[0]
+
+    coor_strs = ''
+    for s in axi:
+        coor_strs += s+' '
+    coor_strs = coor_strs.rstrip()
+
+    pfelacpath = os.environ['pfelacpath']
+    path_shap = pfelacpath + 'ges/gessub'
+    file_shap = open(path_shap, mode='r')
+    shap_name_list = []
+    for shap_name in file_shap.readlines():
+        if shap_name.split('.')[1].rstrip() == 'sub' :
+            shap_name_list.append(shap_name.rstrip())
+    file_shap.close()
+
+    path_oprt = pfelacpath +'ges/pdesub'
+    file_oprt = open(path_oprt, mode='r')
+    oprt_name_list = []
+    for oprt_name in file_oprt.readlines():
+        oprt_name_list.append(oprt_name.rstrip())
+    file_oprt.close()
+
+    # the inner declaration
     all_declares  = {'tmax','dt','nstep','itnmax','time'}
     all_declares |= {'tolerance','dampalfa','dampbeta'}
     all_declares |= {'it','stop','itn','end'}
-    all_declares |= {'imate','nmate','nelem','num','nvar','nnode'}
+    all_declares |= {'imate','nmate','nelem','line_num','nvar','nnode'}
     all_declares |= {'ngaus','igaus','det','ndisp','nrefc','ncoor'}
 
     # gather C declares
     c_declares = {}
-    c_dclr_key = r"int|long|short|double|float"
+    c_dclr_key = r"char|int|long|short|double|float"
     c_dclr_exp = r"[a-z].*="
+    c_func_exp = r"\w+\(.*\)"
     for keys in xde_lists["code"].keys():
+        
         c_declares[keys] = set()
-        for strs,line_num in zip(xde_lists["code"][keys],list_addr["code"][keys]):
-            dclr_regx = regx.search(c_dclr_key,strs,regx.I)
-            if dclr_regx != None:
-                dclr_key = dclr_regx.group()
-                varas = regx.split(dclr_key,strs.rstrip(';'))[-1]
+        stitchline = ''
 
-                def trans(matched):
-                    index_str = matched.group('index')
-                    index_str = ','
-                    return index_str
+        for code_strs, line_num in zip(xde_lists["code"][keys],list_addr["code"][keys]):
+            
+            if regx.match(r'\$C[C6]|COMMON',code_strs,regx.I) != None:
 
-                varas = regx.sub(r'(?P<index>(=.*,?)+)',trans,varas)
+                regx_c = regx.match(r'\$C[C6]|COMMON',code_strs,regx.I).group()
+                code_strs = code_strs.replace(regx_c,'').lstrip()
 
-                var_list = varas.split(',')
-                if '' in var_list: var_list.remove('')
+                code_strs = stitchline + code_strs
+                if code_strs[-1] != ';':
+                    stitchline = code_strs
+                    continue
+                else: stitchline = ''
 
-                for var in var_list:
-                    if regx.search(c_dclr_exp, var, regx.I) != None:
-                        temp_var = var.split('=')[0].strip()
-                    else: temp_var = var.strip()
+                if regx.search(c_dclr_key,code_strs,regx.I) != None:
+                    if regx.search(c_func_exp,code_strs,regx.I) != None:
+                        continue
 
-                    if temp_var.find('[') != -1:
-                        temp_var = temp_var.split('[')[0]
+                    code_list = code_strs.split(';')
+                    code_list.pop()
+                    for code_sstr in code_list:
 
-                    if temp_var in all_declares:
-                        duplicate_declare(line_num,temp_var,'\n')
-                    else: all_declares.add(temp_var)
+                        def trans(matched):
+                            index_str = matched.group('index')
+                            index_str = ','
+                            return index_str
 
-                    c_declares[keys].add(temp_var)
+                        code_sstr = regx.sub(r'(?P<index>(=.*,?)+)',trans,code_sstr)
+
+                        if regx.search(c_dclr_key,code_sstr,regx.I) != None:
+
+                            vara_strs = regx.split(c_dclr_key,code_sstr,regx.I)[-1].strip()
+                            if vara_strs.find(','):
+                                vara_list = vara_strs.split(',')
+
+                                for vara in vara_list:
+                                    if vara.find('['):
+                                        vara = vara.split('[')[0].strip()
+                                    c_declares[keys].add(vara.lstrip('*'))
+
+                            else: c_declares[keys].add(vara_strs.lstrip('*'))
+
+                        else: continue
+
+                else: continue
+
+
+            elif regx.match(r'ARRAY',code_strs,regx.I) != None:
+                vara_strs = regx.split(r'ARRAY',code_strs,regx.I)[-1].strip()
+                if vara_strs.find(','):
+                    vara_list = vara_strs.split(',')
+                    for vara in vara_list:
+                        if vara.find('['):
+                            vara = vara.split('[')[0].strip()
+                        c_declares[keys].add(vara.lstrip('*'))
+                else: 
+                    if vara_strs.find('['):
+                        vara_strs = vara_strs.split('[')[0].strip()
+                    c_declares[keys].add(vara_strs.lstrip('*'))
+
+            else: continue
 
     # gather all declares
     for strs in ["disp","coef","coor","func"]:
         if strs in xde_lists:
             all_declares |= set(xde_lists[strs])
+
+    for strs in ["BFmate","AFmate","func","stif","mass","damp"]:
+        if strs in c_declares:
+            all_declares |= set(c_declares[strs])
 
     # check mate
     is_var = r'[a-z]\w*'
@@ -86,12 +161,50 @@ def check_xde(xde_lists,list_addr,shap_tag,gaus_tag):
     if 'matrix' in xde_lists:
         for matrix in xde_lists['matrix'].keys():
             line_nums = list_addr['matrix'][matrix].copy()
-            line_nums.pop(0)
-            for lists,num in zip(xde_lists['matrix'][matrix],line_nums):
-                for strs in lists.split():
+            matr_name_line = line_nums.pop(0)
+
+            matr_list = []
+            for var in xde_lists['matrix'][matrix]:
+                if not var.isnumeric():
+                    matr_list.append(var)
+
+            row_lenth = set()
+            for row,line_num in zip(matr_list,line_nums):
+                row_list = row.split()
+                row_lenth.add(len(row_list))
+                for strs in row_list:
                     for vara in regx.findall(r'[a-z]\w*',strs,regx.I):
                         if vara not in all_declares:
-                            not_declare(num,vara,'\n')
+                            not_declare(line_num,vara,'\n')
+
+            if xde_lists['matrix'][matrix][0].isnumeric:
+                row = xde_lists['matrix'][matrix][0]
+                if xde_lists['matrix'][matrix][1].isnumeric:
+                    clm = xde_lists['matrix'][matrix][1]
+
+                    if len(matr_list) != int(row):
+                        fault_declare(matr_name_line, matrix, 'The matrix row is not in accordance with which defined.\n')
+                    if int(clm) not in row_lenth:
+                            fault_declare(matr_name_line, matrix, 'The matrix column is not in accordance with which defined.\n')
+                else:
+                    fault_declare(matr_name_line ,matrix, 'need to define row and column number at the same time.\n')
+
+            if len(row_lenth) != 1:
+                fault_declare(matr_name_line,matrix,'lenth of every row is not equal.\n')
+
+    # check fvect
+    if 'fvect' in xde_lists:
+        for name,lists in xde_lists['fvect'].items():
+            if len(lists) != 1:
+                fault_declare(list_addr['fvect'][name], name, 'sugest declare as \'FVECT {} [len]\'.\n'.format(name))
+                error = True
+
+    # check fvect
+    if 'fmatr' in xde_lists:
+        for name,lists in xde_lists['fmatr'].items():
+            if len(lists) != 2:
+                fault_declare(list_addr['fmatr'][name], name, 'sugest declare as \'FMATR {} [row] [clm]\'.\n'.format(name))
+                error = True
 
     # check disp
     if 'disp' in xde_lists:
@@ -105,135 +218,186 @@ def check_xde(xde_lists,list_addr,shap_tag,gaus_tag):
     if 'coor' in xde_lists:
         pass
     else:
-        not_declare('*','coor var','may be declared as \'COOR * *\' in the first garaph, and \'* *\' could be referened in \'mdi\' file.\n')
+        not_declare('*','coor var','may be declared as \'COOR {}\' in the first garaph.\n'.format(coor_strs))
         error = True
 
     # check shap
+    base_shap_dclr_times = 0
+    base_shap_line = 0
     if 'shap' in xde_lists:
-        nodn = regx.search(r'[1-9]+',shap_tag,regx.I).group()
 
-        for shap_list,num in zip(xde_lists['shap'],list_addr['shap']):
+        for shap_list, line_num in zip(xde_lists['shap'], list_addr['shap']):
 
             if shap_list[0] == '%1':
-                  shap_shap = shap_tag[0]
-            else: shap_shap = shap_list[0]
+                  shap_form = ges_shap_form
+            else: shap_form = shap_list[0]
 
             shap_node   = [['%2','2','3'], \
                            ['%2','3','6'], \
-                           ['%2','4','9'], \
-                           ['%2','4','10'], \
-                           ['%2','8','27'] ]
-            shap_type     = ['l','t','q','w','c']
+                           ['%2','4','8','9'], \
+                           ['%2','4','6','10','18'], \
+                           ['%2','8','20','27'] ]
+            shap_forms    = ['l','t','q','w','c']
             node_dgree1   = ['2','3','4','4','8']
             node_dgree1_5 = ['' ,'' ,'8','' ,'20']
             node_dgree2   = ['3','6','9','10','27']
 
-            # base shap declare
-            if len(shap_list) == 2:
-                base_shap_type = shap_shap
-                if shap_list[1] == '%2':
-                      base_shap_node = regx.search(r'[1-9]+',shap_tag,regx.I).group()
-                else: base_shap_node = shap_list[1]
-                base_shap_line = num
+            if   shap_list[1] == '%2':
+                 shap_nodn = ges_shap_nodn
+            elif shap_list[1] == '%4':
+                for sform, snodn in zip(shap_forms, node_dgree1):
+                    if shap_form == sform:
+                        shap_nodn = snodn
+            elif shap_list[1] == '%2c':
+                  shap_nodn = shap_list[1].replace('%2',ges_shap_nodn)
+            else: shap_nodn = shap_list[1]
 
-                if shap_shap not in shap_type:
-                    fault_declare(num,'shap','suggested format is \'SHAP %1 %2\'.\n')
+            if shap_form not in shap_forms:
+                    fault_declare(line_num,'shap', \
+                        'the first variable of shap declaration must to be one of {}, or \'%1\'.\n'.format(shap_forms))
 
-                for stype,snodn in zip(shap_type, shap_node):
-                   if shap_shap == stype:
-                       if shap_list[1] not in snodn:
-                           fault_declare(num,'shap', \
-                               'suggested format is \'SHAP {} {}\'.\n'.format(shap_list[0],str(snodn)))
+            else:
+                # base shap declare
+                if len(shap_list) == 2:
 
-            # advance shap declare
-            elif len(shap_list) >= 3:
-                if shap_shap != base_shap_type:
-                    fault_declare(num,'shap', \
-                        'the first variable must be same to base shap declared at line' \
-                            + Empha_color +' {}\n'.format(base_shap_line))
+                    base_shap_dclr_times += 1
+                    if base_shap_dclr_times > 1 :
+                        duplicate_declare(line_num,'base shap','It has been declared at ' \
+                            +Empha_color + str(base_shap_line) +'.\n')
 
-                # sub shap declare using mix element
-                if shap_list[1] == '%4' or shap_list[1].isnumeric():
+                    base_shap_form = shap_form
+                    if shap_list[1] == '%2':
+                          base_shap_node = ges_shap_nodn
+                    else: base_shap_node = shap_list[1]
 
-                    var_list = shap_list[2:len(shap_list)]
-                    if len(set(var_list)) != len(var_list):
-                        warn_form(num, '', 'variable duplicated.\n')
+                    if base_shap_dclr_times == 1:
+                        base_shap_line = line_num
 
-                    for var_name in set(var_list):
-                        if var_name.isnumeric(): continue
+                    for sform, snodn in zip(shap_forms, shap_node):
+                        if shap_form == sform:
+                           if base_shap_node not in snodn:
+                               fault_declare(line_num,'shap', \
+                                   'the second variable of shap declaration is suggested to be one of {}.\n'.format(snodn))
 
-                        if 'coef' not in xde_lists:
-                            if var_name not in xde_lists['disp'] :
-                                wnot_declare(num,var_name,'It must be declared in disp.\n')
-                        else:
-                            if  var_name not in xde_lists['disp'] \
-                            and var_name not in xde_lists['coef'] :
-                                wnot_declare(num,var_name,'It must be declared in disp or coef.\n')
+                # advance shap declare
+                elif len(shap_list) >= 3:
 
-                    for stype,snodn,subnod in zip(shap_type,node_dgree2,node_dgree1):
-                        if base_shap_type == stype :
+                    if shap_form != base_shap_form:
+                        fault_declare(line_num,'shap', \
+                            'the first variable must be same to base shap declared at line' \
+                                + Empha_color +' {}.\n'.format(base_shap_line))
 
-                            # base shap is not degree 2 or not coordinate with shap_type
-                            if base_shap_node != snodn :
-                                addon_info  = 'using mix degree element, the second variable of base shap must to be '
-                                addon_info += Empha_color + snodn
-                                addon_info += Error_color + ' at line '
-                                addon_info += Empha_color + str(base_shap_line) + '.\n'
-                                fault_declare(num,'shap', addon_info)
+                    # sub shap declare using mix element
+                    if shap_list[1] == '%4' or shap_list[1].isnumeric():
 
-                            # sub shap is not coordinate with base or not coordinate with shap_type
-                            elif base_shap_node == snodn \
-                            and shap_list[1].isnumeric() \
-                            and shap_list[1] != subnod:
-                                addon_info  = 'using mix degree element, the second variable must to be '
-                                addon_info += Empha_color + subnod + ', '
-                                addon_info += Error_color + 'because base shap node is '
-                                addon_info += Empha_color + base_shap_node + ', '
-                                addon_info += Error_color + 'and base shap type is '
-                                addon_info += Empha_color + base_shap_type + '.\n'
-                                fault_declare(num,'shap', addon_info)
+                        temp_list = shap_list[2:len(shap_list)]
+                        var_list  = []
+                        for var in temp_list:
+                            if not var.isnumeric() :
+                                var_list.append(var)
+                        if len(set(var_list)) != len(var_list):
+                            warn_form(line_num, '', 'variable duplicated.\n')
 
-                # penalty disp var shap declare
-                elif shap_list[1] == '%2c' \
-                or  (shap_list[1][-1] == 'c' \
-                and  shap_list[1][:-1].isnumeric) :
+                        for var_name in set(var_list):
+                            if 'coef' not in xde_lists:
+                                if var_name not in xde_lists['disp'] :
+                                    wnot_declare(line_num,var_name,'It must be declared in disp.\n')
+                            else:
+                                if  var_name not in xde_lists['disp'] \
+                                and var_name not in xde_lists['coef'] :
+                                    wnot_declare(line_num,var_name,'It must be declared in disp or coef.\n')
 
-                    if base_shap_node in node_dgree2:
-                        warn_form(base_shap_line,'','must to be linear shap function.\n')
-                    if shap_list[1][:-1].replace('%2',nodn) in node_dgree2:
-                        warn_form(num,'','must to be linear shap function.\n')
+                        if shap_list[1] == '%4':
+                            for sform, snodn in zip(shap_forms, node_dgree1):
+                                if shap_form == sform:
+                                    shap_nodn = snodn
+                        else: shap_nodn = shap_list[1]
 
-                    var_list = shap_list[2:len(shap_list)]
-                    pena_var_list = []
-                    for var in var_list:
-                        if var.isnumeric(): continue
-                        if shap_list[2].find('_'):
-                            pena_var_list.append(shap_list[2].split('_')[0])
-                        else: pena_var_list.append(shap_list[2])
+                        for sform, bnodn, snodn in zip(shap_forms, node_dgree2, node_dgree1):
+                            if base_shap_form == sform :
 
-                    if len(set(pena_var_list)) != len(pena_var_list):
-                        warn_form(num, '', 'variable duplicated.\n')
+                                # base shap is not degree 2 or not coordinate with shap_form
+                                if base_shap_node != bnodn :
+                                    addon_info = 'The second variable of base shap must to be '
+                                    addon_info += Empha_color + bnodn
+                                    addon_info += Error_color + '(second order), since using mix order element.\n'
+                                    fault_declare(base_shap_line,'shap', addon_info)
 
-                    for var_name in set(pena_var_list):
+                                # sub shap is not coordinate with base or not coordinate with shap_form
+                                if shap_nodn != snodn:
+                                    addon_info  = 'The second variable of mixed shap must to be '
+                                    addon_info += Empha_color + snodn
+                                    addon_info += Error_color + '(first order), since using mix order element.\n'
+                                    fault_declare(line_num,'shap', addon_info)
 
-                        if var_name not in xde_lists['disp'] :
-                            warn_form(num,'',Empha_color + var_name +\
-                                Warnn_color + ' must be declared in disp.\n')  
+                    # penalty disp var shap declare
+                    elif shap_list[1] == '%2c' \
+                    or  (shap_list[1][-1] == 'c' \
+                    and  shap_list[1][:-1].isnumeric) :
 
-                        if 'coef' in xde_lists \
-                        and var_name in xde_lists['coef'] :
-                            warn_form(num,'',Empha_color + var_name +\
-                                Warnn_color + ' must not be declared in coef.\n')
+                        temp_list = shap_list[2:len(shap_list)]
+                        var_list  = []
+                        for var in temp_list:
+                            if not var.isnumeric() :
+                                if var.find('_') :
+                                    var = var.split('_')[0]
+                                var_list.append(var)
 
+                        if len(set(var_list)) != len(var_list):
+                            warn_form(line_num, '', 'variable duplicated.\n')
 
+                        for var_name in set(var_list):
+                            if 'coef' in xde_lists:
+                                if var_name in xde_lists['coef'] :
+                                    wrong_declare(line_num, var_name,'It must not be declared in coef.\n')
+                                elif var_name not in xde_lists['disp'] :
+                                    wnot_declare(line_num,var_name,'It must be declared in disp.\n')
+                            elif var_name not in xde_lists['disp'] :
+                                    wnot_declare(line_num,var_name,'It must be declared in disp.\n')
 
+                        for sform, bnodn, snodn in zip(shap_forms, node_dgree1, node_dgree1):
+                            if base_shap_form == sform :
 
+                                # base shap is not degree 1 or not coordinate with shap_form
+                                if base_shap_node != bnodn :
+                                    addon_info = 'The second variable of base shap must to be '
+                                    addon_info += Empha_color + bnodn
+                                    addon_info += Error_color + '(first order), since using penalty element.\n'
+                                    fault_declare(base_shap_line,'shap', addon_info)
 
+                                # sub shap is not coordinate with base or not coordinate with shap_form
+                                if shap_nodn != snodn:
+                                    addon_info  = 'The second variable of mixed shap must to be '
+                                    addon_info += Empha_color + snodn
+                                    addon_info += Error_color + '(first order), since using penalty element.\n'
+                                    fault_declare(line_num,'shap', addon_info)
 
+                if not shap_list[1].isnumeric \
+                and (shap_list[-1] == 'm' \
+                or   shap_list[-1] == 'a' \
+                or   shap_list[-1] == 'v' \
+                or   shap_list[-1] == 'p' \
+                or   shap_list[-2] == 'e' ):
+                    if 'd' + dim + shap_form + shap_nodn + '.sub' not in shap_name_list:
+                        fault_declare(line_num, 'shap', shap_form+shap_nodn +'is not a valid shap.')
 
     else:
-        not_declare('*','shap func','may be declared as \'SHAP %1 %2\' in the first garaph')
+        not_declare('*','shap function','may be declared as \'SHAP %1 %2\' in the first garaph.')
         error = True
+
+    # check gaus
+    if 'gaus' in xde_lists:
+        pass
+    else:
+        not_declare('*','gauss integral','may be declared as \'GAUS %3\' in the first garaph.')
+        error = True
+        
+    # check code
+    if 'code' in xde_lists:
+        for addr in xde_lists['code'].keys():
+            for code_strs, line_num in zip(xde_lists['code'][addr], list_addr['code'][addr]):
+                
+
 
 
     return error
@@ -284,6 +448,11 @@ def duplicate_declare(line_num, declare_name, addon_info):
 def wnot_declare(line_num, declare_name, addon_info):
     return Empha_color + declare_name \
          + Warnn_color + " not be declared. {}".format(addon_info)
+
+@warn
+def wrong_declare(line_num, declare_name, addon_info):
+    return Empha_color + declare_name \
+         + Warnn_color + " wrong declared. {}".format(addon_info)
 
 @warn
 def warn_form(line_num, form_info, addon_info):

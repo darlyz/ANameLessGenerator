@@ -444,6 +444,8 @@ def xde2ges(gesname, coor_type, xde_lists, list_addr, gesfile):
                     else:
                         gesfile.write(strs+'\n')
             elif xde_lists[weak][0] == 'lump':
+                if len(xde_lists[weak]) == 1:
+                    xde_lists[weak].append('1.0')
                 gesfile.write('lump =\n')
                 for shaps in xde_lists['shap']:
                     nodn = regx.search(r'\d+',shaps,regx.I).group()

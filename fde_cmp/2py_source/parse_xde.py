@@ -23,7 +23,7 @@ def parse_xde(gesname, coor_type, xde_lists, list_addr, xdefile):
 
     keyws_reg  = r'DEFI|DISP|COEF|COOR|SHAP|GAUS|MATE|MASS|DAMP|STIF|'
     keyws_reg += r'FUNC|VECT|MATRIX|FVECT|FMATR|ARRAY|DIST|LOAD|END|'
-    keyws_reg += r'\$C[CPV]|\$I|@[LAWSR]|COMMON|ARRAY'
+    keyws_reg += r'\$C[CPV6]|\$I|@[LAWSR]|COMMON|ARRAY'
 
     keywd_tag = {'disp':0, 'coor':0, 'shap':0, \
                  'gaus':0, 'stif':0, 'load':0, \
@@ -198,11 +198,15 @@ def parse_xde(gesname, coor_type, xde_lists, list_addr, xdefile):
             else:
                 print('redundant information or wrong declare, line {}: '.format(line_i)+line)
 
+    import json
+    file = open('../1ges_target/'+'check.json',mode='w')
+    file.write(json.dumps(xde_lists,indent=4))
+    file.close()
+
     # 2 checking
-    #from check_xde import check_xde
-    #error = check_xde(xde_lists,list_addr,ges_shap_type,ges_gaus_type)
-    #if error == True:
-    #    return error
+    from check_xde import check_xde
+    error = check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type)
+    if error : return error
      
     # 3 second step parsing
     # 3.1 parsing shap
@@ -393,7 +397,8 @@ def parse_xde(gesname, coor_type, xde_lists, list_addr, xdefile):
             if code_regx != None:
                 code_key = code_regx.group()
 
-                if   code_key.lower() == '$cc':
+                if   code_key.lower() == '$cc' \
+                or   code_key.lower() == '$c6':
                     xde_lists['code'][code_place][code_i] \
                         = code_line.replace(code_key,'Insr_Code:')
 
