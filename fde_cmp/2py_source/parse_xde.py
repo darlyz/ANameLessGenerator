@@ -386,7 +386,7 @@ def parse_xde(gesname, coor_type, xde_lists, list_addr, xdefile):
                 lists[ii] = lists[ii].split()
 
     # 3.6 parsing code
-    regx_key = r'\$C[CPV]|@[LAWSR]|ARRAY'
+    regx_key = r'\$C[CPV6]|@[LAWSR]|ARRAY'
     for code_place in xde_lists['code'].keys():
         
         code_line_count = len(xde_lists['code'][code_place])

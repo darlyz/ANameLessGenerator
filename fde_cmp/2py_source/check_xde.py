@@ -57,25 +57,54 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
     all_declares  = {'tmax','dt','nstep','itnmax','time'}
     all_declares |= {'tolerance','dampalfa','dampbeta'}
     all_declares |= {'it','stop','itn','end'}
-    all_declares |= {'imate','nmate','nelem','line_num','nvar','nnode'}
+    all_declares |= {'imate','nmate','nelem','nvar','nnode'}
     all_declares |= {'ngaus','igaus','det','ndisp','nrefc','ncoor'}
 
-    # gather C declares
-    c_declares = {}
+    # gather C declares and check code
+    c_declares = all_declares.copy()
+    c_declares_BFmate = all_declares.copy()
+    c_declares_array = all_declares.copy()
+    for strs in ["disp","coef","coor","func"]:
+        if strs in xde_lists:
+            c_declares |= set(xde_lists[strs])
+
     c_dclr_key = r"char|int|long|short|double|float"
     c_dclr_exp = r"[a-z].*="
     c_func_exp = r"\w+\(.*\)"
-    for keys in xde_lists["code"].keys():
+    for addr in xde_lists["code"].keys():
         
-        c_declares[keys] = set()
         stitchline = ''
 
-        for code_strs, line_num in zip(xde_lists["code"][keys],list_addr["code"][keys]):
-            
-            if regx.match(r'\$C[C6]|COMMON',code_strs,regx.I) != None:
+        for code_strs, line_num in zip(xde_lists["code"][addr],list_addr["code"][addr]):
 
-                regx_c = regx.match(r'\$C[C6]|COMMON',code_strs,regx.I).group()
-                code_strs = code_strs.replace(regx_c,'').lstrip()
+            regx_key  = regx.match(r'\$C[C6VP]|@[LAWSR]|COMMON|ARRAY',code_strs,regx.I)
+            if regx_key == None: continue
+            regx_key  = regx_key.group()
+            lower_key = regx_key.lower()
+
+            if  lower_key != '$cc' \
+            and lower_key != '$c6' :
+                code_strs = code_strs.replace(regx_key,'').lstrip()
+            
+            if lower_key == '$cc' \
+            or lower_key == '$c6' \
+            or lower_key == 'common' :
+
+                # check $cc code
+                if lower_key == '$cc' \
+                or lower_key == '$c6' :
+                    if code_strs[3] != ' ':
+                        if len(code_strs) >16:
+                              err_strs = "'"+code_strs[:16]+'...'+"'"
+                        else: err_strs = "'"+code_strs+"'"
+                        error_form(line_num, err_strs, "need space after '{}'.\n".format(regx_key))
+                
+                    #if  code_strs[-1] != ';' and code_strs[-1] != '{' \
+                    #and code_strs[-1] != '}' and code_strs[-1] != ',':
+                    #    if len(code_strs) >16:
+                    #          err_strs = "'"+code_strs[:8]+'...'+code_strs[-8:]+"'"
+                    #    else: err_strs = "'"+code_strs+"'"
+                    #    warn_form(line_num, err_strs, "need ';' at the tial.\n")
 
                 code_strs = stitchline + code_strs
                 if code_strs[-1] != ';':
@@ -83,6 +112,7 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
                     continue
                 else: stitchline = ''
 
+                # find c declaration sentence and gather the variables
                 if regx.search(c_dclr_key,code_strs,regx.I) != None:
                     if regx.search(c_func_exp,code_strs,regx.I) != None:
                         continue
@@ -107,38 +137,138 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
                                 for vara in vara_list:
                                     if vara.find('['):
                                         vara = vara.split('[')[0].strip()
-                                    c_declares[keys].add(vara.lstrip('*'))
+                                    c_declares.add(vara.lstrip('*'))
+                                    if addr == 'BFmate':
+                                        c_declares_BFmate.add(vara.lstrip('*'))
 
-                            else: c_declares[keys].add(vara_strs.lstrip('*'))
+                            else:
+                                c_declares.add(vara_strs.lstrip('*'))
+                                if addr == 'BFmate':
+                                    c_declares_BFmate.add(vara.lstrip('*'))
 
                         else: continue
 
                 else: continue
 
-
-            elif regx.match(r'ARRAY',code_strs,regx.I) != None:
+            elif lower_key == 'array':
                 vara_strs = regx.split(r'ARRAY',code_strs,regx.I)[-1].strip()
                 if vara_strs.find(','):
                     vara_list = vara_strs.split(',')
                     for vara in vara_list:
                         if vara.find('['):
                             vara = vara.split('[')[0].strip()
-                        c_declares[keys].add(vara.lstrip('*'))
+                        c_declares.add(vara.lstrip('*'))
+                        c_declares_array.add(vara.lstrip('*'))
+                        if addr == 'BFmate':
+                            c_declares_BFmate.add(vara.lstrip('*'))
                 else: 
                     if vara_strs.find('['):
                         vara_strs = vara_strs.split('[')[0].strip()
-                    c_declares[keys].add(vara_strs.lstrip('*'))
+                    c_declares.add(vara_strs.lstrip('*'))
+                    c_declares_array.add(vara.lstrip('*'))
+                    if addr == 'BFmate':
+                        c_declares_BFmate.add(vara.lstrip('*'))
 
-            else: continue
+            elif lower_key == '$cv':
+                pattern = regx.compile(r'\^?[a-z][a-z0-9]*(?:_[a-z])+',regx.I)
+                tnsr_list = pattern.findall(code_strs)
+                if len(tnsr_list) == 0:
+                    warn_form(line_num,'',"there is no tensor, need not to use '$CV'.")
 
-    # gather all declares
-    for strs in ["disp","coef","coor","func"]:
-        if strs in xde_lists:
-            all_declares |= set(xde_lists[strs])
+                else:
+                    for tnsr in set(tnsr_list):
+                        tnsr_name = tnsr.split('_')[0]
+                        if tnsr.count('_') == 1:
+                            if  tnsr_name not in xde_lists['vect'] \
+                            and tnsr_name not in c_declares_array:
+                                not_declare(line_num, tnsr_name, "It must declared by 'VECT' or 'ARRAY'.")
+                                error = True
+                        elif tnsr.count('_') == 2:
+                            if  tnsr_name not in xde_lists['matrix'] \
+                            and tnsr_name not in c_declares_array:
+                                not_declare(line_num, tnsr_name, "It must declared by 'MATRIX' or 'ARRAY'.")
+                                error = True
 
-    for strs in ["BFmate","AFmate","func","stif","mass","damp"]:
-        if strs in c_declares:
-            all_declares |= set(c_declares[strs])
+            elif lower_key == '$cp':
+
+                pattern = regx.compile(r'\^?[a-z]\w*',regx.I)
+                temp_list = pattern.findall(code_strs)
+                tnsr_list = []
+                vara_list = []
+                for var in temp_list:
+                    if var.find('_') != -1:
+                          tnsr_list.append(var)
+                    else: vara_list.append(var)
+
+                if len(vara_list) != 0:
+                    for var in set(vara_list):
+                        if var+'r' not in c_declares:
+                            not_declare(line_num, 'real of ' +var,'\n')
+                            error = True
+                        if var+'i' not in c_declares:
+                            not_declare(line_num, 'imag of ' +var,'\n')
+                            error = True
+                
+                if len(tnsr_list) != 0:
+                    for tnsr in set(tnsr_list):
+                        tnsr_name = tnsr.split('_')[0]
+                        if tnsr.count('_') == 1:
+                            if tnsr_name not in xde_lists['vect'] \
+                            or tnsr_name in c_declares_array:
+                                not_declare(line_num, tnsr_name, "It must declared by 'VECT'.\n")
+                                error = True
+                            else:
+                                for var in xde_lists['vect'][tnsr_name]: 
+                                    if var+'r' not in c_declares:
+                                        not_declare(line_num, 'real of ' +var+' in '+tnsr_name + \
+                                            '(line {})'.format(list_addr['vect'][tnsr_name]),'\n')
+                                        error = True
+                                    if var+'i' not in c_declares:
+                                        not_declare(line_num, 'imag of ' +var+' in '+tnsr_name + \
+                                            '(line {})'.format(list_addr['vect'][tnsr_name]),'\n')
+                                        error = True
+                        elif tnsr.count('_') == 2:
+                            if tnsr_name not in xde_lists['matrix'] \
+                            or tnsr_name in c_declares_array:
+                                not_declare(line_num, tnsr_name, "It must declared by 'matrix'.\n")
+                                error = True
+                            else:
+                                if  xde_lists['matrix'][tnsr_name][0].isnumeric() \
+                                and xde_lists['matrix'][tnsr_name][1].isnumeric() :
+                                    matrix_list = xde_lists['matrix'][tnsr_name].copy()
+                                    matrix_list.pop(0)
+                                    matrix_list.pop(0)
+                                else:
+                                    matrix_list = xde_lists['matrix'][tnsr_name].copy()
+
+                                matrix_line_nums = list_addr['matrix'][tnsr_name].copy()
+                                matrix_line_nums.pop(0)
+
+                                for var_list, matr_line_num in zip(matrix_list, matrix_line_nums):
+                                    var_regx = regx.compile(r'[a-z][a-z0-9]*',regx.I)
+                                    for var in set(var_regx.findall(var_list)):
+                                        if var+'r' not in c_declares:
+                                            not_declare(line_num, 'real of ' +var+' in matrix '+tnsr_name + \
+                                                '(line {})'.format(matr_line_num),'\n')
+                                            error = True
+                                        if var+'i' not in c_declares:
+                                            not_declare(line_num, 'imag of ' +var+' in matrix '+tnsr_name + \
+                                                '(line {})'.format(matr_line_num),'\n')
+                                            error = True
+            elif lower_key == '@l':
+                pass
+
+            elif lower_key == '@a' :
+                pass
+
+            elif lower_key == '@w' :
+                pass
+
+            elif lower_key == '@s' :
+                pass
+
+            elif lower_key == '@r' :
+                pass
 
     # check mate
     is_var = r'[a-z]\w*'
@@ -146,7 +276,7 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
         if regx.match(is_var,vara,regx.I) != None :
             if vara.find('['):
                 vara = vara.split('[')[0]
-            if vara not in c_declares['BFmate']:
+            if vara not in c_declares_BFmate:
                 not_declare(list_addr['mate'],vara,'\n')
 
     # check vect
@@ -154,7 +284,7 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
         for vect in xde_lists['vect'].keys():
             for strs in xde_lists['vect'][vect]:
                 for vara in regx.findall(r'[a-z]\w*',strs,regx.I):
-                    if vara not in all_declares:
+                    if vara not in c_declares:
                         not_declare(list_addr['vect'][vect],vara,'\n')
 
     # check matrix
@@ -174,7 +304,7 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
                 row_lenth.add(len(row_list))
                 for strs in row_list:
                     for vara in regx.findall(r'[a-z]\w*',strs,regx.I):
-                        if vara not in all_declares:
+                        if vara not in c_declares:
                             not_declare(line_num,vara,'\n')
 
             if xde_lists['matrix'][matrix][0].isnumeric:
@@ -392,11 +522,11 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
         not_declare('*','gauss integral','may be declared as \'GAUS %3\' in the first garaph.')
         error = True
         
-    # check code
-    if 'code' in xde_lists:
-        for addr in xde_lists['code'].keys():
-            for code_strs, line_num in zip(xde_lists['code'][addr], list_addr['code'][addr]):
-                
+    
+
+
+                                        
+
 
 
 
@@ -428,7 +558,7 @@ def fault_declare(line_num, declare_name, addon_info):
 @error
 def error_form(line_num, form_info, addon_info):
     return Empha_color + form_info \
-         + Error_color + " error form. {}".format(addon_info)
+         + Error_color + " error form, {}".format(addon_info)
 
 
 def warn(func):
@@ -457,4 +587,4 @@ def wrong_declare(line_num, declare_name, addon_info):
 @warn
 def warn_form(line_num, form_info, addon_info):
     return Empha_color + form_info \
-         + Warnn_color + " not suitable form. {}".format(addon_info)
+         + Warnn_color + " not suitable form, {}".format(addon_info)
