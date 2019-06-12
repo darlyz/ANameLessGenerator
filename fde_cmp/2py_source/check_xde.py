@@ -60,12 +60,8 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
 
     # check coor
     if 'coor' in xde_lists:
-        xde_axi = ''
-        xde_coor_strs = ''
-        for var in xde_lists['coor']:
-            xde_axi += var
-            xde_coor_strs += var+' '
-        xde_coor_strs = xde_coor_strs.rstrip()
+        xde_axi       =  ''.join(xde_lists['coor'])
+        xde_coor_strs = ' '.join(xde_lists['coor'])
         # if ext_name not in ['fde','cde','vde',pde'] and xde_axi != axi :
         #     addon_info  = "'{}' is not consistent with '{}' ".format(xde_coor_strs,axi)
         #     addon_info += "declared by mdi file.\n"
@@ -133,7 +129,8 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
                         if shap_form == sform:
                            if base_shap_node not in snodn:
                                fault_declare(line_num,'shap', \
-                                   'the second variable of shap declaration is suggested to be one of {}.\n'.format(snodn))
+                                   'the second variable of shap declaration' + \
+                                       ' is suggested to be one of {}.\n'.format(snodn))
 
                 # advance shap declare
                 elif len(shap_list) >= 3:
@@ -147,21 +144,21 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
                     if shap_list[1] == '%4' or shap_list[1].isnumeric():
 
                         temp_list = shap_list[2:len(shap_list)]
-                        var_list  = []
-                        for var in temp_list:
-                            if not var.isnumeric() :
-                                var_list.append(var)
+                        var_list  = [var for var in temp_list if not var.isnumeric()]
+
                         if len(set(var_list)) != len(var_list):
                             warn_form(line_num, '', 'variable duplicated.\n')
 
                         for var_name in set(var_list):
                             if 'coef' not in xde_lists:
                                 if var_name not in xde_lists['disp'] :
-                                    wnot_declare(line_num,var_name,'It must be declared in disp.\n')
+                                    wnot_declare(line_num, var_name, \
+                                        'It must be declared in disp.\n')
                             else:
                                 if  var_name not in xde_lists['disp'] \
                                 and var_name not in xde_lists['coef'] :
-                                    wnot_declare(line_num,var_name,'It must be declared in disp or coef.\n')
+                                    wnot_declare(line_num, var_name, \
+                                        'It must be declared in disp or coef.\n')
 
                         if shap_list[1] == '%4':
                             for sform, snodn in zip(shap_forms, node_dgree1):
@@ -176,14 +173,16 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
                                 if base_shap_node != bnodn :
                                     addon_info = 'The second variable of base shap must to be '
                                     addon_info += Empha_color + bnodn
-                                    addon_info += Error_color + '(second order), since using mix order element.\n'
+                                    addon_info += Error_color + '(second order), '
+                                    addon_info += 'since using mix order element.\n'
                                     fault_declare(base_shap_line,'shap', addon_info)
 
                                 # sub shap is not coordinate with base or not coordinate with shap_form
                                 if shap_nodn != snodn:
                                     addon_info  = 'The second variable of mixed shap must to be '
                                     addon_info += Empha_color + snodn
-                                    addon_info += Error_color + '(first order), since using mix order element.\n'
+                                    addon_info += Error_color + '(first order), '
+                                    addon_info += 'since using mix order element.\n'
                                     fault_declare(line_num,'shap', addon_info)
 
                     # penalty disp var shap declare
@@ -192,12 +191,10 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
                     and  shap_list[1][:-1].isnumeric) :
 
                         temp_list = shap_list[2:len(shap_list)]
-                        var_list  = []
-                        for var in temp_list:
-                            if not var.isnumeric() :
-                                if var.find('_') :
-                                    var = var.split('_')[0]
-                                var_list.append(var)
+
+                        var_list  = [var if var.find('_') == -1 else var.split('_')[0] \
+                            for var in temp_list \
+                                if not var.isnumeric()]
 
                         if len(set(var_list)) != len(var_list):
                             warn_form(line_num, '', 'variable duplicated.\n')
@@ -205,11 +202,14 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
                         for var_name in set(var_list):
                             if 'coef' in xde_lists:
                                 if var_name in xde_lists['coef'] :
-                                    wrong_declare(line_num, var_name,'It must not be declared in coef.\n')
+                                    wrong_declare(line_num, var_name, \
+                                        'It must not be declared in coef.\n')
                                 elif var_name not in xde_lists['disp'] :
-                                    wnot_declare(line_num,var_name,'It must be declared in disp.\n')
+                                    wnot_declare(line_num, var_name, \
+                                        'It must be declared in disp.\n')
                             elif var_name not in xde_lists['disp'] :
-                                    wnot_declare(line_num,var_name,'It must be declared in disp.\n')
+                                    wnot_declare(line_num, var_name, \
+                                        'It must be declared in disp.\n')
 
                         for sform, bnodn, snodn in zip(shap_forms, node_dgree1, node_dgree1):
                             if base_shap_form == sform :
@@ -218,34 +218,35 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
                                 if base_shap_node != bnodn :
                                     addon_info = 'The second variable of base shap must to be '
                                     addon_info += Empha_color + bnodn
-                                    addon_info += Error_color + '(first order), since using penalty element.\n'
+                                    addon_info += Error_color + '(first order), '
+                                    addon_info += 'since using penalty element.\n'
                                     fault_declare(base_shap_line,'shap', addon_info)
 
                                 # sub shap is not coordinate with base or not coordinate with shap_form
                                 if shap_nodn != snodn:
                                     addon_info  = 'The second variable of mixed shap must to be '
                                     addon_info += Empha_color + snodn
-                                    addon_info += Error_color + '(first order), since using penalty element.\n'
+                                    addon_info += Error_color + '(first order), '
+                                    addon_info += 'since using penalty element.\n'
                                     fault_declare(line_num,'shap', addon_info)
 
                 if not shap_list[1].isnumeric \
-                and (shap_list[-1] == 'm' \
-                or   shap_list[-1] == 'a' \
-                or   shap_list[-1] == 'v' \
-                or   shap_list[-1] == 'p' \
-                or   shap_list[-2] == 'e' ):
+                and shap_list[-1] in ['m','a','v','p','e']:
                     if 'd' + dim + shap_form + shap_nodn + '.sub' not in shap_name_list:
-                        fault_declare(line_num, 'shap', shap_form+shap_nodn +'is not a valid shap.')
+                        fault_declare(line_num, 'shap', \
+                            shap_form + shap_nodn + 'is not a valid shap.')
 
     else:
-        not_declare('*','shap function','may be declared as \'SHAP %1 %2\' in the first garaph.')
+        not_declare('*','shap function', \
+            'may be declared as \'SHAP %1 %2\' in the first garaph.')
         error = True
 
     # check gaus
     if 'gaus' in xde_lists:
         pass
     else:
-        not_declare('*','gauss integral','may be declared as \'GAUS %3\' in the first garaph.')
+        not_declare('*','gauss integral', \
+            'may be declared as \'GAUS %3\' in the first garaph.')
         error = True
 
     # the inner declaration
@@ -270,7 +271,7 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
         
         stitchline = ''
 
-        for code_strs, line_num in zip(xde_lists["code"][addr],list_addr["code"][addr]):
+        for code_strs, line_num in zip(xde_lists["code"][addr], list_addr["code"][addr]):
 
             regx_key  = regx.match(r'\$C[C6VP]|@[LAWSR]|COMMON|ARRAY',code_strs,regx.I)
             if regx_key == None: continue
@@ -286,9 +287,10 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
                 if lower_key in ['$cc','$c6'] :
                     if code_strs[3] != ' ':
                         if len(code_strs) >16:
-                              err_strs = "'"+code_strs[:16]+'...'+"'"
-                        else: err_strs = "'"+code_strs+"'"
-                        error_form(line_num, err_strs, "need space after '{}'.\n".format(regx_key))
+                              err_strs = "'" + code_strs[:16] + '...' + "'"
+                        else: err_strs = "'" + code_strs + "'"
+                        error_form(line_num, err_strs, \
+                            "need space after '{}'.\n".format(regx_key))
                 
                     #if  code_strs[-1] != ';' and code_strs[-1] != '{' \
                     #and code_strs[-1] != '}' and code_strs[-1] != ',':
@@ -297,68 +299,49 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
                     #    else: err_strs = "'"+code_strs+"'"
                     #    warn_form(line_num, err_strs, "need ';' at the tial.\n")
 
-                code_strs = stitchline + code_strs
+                code_strs = stitchline + code_strs.replace(regx_key,'').lstrip()
                 if code_strs[-1] != ';':
-                    stitchline = code_strs
+                    stitchline = code_strs.replace(regx_key,'').lstrip()
                     continue
                 else: stitchline = ''
 
                 # find c declaration sentence and gather the variables
-                if regx.search(c_dclr_key,code_strs,regx.I) != None:
-                    if regx.search(c_func_exp,code_strs,regx.I) != None:
+                if regx.search(c_dclr_key, code_strs, regx.I) != None:
+                    if regx.search(c_func_exp, code_strs, regx.I) != None:
                         continue
 
                     code_list = code_strs.split(';')
                     code_list.pop()
-                    for code_sstr in code_list:
+                    
+                    for sub_strs in code_list:
+                        if regx.search(c_dclr_key, sub_strs.lstrip(), regx.I) == None:
+                            continue
 
-                        def trans(matched):
-                            index_str = matched.group('index')
-                            index_str = ','
-                            return index_str
+                        if regx.match(r'static',sub_strs,regx.I) != None:
+                            sub_strs = regx.sub(r'static', '', sub_strs, 0, regx.I).lstrip()
+                        sub_strs = regx.sub(c_dclr_key, '', sub_strs).lstrip()
 
-                        code_sstr = regx.sub(r'(?P<index>(=.*,?)+)',trans,code_sstr)
+                        for var in sub_strs.split(','):
+                            if var.find('=') != -1:
+                                var = regx.sub(r'=.*', '', var)
 
-                        if regx.search(c_dclr_key,code_sstr,regx.I) != None:
+                            if var.find('['):
+                                var = var.split('[')[0].strip()
 
-                            vara_strs = regx.split(c_dclr_key,code_sstr,regx.I)[-1].strip()
-                            if vara_strs.find(','):
-                                vara_list = vara_strs.split(',')
-
-                                for vara in vara_list:
-                                    if vara.find('['):
-                                        vara = vara.split('[')[0].strip()
-                                    c_declares.add(vara.lstrip('*'))
-                                    if addr == 'BFmate':
-                                        c_declares_BFmate.add(vara.lstrip('*'))
-
-                            else:
-                                c_declares.add(vara_strs.lstrip('*'))
-                                if addr == 'BFmate':
-                                    c_declares_BFmate.add(vara.lstrip('*'))
-
-                        else: continue
-
+                            c_declares.add(var.lstrip('*'))
+                            if addr == 'BFmate':
+                                c_declares_BFmate.add(var.lstrip('*'))
                 else: continue
 
             elif lower_key == 'array':
-                vara_strs = regx.split(r'ARRAY',code_strs,regx.I)[-1].strip()
-                if vara_strs.find(','):
-                    vara_list = vara_strs.split(',')
-                    for vara in vara_list:
-                        if vara.find('['):
-                            vara = vara.split('[')[0].strip()
-                        c_declares.add(vara.lstrip('*'))
-                        c_declares_array.add(vara.lstrip('*'))
-                        if addr == 'BFmate':
-                            c_declares_BFmate.add(vara.lstrip('*'))
-                else: 
-                    if vara_strs.find('['):
-                        vara_strs = vara_strs.split('[')[0].strip()
-                    c_declares.add(vara_strs.lstrip('*'))
-                    c_declares_array.add(vara.lstrip('*'))
+                vara_list = regx.split(r'ARRAY',code_strs,regx.I)[-1].strip().split(',')
+                for var in vara_list:
+                    if var.find('['):
+                        var = var.split('[')[0].strip()
+                    c_declares.add(var.lstrip('*'))
+                    c_declares_array.add(var.lstrip('*'))
                     if addr == 'BFmate':
-                        c_declares_BFmate.add(vara.lstrip('*'))
+                        c_declares_BFmate.add(var.lstrip('*'))
 
             elif lower_key == '$cv':
                 pattern = regx.compile(r'\^?[a-z][a-z0-9]*(?:_[a-z])+',regx.I)
@@ -372,12 +355,14 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
                         if tnsr.count('_') == 1:
                             if  tnsr_name not in xde_lists['vect'] \
                             and tnsr_name not in c_declares_array:
-                                not_declare(line_num, tnsr_name, "It must declared by 'VECT' or 'ARRAY'.")
+                                not_declare(line_num, tnsr_name, \
+                                    "It must declared by 'VECT' or 'ARRAY'.")
                                 error = True
                         elif tnsr.count('_') == 2:
                             if  tnsr_name not in xde_lists['matrix'] \
                             and tnsr_name not in c_declares_array:
-                                not_declare(line_num, tnsr_name, "It must declared by 'MATRIX' or 'ARRAY'.")
+                                not_declare(line_num, tnsr_name, \
+                                    "It must declared by 'MATRIX' or 'ARRAY'.")
                                 error = True
 
             elif lower_key == '$cp':
@@ -406,22 +391,26 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
                         if tnsr.count('_') == 1:
                             if tnsr_name not in xde_lists['vect'] \
                             or tnsr_name in c_declares_array:
-                                not_declare(line_num, tnsr_name, "It must declared by 'VECT'.\n")
+                                not_declare(line_num, tnsr_name, \
+                                    "It must declared by 'VECT'.\n")
                                 error = True
                             else:
                                 for var in xde_lists['vect'][tnsr_name]: 
                                     if var+'r' not in c_declares:
-                                        not_declare(line_num, 'real of ' +var+' in '+tnsr_name + \
-                                            '(line {})'.format(list_addr['vect'][tnsr_name]),'\n')
+                                        not_declare(line_num, 'real of ' + var + ' in ' \
+                                            + tnsr_name + '(line {})' \
+                                                .format(list_addr['vect'][tnsr_name]),'\n')
                                         error = True
                                     if var+'i' not in c_declares:
-                                        not_declare(line_num, 'imag of ' +var+' in '+tnsr_name + \
-                                            '(line {})'.format(list_addr['vect'][tnsr_name]),'\n')
+                                        not_declare(line_num, 'imag of ' + var + ' in ' \
+                                            + tnsr_name + '(line {})' \
+                                                .format(list_addr['vect'][tnsr_name]),'\n')
                                         error = True
                         elif tnsr.count('_') == 2:
                             if tnsr_name not in xde_lists['matrix'] \
                             or tnsr_name in c_declares_array:
-                                not_declare(line_num, tnsr_name, "It must declared by 'matrix'.\n")
+                                not_declare(line_num, tnsr_name, \
+                                    "It must declared by 'matrix'.\n")
                                 error = True
                             else:
                                 if  xde_lists['matrix'][tnsr_name][0].isnumeric() \
@@ -439,12 +428,14 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
                                     var_regx = regx.compile(r'[a-z][a-z0-9]*',regx.I)
                                     for var in set(var_regx.findall(var_list)):
                                         if var+'r' not in c_declares:
-                                            not_declare(line_num, 'real of ' +var+' in matrix '+tnsr_name + \
-                                                '(line {})'.format(matr_line_num),'\n')
+                                            not_declare(line_num, 'real of ' + var + ' in matrix ' \
+                                                + tnsr_name + '(line {})' \
+                                                    .format(matr_line_num),'\n')
                                             error = True
                                         if var+'i' not in c_declares:
-                                            not_declare(line_num, 'imag of ' +var+' in matrix '+tnsr_name + \
-                                                '(line {})'.format(matr_line_num),'\n')
+                                            not_declare(line_num, 'imag of ' + var + ' in matrix ' \
+                                                + tnsr_name + '(line {})' \
+                                                    .format(matr_line_num),'\n')
                                             error = True
             
             elif lower_key in ['@l','@w','@s'] :
@@ -488,20 +479,20 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
 
     # check mate
     is_var = r'[a-z]\w*'
-    for vara in xde_lists['mate']:
-        if regx.match(is_var,vara,regx.I) != None :
-            if vara.find('['):
-                vara = vara.split('[')[0]
-            if vara not in c_declares_BFmate:
-                not_declare(list_addr['mate'],vara,'\n')
+    for var in xde_lists['mate']:
+        if regx.match(is_var, var, regx.I) != None :
+            if var.find('['):
+                var = var.split('[')[0]
+            if var not in c_declares_BFmate:
+                not_declare(list_addr['mate'], var, '\n')
 
     # check vect
     if 'vect' in xde_lists:
         for vect in xde_lists['vect'].keys():
             for strs in xde_lists['vect'][vect]:
-                for vara in regx.findall(r'[a-z]\w*',strs,regx.I):
-                    if vara not in c_declares:
-                        not_declare(list_addr['vect'][vect],vara,'\n')
+                for var in regx.findall(r'[a-z]\w*', strs, regx.I):
+                    if var not in c_declares:
+                        not_declare(list_addr['vect'][vect], var, '\n')
 
     # check matrix
     if 'matrix' in xde_lists:
@@ -509,19 +500,18 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
             line_nums = list_addr['matrix'][matrix].copy()
             matr_name_line = line_nums.pop(0)
 
-            matr_list = []
-            for var in xde_lists['matrix'][matrix]:
-                if not var.isnumeric():
-                    matr_list.append(var)
+            matr_list = [var \
+                for var in xde_lists['matrix'][matrix] \
+                    if not var.isnumeric()]
 
             row_lenth = set()
             for row,line_num in zip(matr_list,line_nums):
                 row_list = row.split()
                 row_lenth.add(len(row_list))
                 for strs in row_list:
-                    for vara in regx.findall(r'[a-z]\w*',strs,regx.I):
-                        if vara not in c_declares:
-                            not_declare(line_num,vara,'\n')
+                    for var in regx.findall(r'[a-z]\w*',strs,regx.I):
+                        if var not in c_declares:
+                            not_declare(line_num, var, '\n')
 
             if xde_lists['matrix'][matrix][0].isnumeric:
                 row = xde_lists['matrix'][matrix][0]
@@ -529,27 +519,33 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
                     clm = xde_lists['matrix'][matrix][1]
 
                     if len(matr_list) != int(row):
-                        fault_declare(matr_name_line, matrix, 'The matrix row is not in accordance with which defined.\n')
+                        fault_declare(matr_name_line, matrix, \
+                            'The matrix row is not in accordance with which defined.\n')
                     if int(clm) not in row_lenth:
-                            fault_declare(matr_name_line, matrix, 'The matrix column is not in accordance with which defined.\n')
+                            fault_declare(matr_name_line, matrix, \
+                                'The matrix column is not in accordance with which defined.\n')
                 else:
-                    fault_declare(matr_name_line ,matrix, 'need to define row and column number at the same time.\n')
+                    fault_declare(matr_name_line, matrix, \
+                        'need to define row and column number at the same time.\n')
 
             if len(row_lenth) != 1:
-                fault_declare(matr_name_line,matrix,'lenth of every row is not equal.\n')
+                fault_declare(matr_name_line, matrix, \
+                    'lenth of every row is not equal.\n')
 
     # check fvect
     if 'fvect' in xde_lists:
         for name,lists in xde_lists['fvect'].items():
             if len(lists) != 1:
-                fault_declare(list_addr['fvect'][name], name, 'sugest declare as \'FVECT {} [len]\'.\n'.format(name))
+                fault_declare(list_addr['fvect'][name], name, \
+                    'sugest declare as \'FVECT {} [len]\'.\n'.format(name))
                 error = True
 
     # check fvect
     if 'fmatr' in xde_lists:
         for name,lists in xde_lists['fmatr'].items():
             if len(lists) != 2:
-                fault_declare(list_addr['fmatr'][name], name, 'sugest declare as \'FMATR {} [row] [clm]\'.\n'.format(name))
+                fault_declare(list_addr['fmatr'][name], name, \
+                    'sugest declare as \'FMATR {} [row] [clm]\'.\n'.format(name))
                 error = True
 
 
