@@ -21,11 +21,6 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
 
     error = False
 
-    #ges_shap_type = regx.search(r'[ltqwc][1-9]+',gesname,regx.I).group()
-    #ges_gaus_type = regx.search(r'g[1-9]+',gesname,regx.I)
-    #if ges_gaus_type != None:
-    #    ges_gaus_type = ges_gaus_type.group()
-
     dim = regx.search(r'[1-9]+', coor_type, regx.I).group()
     axi = coor_type.split('d')[1]
 
@@ -35,6 +30,7 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
     coor_list = list(axi)
     coor_strs = ' '.join(coor_list)
 
+    # save all shap function name to shap_name_list
     pfelacpath = os.environ['pfelacpath']
     path_shap = pfelacpath + 'ges/gessub'
     file_shap = open(path_shap, mode='r')
@@ -43,33 +39,34 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
             if shap_name.split('.')[1] == 'sub\n']
     file_shap.close()
 
+    # save all operator name to oprt_name_list
     path_oprt = pfelacpath +'ges/pdesub'
     file_oprt = open(path_oprt, mode='r')
     oprt_name_list = [oprt_name.rstrip() \
         for oprt_name in file_oprt.readlines()]     
     file_oprt.close()
 
+    # oprt_dict['grad']['xy'] = ['x','y','u']
     oprt_dict = {}
     path_oprt = pfelacpath + 'ges/pde.lib'
     file_oprt = open(path_oprt,mode='r')
     for strs in file_oprt.readlines():
-            regx_oprt = regx.search(r'[a-z]+\.[xyzros123d]+\(.*\)', strs, regx.I)
-            if regx_oprt != None:
-                    temp_list = regx_oprt.group().split('(')
-                    oprt_name = temp_list[0]
-                    oprt_vars = temp_list[1]
+        regx_oprt = regx.search(r'[a-z]+\.[xyzros123d]+\(.*\)', strs, regx.I)
+        if regx_oprt != None:
+            temp_list = regx_oprt.group().split('(')
+            oprt_name = temp_list[0]
+            oprt_vars = temp_list[1]
 
-                    temp_list = oprt_name.split('.')
-                    oprt_name = temp_list[0]
-                    oprt_axis = temp_list[1]
+            temp_list = oprt_name.split('.')
+            oprt_name = temp_list[0]
+            oprt_axis = temp_list[1]
 
-                    oprt_vars = oprt_vars.split(')')[0]
-                    vars_list = oprt_vars.split(',')
+            oprt_vars = oprt_vars.split(')')[0]
+            vars_list = oprt_vars.split(',')
 
-                    if oprt_name not in oprt_dict:
-                        oprt_dict[oprt_name] = {}
-                    oprt_dict[oprt_name][oprt_axis] = vars_list.copy()
-
+            if oprt_name not in oprt_dict:
+                oprt_dict[oprt_name] = {}
+            oprt_dict[oprt_name][oprt_axis] = vars_list.copy()
     file_oprt.close()
 
     # check disp
@@ -107,27 +104,27 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
             else: shap_form = shap_list[0]
 
             shap_node = [['%2','2','3'], \
-                                     ['%2','3','6'], \
-                                     ['%2','4','8','9'], \
-                                     ['%2','4','6','10','18'], \
-                                     ['%2','8','20','27'] ]
-            shap_forms        = ['l','t','q','w','c']
-            node_dgree1     = ['2','3','4','4','8']
+                         ['%2','3','6'], \
+                         ['%2','4','8','9'], \
+                         ['%2','4','6','10','18'], \
+                         ['%2','8','20','27'] ]
+            shap_forms    = ['l','t','q','w','c']
+            node_dgree1   = ['2','3','4','4','8']
             node_dgree1_5 = ['' ,'' ,'8','' ,'20']
-            node_dgree2     = ['3','6','9','10','27']
+            node_dgree2   = ['3','6','9','10','27']
 
-            if     shap_list[1] == '%2':
-                     shap_nodn = ges_shap_nodn
+            if   shap_list[1] == '%2':
+                 shap_nodn = ges_shap_nodn
             elif shap_list[1] == '%4':
                 for sform, snodn in zip(shap_forms, node_dgree1):
                     if shap_form == sform:
-                         shap_nodn = snodn
-            elif    shap_list[1] == '%2c':
-                        shap_nodn = shap_list[1].replace('%2',ges_shap_nodn)
+                       shap_nodn = snodn
+            elif  shap_list[1] == '%2c':
+                  shap_nodn = shap_list[1].replace('%2',ges_shap_nodn)
             else: shap_nodn = shap_list[1]
 
             if shap_form not in shap_forms:
-                addon_info    = "the first variable of shap declaration must to be "
+                addon_info  = "the first variable of shap declaration must to be "
                 addon_info += "one of {}, or '%1'.\n".format(shap_forms)
                 fault_declare(line_num,'shap', addon_info)
 
@@ -142,18 +139,18 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
 
                     base_shap_form = shap_form
                     if shap_list[1] == '%2':
-                                base_shap_node = ges_shap_nodn
+                          base_shap_node = ges_shap_nodn
                     else: base_shap_node = shap_list[1]
 
                     if base_shap_dclr_times == 1:
-                         base_shap_line = line_num
+                        base_shap_line = line_num
 
                     for sform, snodn in zip(shap_forms, shap_node):
                         if shap_form == sform:
-                             if base_shap_node not in snodn:
-                                 fault_declare(line_num,'shap', \
-                                     'the second variable of shap declaration' + \
-                                         ' is suggested to be one of {}.\n'.format(snodn))
+                            if base_shap_node not in snodn:
+                                fault_declare(line_num,'shap', \
+                                    'the second variable of shap declaration' + \
+                                        ' is suggested to be one of {}.\n'.format(snodn))
 
                 # advance shap declare
                 elif len(shap_list) >= 3:
@@ -167,7 +164,7 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
                     if shap_list[1] == '%4' or shap_list[1].isnumeric():
 
                         temp_list = shap_list[2:len(shap_list)]
-                        var_list    = [var for var in temp_list if not var.isnumeric()]
+                        var_list  = [var for var in temp_list if not var.isnumeric()]
 
                         if len(set(var_list)) != len(var_list):
                             warn_form(line_num, '', 'variable duplicated.\n')
@@ -178,14 +175,14 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
                                     wnot_declare(line_num, var_name, \
                                         'It must be declared in disp.\n')
                             else:
-                                if    var_name not in xde_lists['disp'] \
+                                if  var_name not in xde_lists['disp'] \
                                 and var_name not in xde_lists['coef'] :
                                     wnot_declare(line_num, var_name, \
                                         'It must be declared in disp or coef.\n')
 
                         if shap_list[1] == '%4':
                             for sform, snodn in zip(shap_forms, node_dgree1):
-                                if shap_form == sform:
+                                if  shap_form == sform:
                                     shap_nodn = snodn
                         else: shap_nodn = shap_list[1]
 
@@ -210,12 +207,12 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
 
                     # penalty disp var shap declare
                     elif shap_list[1] == '%2c' \
-                    or    (shap_list[1][-1] == 'c' \
-                    and    shap_list[1][:-1].isnumeric) :
+                    or  (shap_list[1][-1] == 'c' \
+                    and  shap_list[1][:-1].isnumeric) :
 
                         temp_list = shap_list[2:len(shap_list)]
 
-                        var_list    = [var if var.find('_') == -1 else var.split('_')[0] \
+                        var_list  = [var if var.find('_') == -1 else var.split('_')[0] \
                             for var in temp_list \
                                 if not var.isnumeric()]
 
@@ -299,7 +296,7 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
             regx_key    = regx.match(r'\$C[C6VP]|@[LAWSR]|COMMON|ARRAY',code_strs,regx.I)
             if regx_key == None: continue
             regx_key    = regx_key.group()
-            lower_key = regx_key.lower()
+            lower_key   = regx_key.lower()
 
             if lower_key not in ['$cc','$c6'] :
                 code_strs = code_strs.replace(regx_key,'').lstrip()
@@ -310,7 +307,7 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
                 if lower_key in ['$cc','$c6'] :
                     if code_strs[3] != ' ':
                         if len(code_strs) >16:
-                                err_strs = "'" + code_strs[:16] + '...' + "'"
+                            err_strs = "'" + code_strs[:16] + '...' + "'"
                         else: err_strs = "'" + code_strs + "'"
                         error_form(line_num, err_strs, \
                             "need space after '{}'.\n".format(regx_key))
@@ -396,7 +393,7 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
                 vara_list = []
                 for var in temp_list:
                     if var.find('_') != -1:
-                            tnsr_list.append(var)
+                        tnsr_list.append(var)
                     else: vara_list.append(var)
 
                 if len(vara_list) != 0:
@@ -436,7 +433,7 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
                                     "It must declared by 'matrix'.\n")
                                 error = True
                             else:
-                                if    xde_lists['matrix'][tnsr_name][0].isnumeric() \
+                                if  xde_lists['matrix'][tnsr_name][0].isnumeric() \
                                 and xde_lists['matrix'][tnsr_name][1].isnumeric() :
                                     matrix_list = xde_lists['matrix'][tnsr_name].copy()
                                     matrix_list.pop(0)
