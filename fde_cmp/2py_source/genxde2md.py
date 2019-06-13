@@ -35,7 +35,7 @@ def main(argvs=None):
 
     from parse_xde import parse_xde
     xdefile = open('../0xde_source/'+argvs[1]+'.fde', mode='r')
-    parse_xde(argvs[2],argvs[3],keywd_tag,xde_lists,list_addr,keyws_reg,xdefile)
+    parse_xde(argvs[2],argvs[3],xde_lists,list_addr,xdefile)
     xdefile.close()
 
     end   = time()
