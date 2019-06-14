@@ -53,41 +53,42 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
     for strs in file_oprt.readlines():
         regx_oprt = regx.search(r'[a-z]+\.[xyzros123d]+\(.*\)', strs, regx.I)
         if regx_oprt != None:
-            temp_list = regx_oprt.group().split('(')
-            oprt_name = temp_list[0]
-            oprt_vars = temp_list[1]
-
-            temp_list = oprt_name.split('.')
-            oprt_name = temp_list[0]
-            oprt_axis = temp_list[1]
+            oprt_name,oprt_vars = regx_oprt.group().split('(')[:2]
+            oprt_name,oprt_axis = oprt_name.split('.')[:2]
 
             oprt_vars = oprt_vars.split(')')[0]
             vars_list = oprt_vars.split(',')
 
             if oprt_name not in oprt_dict:
                 oprt_dict[oprt_name] = {}
-            oprt_dict[oprt_name][oprt_axis] = vars_list.copy()
+            if oprt_name in oprt_dict \
+            and oprt_axis not in oprt_dict[oprt_name]:
+                oprt_dict[oprt_name][oprt_axis] = {}
+
+            oprt_dict[oprt_name][oprt_axis]['vars'] = vars_list.copy()
+            oprt_dict[oprt_name][oprt_axis]['axis'] = [ strs for strs in vars_list if strs in list('xyzros')]
+            oprt_dict[oprt_name][oprt_axis]['disp'] = [ strs for strs in vars_list if strs not in list('xyzros')]
     file_oprt.close()
 
     # check disp
     if 'disp' in xde_lists:
         pass
     else:
-        addon_info    = "may be declared as 'DISP * *' in the first garaph, "
+        addon_info  = "may be declared as 'DISP * *' in the first garaph, "
         addon_info += "and '* *' could be referened in 'mdi' file.\n"
         not_declare('*','DISP',addon_info)
         error = True
 
     # check coor
     if 'coor' in xde_lists:
-        xde_axi         =    ''.join(xde_lists['coor'])
+        xde_axi       =  ''.join(xde_lists['coor'])
         xde_coor_strs = ' '.join(xde_lists['coor'])
         # if ext_name not in ['fde','cde','vde',pde'] and xde_axi != axi :
         #     addon_info    = "'{}' is not consistent with '{}' ".format(xde_coor_strs,axi)
         #     addon_info += "declared by mdi file.\n"
         #     error_form(line_num, '', addon_info)
     else:
-        addon_info    = "may be declared as 'COOR {}' ".format(coor_strs)
+        addon_info  = "may be declared as 'COOR {}' ".format(coor_strs)
         addon_info += "in the first garaph.\n"
         not_declare('*','coor var',addon_info)
         error = True
@@ -100,7 +101,7 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
         for shap_list, line_num in zip(xde_lists['shap'], list_addr['shap']):
 
             if shap_list[0] == '%1':
-                    shap_form = ges_shap_form
+                shap_form = ges_shap_form
             else: shap_form = shap_list[0]
 
             shap_node = [['%2','2','3'], \
@@ -164,12 +165,12 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
                     if shap_list[1] == '%4' or shap_list[1].isnumeric():
 
                         temp_list = shap_list[2:len(shap_list)]
-                        var_list  = [var for var in temp_list if not var.isnumeric()]
+                        vars_list = [var for var in temp_list if not var.isnumeric()]
 
-                        if len(set(var_list)) != len(var_list):
+                        if len(set(vars_list)) != len(vars_list):
                             warn_form(line_num, '', 'variable duplicated.\n')
 
-                        for var_name in set(var_list):
+                        for var_name in set(vars_list):
                             if 'coef' not in xde_lists:
                                 if var_name not in xde_lists['disp'] :
                                     wnot_declare(line_num, var_name, \
@@ -212,14 +213,14 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
 
                         temp_list = shap_list[2:len(shap_list)]
 
-                        var_list  = [var if var.find('_') == -1 else var.split('_')[0] \
+                        vars_list = [var if var.find('_') == -1 else var.split('_')[0] \
                             for var in temp_list \
                                 if not var.isnumeric()]
 
-                        if len(set(var_list)) != len(var_list):
+                        if len(set(vars_list)) != len(vars_list):
                             warn_form(line_num, '', 'variable duplicated.\n')
 
-                        for var_name in set(var_list):
+                        for var_name in set(vars_list):
                             if 'coef' in xde_lists:
                                 if var_name in xde_lists['coef'] :
                                     wrong_declare(line_num, var_name, \
@@ -270,7 +271,7 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
         error = True
 
     # the inner declaration
-    all_declares    = {'tmax','dt','nstep','itnmax','time'}
+    all_declares  = {'tmax','dt','nstep','itnmax','time'}
     all_declares |= {'tolerance','dampalfa','dampbeta'}
     all_declares |= {'it','stop','itn','end'}
     all_declares |= {'imate','nmate','nelem','nvar','nnode'}
@@ -279,7 +280,7 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
     # gather C declares and check code
     c_declares = all_declares.copy()
     c_declares_BFmate = all_declares.copy()
-    c_declares_array = all_declares.copy()
+    c_declares_array  = all_declares.copy()
     for strs in ["disp","coef","coor","func"]:
         if strs in xde_lists:
             c_declares |= set(xde_lists[strs])
@@ -444,9 +445,9 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
                                 matrix_line_nums = list_addr['matrix'][tnsr_name].copy()
                                 matrix_line_nums.pop(0)
 
-                                for var_list, matr_line_num in zip(matrix_list, matrix_line_nums):
+                                for vars_list, matr_line_num in zip(matrix_list, matrix_line_nums):
                                     var_regx = regx.compile(r'[a-z][a-z0-9]*',regx.I)
-                                    for var in set(var_regx.findall(var_list)):
+                                    for var in set(var_regx.findall(vars_list)):
                                         if var+'r' not in c_declares:
                                             not_declare(line_num, 'real of ' + var + ' in matrix ' \
                                                 + tnsr_name + '(line {})' \
@@ -463,22 +464,83 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
                 code_list = code_strs.split()
 
                 if lower_key == '@l':
-                    oprt_name, oprt_deed = code_list[:2]
-                    oprt_name, oprt_axis = oprt_name.split('.')[:2]
-                    vars_list = code_list[3:len(code_list)]
 
-                    if not vars_list \
-                    and oprt_name not in ['singular','vol']:
-                        vars_list += list(oprt_axis) \
-                            + xde_lists['disp'][:len(oprt_dict[oprt_name][oprt_axis])-len(oprt_axis)]
+                    # first check length of '@l' code
+                    oprt_len = len(code_list)
+                    if oprt_len > 1:
+                        if code_list[1] != 'n':
+                            if oprt_len == 2:
+                                error_form(line_num,'','not enough information for operator.\n')
+                                error = True
+                                continue
+                    else:
+                        error_form(line_num,'','not enough information for operator.\n')
+                        error = True
+                        continue
 
-                    print(vars_list)
-
-                    if oprt_name+'.'+oprt_axis not in oprt_name_list:
-                        addon_info    = Empha_color + oprt_name
+                    # check the operator in 'pde.lib' if or not
+                    if code_list[0].find('.') == -1:
+                        error_form(line_num,'',"operator name form as 'name.axi', such as 'grad.xyz'.\n")
+                        error = True
+                        continue
+                    elif code_list[0] not in oprt_name_list:
+                        addon_info  = Empha_color + code_list[0]
                         addon_info += Error_color + " is not a default operator."
                         error_form(line_num, '', addon_info)
+                        error = True
+                        continue
 
+                    # split operator name, axis, variables
+                    oprt_name, oprt_deed = code_list[:2]
+                    oprt_name, oprt_axis = oprt_name.split('.')[:2]
+                    if oprt_deed != 'n': oprt_objt = code_list[2]
+                    
+                    # expand the vector in operator variables
+                    vars_list = []
+                    for strs in code_list[3:len(code_list)]:
+                        if   strs.find('_') == -1:
+                            vars_list.append(strs)
+                        elif strs.count('_') == 1:
+                            vector = strs.split('_')[0]
+                            if vector not in xde_lists['vect']:
+                                not_declare(line_num,vector,"It must be declared by 'VECT'.\n")
+                            else:
+                                vars_list += xde_lists['vect'][vector]
+                        else:
+                            error_form(line_num,'',"only vector or scalar can be operator's variable.\n")
+                            error = True
+
+                    # replenish default variables
+                    if len(vars_list) == 0 \
+                    and oprt_name not in ['singular','vol']:
+                        if oprt_deed == 'f':
+                            vars_list += list(oprt_axis) \
+                                + xde_lists['disp'][:len(oprt_dict[oprt_name][oprt_axis]['disp'])]
+                        elif 'coef' in xde_lists and oprt_deed in ['c','v','m']:
+                            vars_list += list(oprt_axis) \
+                                + xde_lists['coef'][:len(oprt_dict[oprt_name][oprt_axis]['disp'])]
+
+                    # split axis and normal variables
+                    oprt_axis_list = []
+                    for strs in vars_list:
+                        if strs in list('xyzros'):
+                            oprt_axis_list.append(strs)
+                        else: break
+
+                    oprt_disp_list = vars_list.copy()
+                    for strs in oprt_axis_list:
+                        oprt_disp_list.remove(strs)
+                    
+                    else:
+                        # compare provided axis counting with which in 'pde.lib'
+                        need_len = len(oprt_dict[oprt_name][oprt_axis]['axis'])
+                        provided = len(oprt_axis_list)
+                        if provided != need_len :
+                            error_form(line_num,'',"need {} axis but provided {}.\n".format(need_len, provided))
+                            error = True
+
+
+                    # warning that operator's axis be not in accordance with 'coor' declaration
                     if oprt_axis != xde_axi:
                         addon_info    = "coordinate of operator " + Empha_color + "'" + oprt_axis + "'"
                         addon_info += Warnn_color + " is not consistance with 'coor' declaration "
@@ -487,18 +549,75 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
                         addon_info += Warnn_color + "and please make sure that it is necessary to do so.\n"
                         warn_form(line_num, '', addon_info)
 
-                    if     oprt_deed.lower() == 'n': 
+                    # 'n' means no variable
+                    if   oprt_deed.lower() == 'n': 
                         if len(code_list) > 2:
                             warn_form(line_num, '', "useless information after 'n'")
-                    elif oprt_deed.lower() == 'c': pass
-                    elif oprt_deed.lower() == 'v': pass
-                    elif oprt_deed.lower() == 'm': pass
-                    elif oprt_deed.lower() == 'f': pass
+                    
+                    
+                    elif oprt_deed.lower() in ['c','v','m']: 
+
+                        # normal variables of operator must be declared in 'COEF'
+                        if 'coef' not in xde_lists:
+                            dif_set = set(oprt_disp_list)
+                        else:
+                            dif_set = set(oprt_disp_list).difference(set(xde_lists['coef']))
+                        if len(dif_set) != 0:
+                            error_form(line_num,'',"'{}' must be declared in 'COEF'.\n".format(' '.join(list(dif_set))))
+                        
+                        # 'c' means resault of operator assigned to scalar (c code declared)
+                        if oprt_deed.lower() == 'c':
+                            if oprt_objt not in c_declares:
+                                not_declare(line_num,oprt_objt,'it must be declared before line {}.\n'.format(line_num))
+                        
+                        # 'v' means resault of operator assigned to vector (vect declared)
+                        elif oprt_deed.lower() == 'v':
+                            if oprt_objt not in xde_lists['vect']:
+                                not_declare(line_num,oprt_objt,"it must be declared by 'VECT'.\n")
+                        
+                        # 'm' means resault of operator assigned to matrix (matrix declared)
+                        elif oprt_deed.lower() == 'm':
+                            if oprt_objt not in xde_lists['matrix']:
+                                not_declare(line_num,oprt_objt,"it must be declared by 'MATRIX'.\n")
+                    
+                    # 'f' means resault of operator assigned to fvect or fmatr
+                    elif oprt_deed.lower() == 'f':
+
+                        # normal variables of operator must be declared in 'DISP'
+                        if 'disp' not in xde_lists:
+                            dif_set = set(oprt_disp_list)
+                        else:
+                            dif_set = set(oprt_disp_list).difference(set(xde_lists['disp']))
+                        if len(dif_set) != 0:
+                            error_form(line_num,'',"'{}' must be declared in 'DISP'.\n".format(' '.join(list(dif_set))))
+
+                        if  oprt_objt not in xde_lists['fvect'] \
+                        and oprt_objt not in xde_lists['fmatr']:
+                            not_declare(line_num,oprt_objt,"it must be declared by 'FVECT' or 'FMATR'.\n")
 
                     else:
                         error_form(line_num,'', \
                             "first variable of operator must be one of '[n, c, v, m, f]'.\n")
-                
+
+                elif lower_key == '@w':
+                    left_vara, righ_tnsr = code_list[:2]
+                    tnsr_idxs = code_list[2:len(code_list)]
+
+                    if   'fvect' in xde_lists and righ_tnsr in xde_lists['fvect']:
+                        tnsr_size = int(xde_lists['fvect'][righ_tnsr][0])
+                    elif 'fmatr' in xde_lists and righ_tnsr in xde_lists['fmatr']:
+                        tnsr_size = int(xde_lists['fmatr'][righ_tnsr][0]) \
+                                  * int(xde_lists['fmatr'][righ_tnsr][1])
+
+                    dflt_idxs = list(map(str,map(lambda x:x+1, range(tnsr_size))))
+                    if len(tnsr_idxs) == 0:
+                        tnsr_idxs = dflt_idxs
+
+                    dif_set = set(tnsr_idxs).difference(set(dflt_idxs))
+                    if len(dif_set) != 0:
+                        error_form(line_num,'', \
+                            "the indexs '{}' of '{}' is out of range.\n".format(' '.join(dif_set),righ_tnsr))
+                        
 
             elif lower_key in ['@a','@r'] :
                 pass
