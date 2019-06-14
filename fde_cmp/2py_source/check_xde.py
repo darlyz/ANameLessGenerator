@@ -601,7 +601,18 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
 
                 elif lower_key == '@w':
                     left_vara, righ_tnsr = code_list[:2]
+                    left_size, tnsr_size = 0,0
                     tnsr_idxs = code_list[2:len(code_list)]
+
+                    if  ( ('vect'   in xde_lists and left_vara not in xde_lists['vect'] ) \
+                      and ('matrix' in xde_lists and left_vara not in xde_lists['matrix'] ) ) \
+                    or ('vect' not in xde_lists and 'matrix' not in xde_lists) :
+                        not_declare(line_num,left_vara,"must be declared by 'VECT' or 'MATRIX'.\n")
+
+                    if  ( ('fvect' in xde_lists and righ_tnsr not in xde_lists['fvect'] ) \
+                      and ('fmatr' in xde_lists and righ_tnsr not in xde_lists['fmatr'] ) ) \
+                    or ('fvect' not in xde_lists and 'fmatr' not in xde_lists) :
+                        not_declare(line_num,righ_tnsr,"must be declared by 'FVECT' or 'FMATR'.\n")
 
                     if   'fvect' in xde_lists and righ_tnsr in xde_lists['fvect']:
                         tnsr_size = int(xde_lists['fvect'][righ_tnsr][0])
@@ -612,12 +623,65 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
                     dflt_idxs = list(map(str,map(lambda x:x+1, range(tnsr_size))))
                     if len(tnsr_idxs) == 0:
                         tnsr_idxs = dflt_idxs
-
                     dif_set = set(tnsr_idxs).difference(set(dflt_idxs))
                     if len(dif_set) != 0:
                         error_form(line_num,'', \
                             "the indexs '{}' of '{}' is out of range.\n".format(' '.join(dif_set),righ_tnsr))
-                        
+
+                    if   'vect'   in xde_lists and left_vara in xde_lists['vect']:
+                        left_size = len(xde_lists['vect'][left_vara])
+                    elif 'matrix' in xde_lists and left_vara in xde_lists['matrix']:
+                        if  xde_lists['matrix'][left_vara][0].isnumeric() \
+                        and xde_lists['matrix'][left_vara][0].isnumeric() :
+                            left_size = int(xde_lists['matrix'][left_vara][0]) \
+                                      * int(xde_lists['matrix'][left_vara][1])
+                        else:
+                            left_size = len(xde_lists['matrix'][left_vara]) \
+                                          *(xde_lists['matrix'][left_vara].count(' ')+1)
+
+                    if left_size != len(tnsr_idxs):
+                        error_form(line_num,'', \
+                            'the size of {} is not consistent with the right indexs.\n'.format(left_vara))
+
+                elif lower_key == '@s':
+                    left_vara, righ_tnsr = code_list[:2]
+                    left_size, tnsr_size = 0,0
+                    tnsr_idxs = code_list[2:len(code_list)]
+
+                    if  ( ('fvect' in xde_lists and left_vara not in xde_lists['fvect'] ) \
+                      and ('fmatr' in xde_lists and left_vara not in xde_lists['fmatr'] ) ) \
+                    or ('fvect' not in xde_lists and 'fmatr' not in xde_lists) :
+                        not_declare(line_num,left_vara,"must be declared by 'FVECT' or 'FMATR'.\n")
+                    
+                    if  ( ('fvect' in xde_lists and righ_tnsr not in xde_lists['fvect'] ) \
+                      and ('fmatr' in xde_lists and righ_tnsr not in xde_lists['fmatr'] ) ) \
+                    or ('fvect' not in xde_lists and 'fmatr' not in xde_lists) :
+                        not_declare(line_num,righ_tnsr,"must be declared by 'FVECT' or 'FMATR'.\n")
+
+                    if   'fvect' in xde_lists and righ_tnsr in xde_lists['fvect']:
+                        tnsr_size = int(xde_lists['fvect'][righ_tnsr][0])
+                    elif 'fmatr' in xde_lists and righ_tnsr in xde_lists['fmatr']:
+                        tnsr_size = int(xde_lists['fmatr'][righ_tnsr][0]) \
+                                  * int(xde_lists['fmatr'][righ_tnsr][1])
+
+                    dflt_idxs = list(map(str,map(lambda x:x+1, range(tnsr_size))))
+                    if len(tnsr_idxs) == 0:
+                        tnsr_idxs = dflt_idxs
+                    dif_set = set(tnsr_idxs).difference(set(dflt_idxs))
+                    if len(dif_set) != 0:
+                        error_form(line_num,'', \
+                            "the indexs '{}' of '{}' is out of range.\n".format(' '.join(dif_set),righ_tnsr))
+
+                    if   'fvect' in xde_lists and left_vara in xde_lists['fvect']:
+                        left_size = int(xde_lists['fvect'][left_vara][0])
+                    elif 'fmatr' in xde_lists and left_vara in xde_lists['fmatr']:
+                        left_size = int(xde_lists['fmatr'][left_vara][0]) \
+                                  * int(xde_lists['fmatr'][left_vara][1])
+
+                    if left_size != len(tnsr_idxs):
+                        error_form(line_num,'', \
+                            'the size of {} is not consistent with the right indexs.\n'.format(left_vara))
+
 
             elif lower_key in ['@a','@r'] :
                 pass
