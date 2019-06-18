@@ -1,0 +1,237 @@
+ch5c8g2
+defi
+disp u,v,w,
+var u1 v1 w1 u2 v2 w2 u3 v3 w3 u4
+var v4 w4 u5 v5 w5 u6 v6 w6 u7 v7
+var w7 u8 v8 w8
+refc rx,ry,rz,
+coor x,y,z,
+coef un,vn,wn,
+func = exx,eyy,ezz,eyz,exz,exy,
+dord 1,1,1,
+node 8
+$cc double ^enn[3][3],^en[3][3],denv[4];
+$cc double pe,pv,fx,fy,fz,rou,alpha;
+mate pe pv fx fy fz rou alpha 1.0e10 0.3 0.0 0.0 0.0 3000.0 0.6
+
+shap
+u=
+u1 = (1.-rx)/2*(1.-ry)/2*(1.-rz)/2
+u2 = (1.+rx)/2*(1.-ry)/2*(1.-rz)/2
+u3 = (1.+rx)/2*(1.+ry)/2*(1.-rz)/2
+u4 = (1.-rx)/2*(1.+ry)/2*(1.-rz)/2
+u5 = (1.-rx)/2*(1.-ry)/2*(1.+rz)/2
+u6 = (1.+rx)/2*(1.-ry)/2*(1.+rz)/2
+u7 = (1.+rx)/2*(1.+ry)/2*(1.+rz)/2
+u8 = (1.-rx)/2*(1.+ry)/2*(1.+rz)/2
+
+v=
+v1 = (1.-rx)/2*(1.-ry)/2*(1.-rz)/2
+v2 = (1.+rx)/2*(1.-ry)/2*(1.-rz)/2
+v3 = (1.+rx)/2*(1.+ry)/2*(1.-rz)/2
+v4 = (1.-rx)/2*(1.+ry)/2*(1.-rz)/2
+v5 = (1.-rx)/2*(1.-ry)/2*(1.+rz)/2
+v6 = (1.+rx)/2*(1.-ry)/2*(1.+rz)/2
+v7 = (1.+rx)/2*(1.+ry)/2*(1.+rz)/2
+v8 = (1.-rx)/2*(1.+ry)/2*(1.+rz)/2
+
+w=
+w1 = (1.-rx)/2*(1.-ry)/2*(1.-rz)/2
+w2 = (1.+rx)/2*(1.-ry)/2*(1.-rz)/2
+w3 = (1.+rx)/2*(1.+ry)/2*(1.-rz)/2
+w4 = (1.-rx)/2*(1.+ry)/2*(1.-rz)/2
+w5 = (1.-rx)/2*(1.-ry)/2*(1.+rz)/2
+w6 = (1.+rx)/2*(1.-ry)/2*(1.+rz)/2
+w7 = (1.+rx)/2*(1.+ry)/2*(1.+rz)/2
+w8 = (1.-rx)/2*(1.+ry)/2*(1.+rz)/2
+
+tran
+x=
+x(1) = (1.-rx)/2*(1.-ry)/2*(1.-rz)/2
+x(2) = (1.+rx)/2*(1.-ry)/2*(1.-rz)/2
+x(3) = (1.+rx)/2*(1.+ry)/2*(1.-rz)/2
+x(4) = (1.-rx)/2*(1.+ry)/2*(1.-rz)/2
+x(5) = (1.-rx)/2*(1.-ry)/2*(1.+rz)/2
+x(6) = (1.+rx)/2*(1.-ry)/2*(1.+rz)/2
+x(7) = (1.+rx)/2*(1.+ry)/2*(1.+rz)/2
+x(8) = (1.-rx)/2*(1.+ry)/2*(1.+rz)/2
+
+y=
+y(1) = (1.-rx)/2*(1.-ry)/2*(1.-rz)/2
+y(2) = (1.+rx)/2*(1.-ry)/2*(1.-rz)/2
+y(3) = (1.+rx)/2*(1.+ry)/2*(1.-rz)/2
+y(4) = (1.-rx)/2*(1.+ry)/2*(1.-rz)/2
+y(5) = (1.-rx)/2*(1.-ry)/2*(1.+rz)/2
+y(6) = (1.+rx)/2*(1.-ry)/2*(1.+rz)/2
+y(7) = (1.+rx)/2*(1.+ry)/2*(1.+rz)/2
+y(8) = (1.-rx)/2*(1.+ry)/2*(1.+rz)/2
+
+z=
+z(1) = (1.-rx)/2*(1.-ry)/2*(1.-rz)/2
+z(2) = (1.+rx)/2*(1.-ry)/2*(1.-rz)/2
+z(3) = (1.+rx)/2*(1.+ry)/2*(1.-rz)/2
+z(4) = (1.-rx)/2*(1.+ry)/2*(1.-rz)/2
+z(5) = (1.-rx)/2*(1.-ry)/2*(1.+rz)/2
+z(6) = (1.+rx)/2*(1.-ry)/2*(1.+rz)/2
+z(7) = (1.+rx)/2*(1.+ry)/2*(1.+rz)/2
+z(8) = (1.-rx)/2*(1.+ry)/2*(1.+rz)/2
+
+coef
+un=
+un(1) = (1.-rx)/2*(1.-ry)/2*(1.-rz)/2
+un(2) = (1.+rx)/2*(1.-ry)/2*(1.-rz)/2
+un(3) = (1.+rx)/2*(1.+ry)/2*(1.-rz)/2
+un(4) = (1.-rx)/2*(1.+ry)/2*(1.-rz)/2
+un(5) = (1.-rx)/2*(1.-ry)/2*(1.+rz)/2
+un(6) = (1.+rx)/2*(1.-ry)/2*(1.+rz)/2
+un(7) = (1.+rx)/2*(1.+ry)/2*(1.+rz)/2
+un(8) = (1.-rx)/2*(1.+ry)/2*(1.+rz)/2
+
+vn=
+vn(1) = (1.-rx)/2*(1.-ry)/2*(1.-rz)/2
+vn(2) = (1.+rx)/2*(1.-ry)/2*(1.-rz)/2
+vn(3) = (1.+rx)/2*(1.+ry)/2*(1.-rz)/2
+vn(4) = (1.-rx)/2*(1.+ry)/2*(1.-rz)/2
+vn(5) = (1.-rx)/2*(1.-ry)/2*(1.+rz)/2
+vn(6) = (1.+rx)/2*(1.-ry)/2*(1.+rz)/2
+vn(7) = (1.+rx)/2*(1.+ry)/2*(1.+rz)/2
+vn(8) = (1.-rx)/2*(1.+ry)/2*(1.+rz)/2
+
+wn=
+wn(1) = (1.-rx)/2*(1.-ry)/2*(1.-rz)/2
+wn(2) = (1.+rx)/2*(1.-ry)/2*(1.-rz)/2
+wn(3) = (1.+rx)/2*(1.+ry)/2*(1.-rz)/2
+wn(4) = (1.-rx)/2*(1.+ry)/2*(1.-rz)/2
+wn(5) = (1.-rx)/2*(1.-ry)/2*(1.+rz)/2
+wn(6) = (1.+rx)/2*(1.-ry)/2*(1.+rz)/2
+wn(7) = (1.+rx)/2*(1.+ry)/2*(1.+rz)/2
+wn(8) = (1.-rx)/2*(1.+ry)/2*(1.+rz)/2
+
+gaus = 8
+ 0.577350269189626  0.577350269189626  0.577350269189626 1.0
+ 0.577350269189626  0.577350269189626 -0.577350269189626 1.0
+ 0.577350269189626 -0.577350269189626  0.577350269189626 1.0
+ 0.577350269189626 -0.577350269189626 -0.577350269189626 1.0
+-0.577350269189626  0.577350269189626  0.577350269189626 1.0
+-0.577350269189626  0.577350269189626 -0.577350269189626 1.0
+-0.577350269189626 -0.577350269189626  0.577350269189626 1.0
+-0.577350269189626 -0.577350269189626 -0.577350269189626 1.0
+
+func
+$CC vol = 1.0;
+$cc fact = pe/(1.+pv)/(1.-2.*pv)*vol;
+$cc shear = (0.5-pv);
+$cv ^en[1][1]=+{un/x}
+$cv ^en[1][2]=+{un/y}
+$cv ^en[1][3]=+{un/z}
+$cv ^en[2][1]=+{vn/x}
+$cv ^en[2][2]=+{vn/y}
+$cv ^en[2][3]=+{vn/z}
+$cv ^en[3][1]=+{wn/x}
+$cv ^en[3][2]=+{wn/y}
+$cv ^en[3][3]=+{wn/z}
+$cc ^enn[1][1]=+^en[1][1]*^en[1][1]+^en[2][1]*^en[2][1]+^en[3][1]*^en[3][1];
+$cc ^enn[1][2]=+^en[1][1]*^en[1][2]+^en[2][1]*^en[2][2]+^en[3][1]*^en[3][2];
+$cc ^enn[1][3]=+^en[1][1]*^en[1][3]+^en[2][1]*^en[2][3]+^en[3][1]*^en[3][3];
+$cc ^enn[2][1]=+^en[1][2]*^en[1][1]+^en[2][2]*^en[2][1]+^en[3][2]*^en[3][1];
+$cc ^enn[2][2]=+^en[1][2]*^en[1][2]+^en[2][2]*^en[2][2]+^en[3][2]*^en[3][2];
+$cc ^enn[2][3]=+^en[1][2]*^en[1][3]+^en[2][2]*^en[2][3]+^en[3][2]*^en[3][3];
+$cc ^enn[3][1]=+^en[1][3]*^en[1][1]+^en[2][3]*^en[2][1]+^en[3][3]*^en[3][1];
+$cc ^enn[3][2]=+^en[1][3]*^en[1][2]+^en[2][3]*^en[2][2]+^en[3][3]*^en[3][2];
+$cc ^enn[3][3]=+^en[1][3]*^en[1][3]+^en[2][3]*^en[2][3]+^en[3][3]*^en[3][3];
+$cc denv[1]=+(1.-pv)*^enn[1][1]/2.+pv*^enn[2][2]/2.+pv*^enn[3][3]/2.;
+$cc denv[2]=+pv*^enn[1][1]/2.+(1.-pv)*^enn[2][2]/2.+pv*^enn[3][3]/2.;
+$cc denv[3]=+pv*^enn[1][1]/2.+pv*^enn[2][2]/2.+(1.-pv)*^enn[3][3]/2.;
+exx=+[u/x]+[u/x]*^en[1][1]+[v/x]*^en[2][1]+[w/x]*^en[3][1]
+
+eyy=+[v/y]+[u/y]*^en[1][2]+[v/y]*^en[2][2]+[w/y]*^en[3][2]
+
+ezz=+[w/z]+[u/z]*^en[1][3]+[v/z]*^en[2][3]+[w/z]*^en[3][3]
+
+eyz=+([v/z]+[u/y]*^en[1][3]+[v/y]*^en[2][3]+[w/y]*^en[3][3])+([w/y]+[u/z]*^en[1][2]+[v/z]*^en[2][2]+[w/z]*^en[3][2])
+
+exz=+([u/z]+[u/x]*^en[1][3]+[v/x]*^en[2][3]+[w/x]*^en[3][3])+([w/x]+[u/z]*^en[1][1]+[v/z]*^en[2][1]+[w/z]*^en[3][1])
+
+exy=+([u/y]+[u/x]*^en[1][2]+[v/x]*^en[2][2]+[w/x]*^en[3][2])+([v/x]+[u/y]*^en[1][1]+[v/y]*^en[2][1]+[w/y]*^en[3][1])
+
+
+stif
+dist=+[exx;exx]*(1.-pv)*fact
++[exx;eyy]*pv*fact
++[exx;ezz]*pv*fact
++[eyy;exx]*pv*fact
++[eyy;eyy]*(1.-pv)*fact
++[eyy;ezz]*pv*fact
++[ezz;exx]*pv*fact
++[ezz;eyy]*pv*fact
++[ezz;ezz]*(1.-pv)*fact
++[eyz;eyz]*shear*fact
++[exz;exz]*shear*fact
++[exy;exy]*shear*fact
+
+mass
+lump =
++[rou*vol]u1
++[rou*vol]u2
++[rou*vol]u3
++[rou*vol]u4
++[rou*vol]u5
++[rou*vol]u6
++[rou*vol]u7
++[rou*vol]u8
++[rou*vol]v1
++[rou*vol]v2
++[rou*vol]v3
++[rou*vol]v4
++[rou*vol]v5
++[rou*vol]v6
++[rou*vol]v7
++[rou*vol]v8
++[rou*vol]w1
++[rou*vol]w2
++[rou*vol]w3
++[rou*vol]w4
++[rou*vol]w5
++[rou*vol]w6
++[rou*vol]w7
++[rou*vol]w8
+
+damp
+lump =
++[rou*alpha*vol]u1
++[rou*alpha*vol]u2
++[rou*alpha*vol]u3
++[rou*alpha*vol]u4
++[rou*alpha*vol]u5
++[rou*alpha*vol]u6
++[rou*alpha*vol]u7
++[rou*alpha*vol]u8
++[rou*alpha*vol]v1
++[rou*alpha*vol]v2
++[rou*alpha*vol]v3
++[rou*alpha*vol]v4
++[rou*alpha*vol]v5
++[rou*alpha*vol]v6
++[rou*alpha*vol]v7
++[rou*alpha*vol]v8
++[rou*alpha*vol]w1
++[rou*alpha*vol]w2
++[rou*alpha*vol]w3
++[rou*alpha*vol]w4
++[rou*alpha*vol]w5
++[rou*alpha*vol]w6
++[rou*alpha*vol]w7
++[rou*alpha*vol]w8
+
+load
+load=+[u]*fx*vol
++[v]*fy*vol
++[w]*fz*vol
++[exx]*denv[1]*fact
++[eyy]*denv[2]*fact
++[ezz]*denv[3]*fact
++[eyz]*^enn[2][3]*shear*fact
++[exz]*^enn[1][3]*shear*fact
++[exy]*^enn[1][2]*shear*fact
+
+end

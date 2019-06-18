@@ -1,0 +1,133 @@
+\ ---------------- Harmonic Electromagnetic Problem (H mod) (Ele-plane) -----------------
+\                                    Electric Field
+\                      E=(curl(H)-Dr-sgm*VxB)/(i*omega*epr*ep0+sgm)
+\ ---------------------------------------------------------------------------------------
+DISP Ex Ey
+COEF Hzr Hzi
+COOR x y
+SHAP %1 %2
+GAUS %3
+MASS %1 vol
+$CC //------------------------- Constitutive Coefficient -------------------------
+$CC double sgm11,sgm12;      // Conductivity
+$CC double sgm21,sgm22;
+$CC double sgm;
+$CC double epr11,epr12;      // Relative permittivity
+$CC double epr21,epr22;
+$CC double epr;
+$CC double epi11,epi12;      // Loss relative permittivity
+$CC double epi21,epi22;
+$CC double epi;
+$CC double mur,mui;          // relative permeability & loss relative permeability
+$CC double omega,fHz;        // Angular frequency & frequency
+$CC double Vx,Vy;            // Velocity
+$CC double Jexr,Jexi;        // Extern current
+$CC double Jeyr,Jeyi;
+$CC double Brzr,Brzi;        // Remanent mag-flux
+$CC double Drxr,Drxi;        // Remanent ele-displace
+$CC double Dryr,Dryi;
+$CC double Mzr,Mzi;          // Magnetization vector
+$CC double Pxr,Pxi,Pyr,Pyi;  // Polarization vector
+$CC double pi  = 3.14159265358979; // 
+$CC double ep0 = 8.854187817e-12;  // vacuum permittivity
+$CC double mu0 = 4*pi*1e-7;        // vacuum permeability
+$CC //------------------------- Isotropic Converion ------------------------------
+\MATE sgm11 sgm12 sgm21 sgm22 epr11 epr12 epr21 epr22 epi11 epi12 epi21 epi22 \
+\mur mui fHz Jexr Jexi Jeyr Jeyi Vx Vy \
+\5.96e7 0 0 5.96e7 1 0 0 1 0 1 1 0 1 0 50 0 0 0 0 0 0
+MATE mur sgm epr fHz Jexr Jexi Jeyr Jeyi 1 5.96e7 1 50 0 0 0 0
+$CC sgm11 = sgm;    sgm12 = 0; 
+$CC sgm21 = 0;      sgm22 = sgm;
+$CC epr11 = epr;    epr12 = 0;
+$CC epr21 = 0;      epr22 = epr;
+$CC epi11 = 0;      epi12 = 0;
+$CC epi21 = 0;      epi22 = 0;
+$CC Vx    = 0;      Vy    = 0;
+$CC Brzr  = 0;      Brzi  = 0;
+$CC Drxr  = 0;      Drxi  = 0;
+$CC Dryr  = 0;      Dryi  = 0;
+$CC Mzr   = 0;      Mzi   = 0;
+$CC Pxr   = 0;      Pxi   = 0;
+$CC Pyr   = 0;      Pyi   = 0;
+$CC mui   = 0;
+$CC //------------------------- Constitutive end     ------------------------------
+$CC mui=-mui;
+$CC omega = 2*pi*fHz;
+$CC //------------------------- Auxiliary Coefficient -----------------------------
+VECT ccr1r sgm22 (-sgm12) (-sgm21) sgm11
+VECT ccr2r epi22 (-epi12) (-epi21) epi11
+VECT ccri epr22 (-epr12) (-epr21) epr11
+VECT kv k11 k12 k21 k22
+VECT co co11 co12 co21 co22
+VECT kvr k11r k12r k21r k22r
+VECT kvi k11i k12i k21i k22i
+VECT curlHr curlHzxr curlHzyr
+VECT curlHi curlHzxi curlHzyi
+VECT curlH curlHzx curlHzy
+VECT VBr VBrx VBry
+VECT iDr iDrx iDry
+VECT Dr Drx Dry
+VECT VM VMx VMy
+VECT iP iPx iPy
+VECT P Px Py
+VECT fj fjx fjy
+VECT Je Jex Jey
+VECT VB VBx VBy
+$CC double VBxr,VBxi,VByr,VByi;
+$CC double fjxr,fjxi,fjyr,fjyi;
+$CC double mdetr,mdeti;
+$CC double curlHzxr,curlHzxi;
+$CC double curlHzyr,curlHzyi;
+$CC double iDrxr,iDrxi,iDryr,iDryi;      // i*omega*Dr
+$CC double VBrxr,VBrxi,VBryr,VBryi;      // VxBr
+$CC double iPxr,iPxi,iPyr,iPyi;                  // i*omega*P
+$CC double VMxr,VMxi,VMyr,VMyi;                  // VxM
+$CC double iomegr,iomegi;                        // i*omega
+$CC double sg11r,sg12r,sg21r,sg22r;              // |sgx| = |sgm|
+$CC double sg11i,sg12i,sg21i,sg22i;
+$CC double k11r,k12r,k21r,k22r;                  // kv is cofactor of 'i*omega*|epr|+|sgm|'
+$CC double k11i,k12i,k21i,k22i;
+$CC double co11r,co12r,co21r,co22r;              // co is inverse of 'i*omega*|epr|+|sgm|'
+$CC double co11i,co12i,co21i,co22i;
+$CC iomegr=0; iomegi=omega;
+$CC sg11r=sgm11;sg12r=sgm12;sg21r=sgm21;sg22r=sgm22;
+$CC sg11i=0    ;sg12i=0;    sg21i=0;    sg22i=0;
+$CC mdetr = (sgm11+epi11*ep0*omega)*(sgm22+epi22*ep0*omega)
+$CC        -(sgm12+epi12*ep0*omega)*(sgm21+epi21*ep0*omega)
+$CC        -omega*omega*ep0*ep0*(epr11*epr22-epr12*epr21);
+$CC mdeti = omega*ep0*(epr11*(sgm22+epi22*ep0*omega)
+$CC                   +epr22*(sgm11+epi11*ep0*omega)
+$CC                   -epr12*(sgm21+epi21*ep0*omega)
+$CC                   -epr21*(sgm12+epi12*ep0*omega));
+$CV kvr_i=ccr2r_i*omega*ep0+ccr1r_i
+$CV kvi_i=ccri_i*omega*ep0
+$CP co_i=kv_i/mdet;
+@L singular.xy n
+MATRIX kvm 2 2
+co11 co12
+co21 co22
+
+MATRIX sgm 2 2
+sg11 sg12
+sg21 sg22
+
+
+STIF
+@L vol.xy n
+@L vcurl.xy v curlHr x y Hzr
+@L vcurl.xy v curlHi x y Hzi
+$CP iDr_i=iomeg*Dr_i
+$CP iP_i=iomeg*P_i
+$CC VBxr=+Vy*Hzr*mur*mu0-Vy*Hzi*mui*mu0+Vy*Brzr+Vy*Mzr*mu0;
+$CC VBxi=+Vy*Hzi*mur*mu0+Vy*Hzr*mui*mu0+Vy*Brzi+Vy*Mzi*mu0;
+$CC VByr=-Vx*Hzr*mur*mu0+Vx*Hzi*mui*mu0-Vx*Brzr-Vx*Mzr*mu0;
+$CC VByi=-Vx*Hzi*mur*mu0-Vx*Hzr*mui*mu0-Vx*Brzi-Vx*Mzi*mu0;
+$CP fj_i=+kvm_i_j*curlH_j-kvm_i_j*Je_j-kvm_i_k*sgm_k_j*VB_j-kvm_i_j*iDr_j-kvm_i_j*iP_j;
+$CP fj_i=+kvm_i_j*(curlH_j-Je_j-iDr_j-iP_j)-kvm_i_k*sgm_k_j*VB_j;
+DIST=+[Ex;Ex]*|0;0|
+
+LOAD=\
++[Ex]*vol*|fjxr;fjxi|
++[Ey]*vol*|fjyr;fjyi|
+
+END

@@ -1,0 +1,293 @@
+aec8g2
+defi
+disp u,v,w,
+var u1 v1 w1 u2 v2 w2 u3 v3 w3 u4
+var v4 w4 u5 v5 w5 u6 v6 w6 u7 v7 w7
+var u8 v8 w8
+refc rx,ry,rz,
+coor x,y,z,
+coef un,vn,wn,
+func = exx,eyy,ezz,eyz,exz,exy,plast,
+dord 1,1,1,
+node 8
+common double *inelmc8
+$cc double pe,pv,fx,fy,fz,qnn,rou,alpha,t0,time1,a,b,prag,dln;
+$cc int kq,ntime,ialpha;
+$cc extern double getyield(double *,double *,double *,double,double *,
+$cc int,double (*f)(),int);
+$cc extern double prager(double *,double *);
+$cc double dev[4],dep[4],^e[3][3],^d[3][3];
+$cc double ddf[7],ds[7],str[8],p[5];
+$cc static int init=0;
+$cc int m;
+$i
+$cc m = ngaus*7;
+$cc if (init==0) {
+$cc inelmc8 = (double *) calloc(nelem*m+1,sizeof(double));
+$cc for (i=1; i<=nelem*m; ++i) inelmc8[i]=0.0;
+$cc init = 1; }
+mate pe pv fx fy fz p[1] p[2] p[4] qnn rou alpha 1.0e10;0.3;0;0;0;0.2;1000;0;1;3000;0.6;
+$cc t0 = 0.0;
+$cc ntime=(tmax-t0)/dt;
+$cc time1=time_now/ntime;
+$cc kq=qnn+0.5;
+$cc p[3]=pv;
+ 
+shap
+u=
+u1 = (1.-rx)/2*(1.-ry)/2*(1.-rz)/2
+u2 = (1.+rx)/2*(1.-ry)/2*(1.-rz)/2
+u3 = (1.+rx)/2*(1.+ry)/2*(1.-rz)/2
+u4 = (1.-rx)/2*(1.+ry)/2*(1.-rz)/2
+u5 = (1.-rx)/2*(1.-ry)/2*(1.+rz)/2
+u6 = (1.+rx)/2*(1.-ry)/2*(1.+rz)/2
+u7 = (1.+rx)/2*(1.+ry)/2*(1.+rz)/2
+u8 = (1.-rx)/2*(1.+ry)/2*(1.+rz)/2
+ 
+v=
+v1 = (1.-rx)/2*(1.-ry)/2*(1.-rz)/2
+v2 = (1.+rx)/2*(1.-ry)/2*(1.-rz)/2
+v3 = (1.+rx)/2*(1.+ry)/2*(1.-rz)/2
+v4 = (1.-rx)/2*(1.+ry)/2*(1.-rz)/2
+v5 = (1.-rx)/2*(1.-ry)/2*(1.+rz)/2
+v6 = (1.+rx)/2*(1.-ry)/2*(1.+rz)/2
+v7 = (1.+rx)/2*(1.+ry)/2*(1.+rz)/2
+v8 = (1.-rx)/2*(1.+ry)/2*(1.+rz)/2
+ 
+w=
+w1 = (1.-rx)/2*(1.-ry)/2*(1.-rz)/2
+w2 = (1.+rx)/2*(1.-ry)/2*(1.-rz)/2
+w3 = (1.+rx)/2*(1.+ry)/2*(1.-rz)/2
+w4 = (1.-rx)/2*(1.+ry)/2*(1.-rz)/2
+w5 = (1.-rx)/2*(1.-ry)/2*(1.+rz)/2
+w6 = (1.+rx)/2*(1.-ry)/2*(1.+rz)/2
+w7 = (1.+rx)/2*(1.+ry)/2*(1.+rz)/2
+w8 = (1.-rx)/2*(1.+ry)/2*(1.+rz)/2
+ 
+tran
+x=
+x(1) = (1.-rx)/2*(1.-ry)/2*(1.-rz)/2
+x(2) = (1.+rx)/2*(1.-ry)/2*(1.-rz)/2
+x(3) = (1.+rx)/2*(1.+ry)/2*(1.-rz)/2
+x(4) = (1.-rx)/2*(1.+ry)/2*(1.-rz)/2
+x(5) = (1.-rx)/2*(1.-ry)/2*(1.+rz)/2
+x(6) = (1.+rx)/2*(1.-ry)/2*(1.+rz)/2
+x(7) = (1.+rx)/2*(1.+ry)/2*(1.+rz)/2
+x(8) = (1.-rx)/2*(1.+ry)/2*(1.+rz)/2
+ 
+y=
+y(1) = (1.-rx)/2*(1.-ry)/2*(1.-rz)/2
+y(2) = (1.+rx)/2*(1.-ry)/2*(1.-rz)/2
+y(3) = (1.+rx)/2*(1.+ry)/2*(1.-rz)/2
+y(4) = (1.-rx)/2*(1.+ry)/2*(1.-rz)/2
+y(5) = (1.-rx)/2*(1.-ry)/2*(1.+rz)/2
+y(6) = (1.+rx)/2*(1.-ry)/2*(1.+rz)/2
+y(7) = (1.+rx)/2*(1.+ry)/2*(1.+rz)/2
+y(8) = (1.-rx)/2*(1.+ry)/2*(1.+rz)/2
+ 
+z=
+z(1) = (1.-rx)/2*(1.-ry)/2*(1.-rz)/2
+z(2) = (1.+rx)/2*(1.-ry)/2*(1.-rz)/2
+z(3) = (1.+rx)/2*(1.+ry)/2*(1.-rz)/2
+z(4) = (1.-rx)/2*(1.+ry)/2*(1.-rz)/2
+z(5) = (1.-rx)/2*(1.-ry)/2*(1.+rz)/2
+z(6) = (1.+rx)/2*(1.-ry)/2*(1.+rz)/2
+z(7) = (1.+rx)/2*(1.+ry)/2*(1.+rz)/2
+z(8) = (1.-rx)/2*(1.+ry)/2*(1.+rz)/2
+ 
+coef
+un=
+un(1) = (1.-rx)/2*(1.-ry)/2*(1.-rz)/2
+un(2) = (1.+rx)/2*(1.-ry)/2*(1.-rz)/2
+un(3) = (1.+rx)/2*(1.+ry)/2*(1.-rz)/2
+un(4) = (1.-rx)/2*(1.+ry)/2*(1.-rz)/2
+un(5) = (1.-rx)/2*(1.-ry)/2*(1.+rz)/2
+un(6) = (1.+rx)/2*(1.-ry)/2*(1.+rz)/2
+un(7) = (1.+rx)/2*(1.+ry)/2*(1.+rz)/2
+un(8) = (1.-rx)/2*(1.+ry)/2*(1.+rz)/2
+ 
+vn=
+vn(1) = (1.-rx)/2*(1.-ry)/2*(1.-rz)/2
+vn(2) = (1.+rx)/2*(1.-ry)/2*(1.-rz)/2
+vn(3) = (1.+rx)/2*(1.+ry)/2*(1.-rz)/2
+vn(4) = (1.-rx)/2*(1.+ry)/2*(1.-rz)/2
+vn(5) = (1.-rx)/2*(1.-ry)/2*(1.+rz)/2
+vn(6) = (1.+rx)/2*(1.-ry)/2*(1.+rz)/2
+vn(7) = (1.+rx)/2*(1.+ry)/2*(1.+rz)/2
+vn(8) = (1.-rx)/2*(1.+ry)/2*(1.+rz)/2
+ 
+wn=
+wn(1) = (1.-rx)/2*(1.-ry)/2*(1.-rz)/2
+wn(2) = (1.+rx)/2*(1.-ry)/2*(1.-rz)/2
+wn(3) = (1.+rx)/2*(1.+ry)/2*(1.-rz)/2
+wn(4) = (1.-rx)/2*(1.+ry)/2*(1.-rz)/2
+wn(5) = (1.-rx)/2*(1.-ry)/2*(1.+rz)/2
+wn(6) = (1.+rx)/2*(1.-ry)/2*(1.+rz)/2
+wn(7) = (1.+rx)/2*(1.+ry)/2*(1.+rz)/2
+wn(8) = (1.-rx)/2*(1.+ry)/2*(1.+rz)/2
+ 
+gaus = 8
+ 5.773502692e-001  5.773502692e-001  5.773502692e-001  1.000000000e+000
+ 5.773502692e-001  5.773502692e-001 -5.773502692e-001  1.000000000e+000
+ 5.773502692e-001 -5.773502692e-001  5.773502692e-001  1.000000000e+000
+ 5.773502692e-001 -5.773502692e-001 -5.773502692e-001  1.000000000e+000
+-5.773502692e-001  5.773502692e-001  5.773502692e-001  1.000000000e+000
+-5.773502692e-001  5.773502692e-001 -5.773502692e-001  1.000000000e+000
+-5.773502692e-001 -5.773502692e-001  5.773502692e-001  1.000000000e+000
+-5.773502692e-001 -5.773502692e-001 -5.773502692e-001  1.000000000e+000
+ 
+func
+$cc fact=pe/(1.0+pv)/(1.0-2.0*pv);
+$cc shear=(0.5-pv)*fact;
+$cv ^d[1][1]=+(1.-pv)*fact
+$cv ^d[1][2]=+pv*fact
+$cv ^d[1][3]=+pv*fact
+$cv ^d[2][1]=+pv*fact
+$cv ^d[2][2]=+(1.-pv)*fact
+$cv ^d[2][3]=+pv*fact
+$cv ^d[3][1]=+pv*fact
+$cv ^d[3][2]=+pv*fact
+$cv ^d[3][3]=+(1.-pv)*fact
+$cc vol = 1.0;
+$cc j = (num-1)*ngaus*7+(igaus-1)*7;
+$cc for (i=1; i<=7; ++i) str[i]=inelmc8[j+i];
+$cv ^e[1][1]=+{un/x}
+$cv ^e[1][2]=+{un/y}
+$cv ^e[1][3]=+{un/z}
+$cv ^e[2][1]=+{vn/x}
+$cv ^e[2][2]=+{vn/y}
+$cv ^e[2][3]=+{vn/z}
+$cv ^e[3][1]=+{wn/x}
+$cv ^e[3][2]=+{wn/y}
+$cv ^e[3][3]=+{wn/z}
+$cv dev[1]=+^e[1][1]
+$cv dev[2]=+^e[2][2]
+$cv dev[3]=+^e[3][3]
+$cc dep[1] = ^e[2][3]+^e[3][2];
+$cc dep[2] = ^e[1][3]+^e[3][1];
+$cc dep[3] = ^e[1][2]+^e[2][1];
+$cv ds[1]=+^d[1][1]*dev[1]+^d[1][2]*dev[2]+^d[1][3]*dev[3]
+$cv ds[2]=+^d[2][1]*dev[1]+^d[2][2]*dev[2]+^d[2][3]*dev[3]
+$cv ds[3]=+^d[3][1]*dev[1]+^d[3][2]*dev[2]+^d[3][3]*dev[3]
+$cv ds[4]=+shear*dep[1]
+$cv ds[5]=+shear*dep[2]
+$cv ds[6]=+shear*dep[3]
+$cv str[1]=+str[1]+ds[1]
+$cv str[2]=+str[2]+ds[2]
+$cv str[3]=+str[3]+ds[3]
+$cv str[4]=+str[4]+ds[4]
+$cv str[5]=+str[5]+ds[5]
+$cv str[6]=+str[6]+ds[6]
+$cc ialpha=1;
+$cc a=getyield(p,str,d,shear,ddf,kq,prager,ialpha);
+$cc prag=prager(p,str);
+$cv dln=+ddf[1]*dev[1]+ddf[2]*dev[2]+ddf[3]*dev[3]+ddf[4]*dep[1]+ddf[5]*dep[2]+ddf[6]*dep[3]
+$cc dln=dln+prag;
+$cc if (dln>0.0) {
+$cc  b=1.0/a;
+$cv ds[1]=+b*ddf[1]*ddf[1]*dev[1]+b*ddf[1]*ddf[2]*dev[2]+b*ddf[1]*ddf[3]*dev[3]
+$cv ds[2]=+b*ddf[2]*ddf[1]*dev[1]+b*ddf[2]*ddf[2]*dev[2]+b*ddf[2]*ddf[3]*dev[3]
+$cv ds[3]=+b*ddf[3]*ddf[1]*dev[1]+b*ddf[3]*ddf[2]*dev[2]+b*ddf[3]*ddf[3]*dev[3]
+$cv ds[4]=+b*ddf[4]*ddf[4]*dep[1]
+$cv ds[5]=+b*ddf[5]*ddf[5]*dep[2]
+$cv ds[6]=+b*ddf[6]*ddf[6]*dep[3]
+$cv str[1]=+str[1]-ds[1]-ddf[1]*prag*b
+$cv str[2]=+str[2]-ds[2]-ddf[2]*prag*b
+$cv str[3]=+str[3]-ds[3]-ddf[3]*prag*b
+$cv str[4]=+str[4]-ds[4]-ddf[4]*prag*b
+$cv str[5]=+str[5]-ds[5]-ddf[5]*prag*b
+$cv str[6]=+str[6]-ds[6]-ddf[6]*prag*b
+$cc ialpha=1;
+$cc a=getyield(p,str,d,shear,ddf,kq,prager,ialpha);
+$cc prag=prager(p,str);
+$cc } else {
+$cc  b=0.0;
+$cc }
+exx=+[u/x]
+
+eyy=+[v/y]
+
+ezz=+[w/z]
+
+eyz=+[v/z]+[w/y]
+
+exz=+[u/z]+[w/x]
+
+exy=+[u/y]+[v/x]
+
+plast=+[u/x]*ddf[1]+[v/y]*ddf[2]+[w/z]*ddf[3]+[v/z]*ddf[4]
++[w/y]*ddf[4]+[u/z]*ddf[5]+[w/x]*ddf[5]+[u/y]*ddf[6]
++[v/x]*ddf[6]
+
+
+stif
+dist=+[exx;exx]*^d[1][1]*vol+[exx;eyy]*^d[1][2]*vol
++[exx;ezz]*^d[1][3]*vol+[eyy;exx]*^d[2][1]*vol
++[eyy;eyy]*^d[2][2]*vol+[eyy;ezz]*^d[2][3]*vol
++[ezz;exx]*^d[3][1]*vol+[ezz;eyy]*^d[3][2]*vol
++[ezz;ezz]*^d[3][3]*vol+[eyz;eyz]*shear*vol
++[exz;exz]*shear*vol+[exy;exy]*shear*vol
+-[plast;plast]*b*vol
+
+ 
+mass
+lump =
+ [rou*vol]u1
++[rou*vol]u2
++[rou*vol]u3
++[rou*vol]u4
++[rou*vol]u5
++[rou*vol]u6
++[rou*vol]u7
++[rou*vol]u8
+ [rou*vol]v1
++[rou*vol]v2
++[rou*vol]v3
++[rou*vol]v4
++[rou*vol]v5
++[rou*vol]v6
++[rou*vol]v7
++[rou*vol]v8
+ [rou*vol]w1
++[rou*vol]w2
++[rou*vol]w3
++[rou*vol]w4
++[rou*vol]w5
++[rou*vol]w6
++[rou*vol]w7
++[rou*vol]w8
+ 
+damp
+lump =
+ [0.0]u1
++[0.0]u2
++[0.0]u3
++[0.0]u4
++[0.0]u5
++[0.0]u6
++[0.0]u7
++[0.0]u8
+ [0.0]v1
++[0.0]v2
++[0.0]v3
++[0.0]v4
++[0.0]v5
++[0.0]v6
++[0.0]v7
++[0.0]v8
+ [0.0]w1
++[0.0]w2
++[0.0]w3
++[0.0]w4
++[0.0]w5
++[0.0]w6
++[0.0]w7
++[0.0]w8
+ 
+load=+[u]*fx*time1*vol+[v]*fy*time1*vol+[w]*fz*time1*vol
+-[exx]*str[1]*vol-[eyy]*str[2]*vol-[ezz]*str[3]*vol
+-[eyz]*str[4]*vol-[exz]*str[5]*vol-[exy]*str[6]*vol
++[plast]*b*prag*vol
+
+ 
+end

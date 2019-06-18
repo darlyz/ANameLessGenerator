@@ -19,53 +19,36 @@
 \       du denotes the variation of u;
 \       ( . ; . ) denotes the inner product of two functions in the solution domain.
 \-----------------------------------------------------------------------------------
-DEFI
 DISP u v w
-COEF un vn wn
 VECT u u v w
 COOR x y z
-FUNC exx eyy ezz eyz exz exy // test a new comment type
+FUNC exx eyy ezz eyz exz exy
 FMATR fe 3 3
 VECT ev exx eyy ezz
 VECT ep eyz exz exy
 SHAP %1 %2
-SHAP %1 %4 w
 GAUS %3
 $CC double pe,pv,fx,fy,fz,rou,alpha;
-$CV ev_i = +(ep_i+ep_j)*ep_i
-$CP ev_i = +(ep_i+ep_j)*ep_i
-$CP u=(u+v)*w/u
-@L singular.roz n
-MATE pe pv fx fy fz rou alpha \ test comment and stitch line
-1.0e10 0.3 0.0 0.0 0.0 3000.0 0.6
-MASS %1 rou
-DAMP %1 rou*alpha
+@L singular.xyz n
+MATE pe pv fx fy fz rou alpha 1.0e10 0.3 0.0 0.0 0.0 3000.0 0.6
 VECT f fx fy fz
 MATRIX sm 3 3
-(1.-kk) pv pv
+(1.-pv) pv pv
 pv (1.-pv) pv
 pv pv (1.-pv)
 
-MATRIX em 2 2
-exx exy
-eyx eyy
 
 FUNC
 @L vol.xyz n
 $CC fact = pe/(1.0+pv)/(1.0-pv*2.0)*vol;
 $CC shear = (0.5-pv);
-@L gradv.xyz f fe r o z a b c
+@L gradv.xyz f fe
 @W ev fe 1 5 9
-@W em fe 1 2 8 9
-@A fe_i_j = +[fe_i_j]*(sm_j_i+sm_k_i)-[fe_j_i]
+@A fe_i_j = +[fe_i_j]+[fe_j_i]
 @W ep fe 6 3 2
-$CV em_i_j = +em_j_i + em_i_j
 STIF
-DIST =\
-+[ev_i;ev_j]*sm_i_j*fact
-+[ep_i;ep_i]*shear*fact
+DIST =+[ev_i;ev_j]*sm_i_j*fact+[ep_i;ep_i]*shear*fact
 
-LOAD=\
-+[u_i]*f_i*vol
+LOAD=+[u_i]*f_i*vol
 
 END

@@ -1,22 +1,24 @@
 {
     "code": {
         "BFmate": [
-            "$CC double pe,pv,fx,fy,fz,rou,alpha;",
-            "$CV ev_i = +(ep_i+ep_j)*ep_i",
-            "$CP ev_i = +(ep_i+ep_j)*ep_i",
-            "$CP u=(u+v)*w/u",
-            "@L singular.roz n"
+            "ARRAY ^enn[3][3],^en[3][3],denv[3]",
+            "$CC double pe,pv,fx,fy,fz,rou,alpha;"
+        ],
+        "AFmate": [
+            "@L singular.xyz n"
         ],
         "func": [
             "@L vol.xyz n",
-            "$CC fact = pe/(1.0+pv)/(1.0-pv*2.0)*vol;",
+            "$CC fact = pe/(1.+pv)/(1.-2.*pv)*vol;",
             "$CC shear = (0.5-pv);",
-            "@L gradv.xyz f fe r o z a b c",
-            "@W ev fe 1 5 9",
-            "@W em fe 1 2 8 9",
-            "@A fe_i_j = +[fe_i_j]*(sm_j_i+sm_k_i)-[fe_j_i]",
-            "@W ep fe 6 3 2",
-            "$CV em_i_j = +em_j_i + em_i_j"
+            "@L gradv.xyz m ^en x y z un vn wn",
+            "$CV ^enn_i_j = +^en_k_i*^en_k_j",
+            "$CV denv_i = +sm_i_j*env_j/2.",
+            "@L gradv.xyz f fl",
+            "@A fl_i_j = +[fl_i_j]+[fl_k_i]*^en_k_j",
+            "@W ev fl 1 5 9",
+            "@A fl_i_j = +[fl_i_j]+[fl_j_i]",
+            "@W ep fl 6 3 2"
         ]
     },
     "disp": [
@@ -24,16 +26,21 @@
         "v",
         "w"
     ],
-    "coef": [
-        "un",
-        "vn",
-        "wn"
-    ],
     "vect": {
         "u": [
             "u",
             "v",
             "w"
+        ],
+        "env": [
+            "^enn[1][1]",
+            "^enn[2][2]",
+            "^enn[3][3]"
+        ],
+        "enp": [
+            "^enn[2][3]",
+            "^enn[1][3]",
+            "^enn[1][2]"
         ],
         "ev": [
             "exx",
@@ -56,6 +63,11 @@
         "y",
         "z"
     ],
+    "coef": [
+        "un",
+        "vn",
+        "wn"
+    ],
     "func": [
         "exx",
         "eyy",
@@ -64,21 +76,10 @@
         "exz",
         "exy"
     ],
-    "fmatr": {
-        "fe": [
-            "3",
-            "3"
-        ]
-    },
     "shap": [
         [
-            "c",
-            "8"
-        ],
-        [
-            "c",
-            "8c",
-            "w_v"
+            "%1",
+            "%2"
         ]
     ],
     "gaus": [
@@ -102,29 +103,38 @@
     ],
     "mass": [
         "%1",
-        "rou"
+        "rou*vol",
+        "rou*vol",
+        "rou*vol"
     ],
     "damp": [
         "%1",
-        "rou*alpha"
+        "rou*alpha*vol",
+        "rou*alpha*vol",
+        "rou*alpha*vol"
     ],
     "matrix": {
         "sm": [
-            "(1.-kk) pv pv",
+            "3",
+            "3",
+            "(1.-pv) pv pv",
             "pv (1.-pv) pv",
             "pv pv (1.-pv)"
-        ],
-        "em": [
-            "exx exy",
-            "eyx eyy"
+        ]
+    },
+    "fmatr": {
+        "fl": [
+            "3",
+            "3"
         ]
     },
     "stif": [
         "dist",
-        "+[ev_i;ev_j]*sm_i_j*fact",
-        "+[ep_i;ep_i]*shear*fact"
+        "+[ev_i;ev_j]*sm_i_j*fact+[ep_i;ep_i]*shear*fact"
     ],
     "load": [
-        "+[u_i]*f_i*vol"
+        "+[u_i]*f_i*vol",
+        "+[ev_i]*denv_i*fact",
+        "+[ep_i]*enp_i*shear*fact"
     ]
 }

@@ -1,0 +1,180 @@
+DISP Ax Ay Az phi
+VECT A Ax Ay Az
+COOR x y z
+VECT x x y z
+FUNC curlAx curlAy curlAz divA phix phiy phiz VBx VBy VBz
+VECT curlA curlAx curlAy curlAz
+VECT VB VBx VBy VBz
+VECT gradp phix phiy phiz
+VECT divA divA
+SHAP %1 %2
+GAUS %3
+$CC //------------------------- Constitutive Coefficient -------------------------
+$CC double Dremxr,Dremxi,Dremyr; // remanent ele-displace
+$CC double Dremyi,Dremzr,Dremzi;
+$CC double Bremxr,Bremxi,Bremyr; // remanent mag-flux
+$CC double Bremyi,Bremzr,Bremzi;
+$CC double Jexr,  Jeyr,  Jezr;   // external current
+$CC double Jexi,  Jeyi,  Jezi;
+$CC double Pxr,   Pyr,   Pzr;    // polarization vector
+$CC double Pxi,   Pyi,   Pzi;
+$CC double Mxr,   Myr,   Mzr;    // magnetization vector
+$CC double Mxi,   Myi,   Mzi;
+$CC double sgm11,sgm12,sgm13;    // conductivity
+$CC double sgm21,sgm22,sgm23;    
+$CC double sgm31,sgm32,sgm33;    
+$CC double ep11r,ep12r,ep13r;    // relative permittivity
+$CC double ep21r,ep22r,ep23r;    
+$CC double ep31r,ep32r,ep33r;    
+$CC double ep11i,ep12i,ep13i;    // relative losses permittivity
+$CC double ep21i,ep22i,ep23i;    
+$CC double ep31i,ep32i,ep33i;    
+$CC double mu11r,mu12r,mu13r;    // relative permeability
+$CC double mu21r,mu22r,mu23r;    
+$CC double mu31r,mu32r,mu33r;    
+$CC double mu11i,mu12i,mu13i;    // relative losses permeability
+$CC double mu21i,mu22i,mu23i;    
+$CC double mu31i,mu32i,mu33i;    
+$CC double mur,epr,sigma;        // isotropic coefficients
+$CC double fHz,omega,pc;         // frequency and penalty
+$CC double Vx,Vy,Vz;             // velocity
+$CC double pi  = 3.14159265358979;
+$CC double ep0 = 8.854187817e-12;   // vacuum permittivity
+$CC double mu0 = 4*pi*1e-7;         // vacuum permeability
+$CC //-------------------------------------------------------------------------
+$CC double Jetag=1;    // no external current in the conductor when Jetag is 0
+$CC if (Jetag!=0) Jetag=1;
+$CC //------------------------- Isotropic Converion ---------------------------
+MATE mur epr sigma fHz Jexr Jexi Jeyr Jeyi Jezr Jezi Vx Vy Vz pc \
+1 1 5.99e7 50 0 0 0 0 0 0 0 0 0 1
+$CC sgm11=sigma; sgm12=0;     sgm13=0;
+$CC sgm21=0;     sgm22=sigma; sgm23=0;
+$CC sgm31=0;     sgm32=0;     sgm33=sigma;
+$CC ep11r=epr;   ep12r=0;     ep13r=0;
+$CC ep21r=0;     ep22r=epr;   ep23r=0;
+$CC ep31r=0;     ep32r=0;     ep33r=epr;
+$CC ep11i=0;     ep12i=0;     ep13i=0;
+$CC ep21i=0;     ep22i=0;     ep23i=0;
+$CC ep31i=0;     ep32i=0;     ep33i=0;
+$CC mu11r=mur;   mu12r=0;     mu13r=0;
+$CC mu21r=0;     mu22r=mur;   mu23r=0;
+$CC mu31r=0;     mu32r=0;     mu33r=mur;
+$CC mu11i=0;    mu12i=0;      mu13i=0;
+$CC mu21i=0;    mu22i=0;      mu23i=0;
+$CC mu31i=0;    mu32i=0;      mu33i=0;
+$CC Dremxr=Dremxi=Dremyr=0;
+$CC Dremyi=Dremzr=Dremzi=0;
+$CC Bremxr=Bremxi=Bremyr=0;
+$CC Bremyi=Bremzr=Bremzi=0;
+$CC Pxr=Pyr=Pzr=0;
+$CC Pxi=Pyi=Pzi=0;
+$CC Mxr=Myr=Mzr=0;
+$CC Mxi=Myi=Mzi=0;
+$CC //-------------------------------------------------------------------------
+$CC omega=2*pi*fHz;
+$CC //------------------------- Auxiliary Coefficient -------------------------
+$CC double cof11,cof12,cof13;
+$CC double cof21,cof22,cof23;
+$CC double cof31,cof32,cof33;
+$CC double tBremxr,tBremyr,tBremzr;
+$CC double tBremxi,tBremyi,tBremzi;
+$CC double mdet;
+$CC int k;
+VECT V Vx Vy Vz
+VECT Jeri |Jexr;Jexi| |Jeyr;Jeyi| |Jezr;Jezi|
+VECT iJeri |-Jexi;Jexr| |-Jeyi;Jeyr| |-Jezi;Jezr|
+VECT Drem |Dremxr;Dremxi| |Dremyr;Dremyi| |Dremzr;Dremzi|
+VECT iDrem |-Dremxi;Dremxr| |-Dremyi;Dremyr| |-Dremzi;Dremzr|
+VECT tBrem |tBremxr;tBremxi| |tBremyr;tBremyi| |tBremzr;tBremzi|
+VECT sigm sgm11 sgm12 sgm13 sgm21 sgm22 sgm23 sgm31 sgm32 sgm33
+VECT epsr ep11r ep12r ep13r ep21r ep22r ep23r ep31r ep32r ep33r
+VECT epsi ep11i ep12i ep13i ep21i ep22i ep23i ep31i ep32i ep33i
+VECT coff cof11 cof12 cof13 cof21 cof22 cof23 cof31 cof32 cof33
+$CV epsr_i=epsr_i*ep0*omega
+$CV coff_i=-sigm_i+epsi_i*ep0*omega
+$CC double ar[9]={mu11r,mu12r,mu13r,mu21r,mu22r,mu23r,mu31r,mu32r,mu33r};
+$CC double ai[9]={mu11i,mu12i,mu13i,mu21i,mu22i,mu23i,mu31i,mu32i,mu33i};
+$CC double xar[9],xai[9],temp1[9],temp2[9];
+$CC for(i=0;i<9;i++){
+$CC     xar[i]=0;xai[i]=0;temp1[i]=0;temp2[i]=0;
+$CC }
+$CC mdet=invm(3,ar,xar);
+$CC for(i=1;i<=3;i++)
+$CC     for(j=1;j<=3;j++)
+$CC         for(k=1;k<=3;k++)
+$CC             temp1[(i-1)*3+j-1]+=xar[(i-1)*3+k-1]*ai[(k-1)*3+j-1];
+$CC for(i=1;i<=3;i++)
+$CC     for(j=1;j<=3;j++)
+$CC         for(k=1;k<=3;k++)
+$CC             temp2[(i-1)*3+j-1]+=ai[(i-1)*3+k-1]*temp1[(k-1)*3+j-1];
+$CC for(i=0;i<9;i++)
+$CC     temp2[i]+=ar[i];
+$CC mdet=invm(3,temp2,xar);
+$CC for(i=1;i<=3;i++)
+$CC     for(j=1;j<=3;j++)
+$CC         for(k=1;k<=3;k++)
+$CC             xai[(i-1)*3+j-1]-=temp1[(i-1)*3+k-1]*xar[(k-1)*3+j-1];
+$CC mu11r=xar[0];mu12r=xar[1];mu13r=xar[2];
+$CC mu21r=xar[3];mu22r=xar[4];mu23r=xar[5];
+$CC mu31r=xar[6];mu32r=xar[7];mu33r=xar[8];
+$CC mu11i=xai[0];mu12i=xai[1];mu13i=xai[2];
+$CC mu21i=xai[3];mu22i=xai[4];mu23i=xai[5];
+$CC mu31i=xai[6];mu32i=xai[7];mu33i=xai[8];
+$CP tBremx=mu11*Bremx+mu12*Bremy+mu13*Bremz
+$CP tBremy=mu21*Bremx+mu22*Bremy+mu23*Bremz
+$CP tBremz=mu31*Bremx+mu32*Bremy+mu33*Bremz
+$CC //-------------------------------------------------------------------------
+@L singular.xyz n
+MATRIX MXA 3 3
+|-ep11r;cof11| |-ep12r;cof12| |-ep13r;cof13|
+|-ep21r;cof21| |-ep22r;cof22| |-ep23r;cof23|
+|-ep31r;cof31| |-ep32r;cof32| |-ep33r;cof33|
+
+MATRIX MXB 3 3
+|cof11;ep11r| |cof12;ep12r| |cof13;ep13r|
+|cof21;ep21r| |cof22;ep22r| |cof23;ep23r|
+|cof31;ep31r| |cof32;ep32r| |cof33;ep33r|
+
+MATRIX MXC 3 3
+|mu11r;-mu11i| |mu12r;-mu12i| |mu13r;-mu13i|
+|mu21r;-mu21i| |mu22r;-mu22i| |mu23r;-mu23i|
+|mu31r;-mu31i| |mu32r;-mu32i| |mu33r;-mu33i|
+
+MATRIX sigm 3 3
+sgm11 sgm12 sgm13
+sgm21 sgm22 sgm23
+sgm31 sgm32 sgm33
+
+
+FUNC
+@L vol.xyz n
+FVECT fe 3
+@L curl.xyz f fe x_i A_i
+@W curlA fe
+FVECT fdiv 1
+@L div.xyz f fdiv x_i A_i
+@W divA fdiv
+FVECT fgu 3
+@L grad.xyz f fgu x_i phi
+@w gradp fgu
+FVECT fb 3
+@L xcurl.xyz f fb x_i A_i V_i
+@W VB fb
+
+STIF
+DIST=+[A_i;A_j]*vol*omega*omega*(-1)*MXA_j_i
++[A_i;gradp_j]*vol*omega*MXB_j_i
++[gradp_i;A_j]*vol*omega*(-1)*MXB_j_i
++[gradp_i;gradp_j]*vol*(-1)*MXA_j_i
++[curlA_i;curlA_j]*vol/mu0*omega*MXC_j_i
++[divA;divA]*vol*pc/mu0/mdet*omega*|1;0|
++[VB_i;A_j]*vol*omega*sigm_j_i*|1;0|
+-[VB_i;gradp_j]*vol*sigm_j_i*|0;1|
+
+LOAD=+[A_i]*vol*omega*Jeri_i
++[gradp_i]*vol*Jetag*iJeri_i
++[curlA_i]*vol*omega*tBrem_i
+-[A_i]*vol*omega*omega*iDrem_i
++[gradp_i]*vol*omega*Drem_i
+
+END

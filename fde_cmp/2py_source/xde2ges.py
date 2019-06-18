@@ -449,7 +449,7 @@ def xde2ges(gesname, coor_type, xde_lists, list_addr, gesfile):
                                 .format(xde_lists[weak][1], vara, ii+1))
 
     # 14 write load paragraph
-    gesfile.write('\nload\n')
+    gesfile.write('\n')
     if 'load' in xde_lists:
         left_vara = 'load'
         righ_expr = ''.join(xde_lists['load'])

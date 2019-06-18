@@ -1,0 +1,218 @@
+{
+    "code": {
+        "BFmate": [
+            "Insr_C: double ^enn[3][3],^en[3][3],denv[4];",
+            "Insr_C: double pe,pv,fx,fy,fz,rou,alpha;"
+        ],
+        "AFmate": [
+            "Oprt_Asgn: singular.xyz"
+        ],
+        "func": [
+            "Oprt_Asgn: vol.xyz",
+            "Insr_C: fact = pe/(1.+pv)/(1.-2.*pv)*vol;",
+            "Insr_C: shear = (0.5-pv);",
+            "Oprt_Asgn: ^en_i_j=gradv.xyz(x,y,z,un,vn,wn)",
+            "Tnsr_Asgn: ^enn_i_j = +^en_k_i*^en_k_j",
+            "Tnsr_Asgn: denv_i = +sm_i_j*env_j/2.",
+            "Oprt_Asgn: [fl_i_j]=gradv.xyz()",
+            "Func_Asgn: [fl_i_j]=+[fl_i_j]+[fl_k_i]*^en_k_j",
+            "Func_Asgn: ev_i=fl[1,5,9]",
+            "Func_Asgn: [fl_i_j]=+[fl_i_j]+[fl_j_i]",
+            "Func_Asgn: ep_i=fl[6,3,2]"
+        ]
+    },
+    "disp": [
+        "u",
+        "v",
+        "w"
+    ],
+    "vect": {
+        "u": [
+            "3",
+            "u",
+            "v",
+            "w"
+        ],
+        "env": [
+            "3",
+            "^enn[1][1]",
+            "^enn[2][2]",
+            "^enn[3][3]"
+        ],
+        "enp": [
+            "3",
+            "^enn[2][3]",
+            "^enn[1][3]",
+            "^enn[1][2]"
+        ],
+        "ev": [
+            "3",
+            "exx",
+            "eyy",
+            "ezz"
+        ],
+        "ep": [
+            "3",
+            "eyz",
+            "exz",
+            "exy"
+        ],
+        "f": [
+            "3",
+            "fx",
+            "fy",
+            "fz"
+        ],
+        "denv": [
+            "3",
+            "denv[1]",
+            "denv[2]",
+            "denv[3]"
+        ]
+    },
+    "coor": [
+        "x",
+        "y",
+        "z"
+    ],
+    "coef": [
+        "un",
+        "vn",
+        "wn"
+    ],
+    "func": [
+        "exx",
+        "eyy",
+        "ezz",
+        "eyz",
+        "exz",
+        "exy"
+    ],
+    "shap": {
+        "c8": [
+            "u",
+            "v",
+            "w"
+        ]
+    },
+    "gaus": "g2",
+    "mate": {
+        "default": {
+            "pe": "1.0e10",
+            "pv": "0.3",
+            "fx": "0.0",
+            "fy": "0.0",
+            "fz": "0.0",
+            "rou": "3000.0",
+            "alpha": "0.6"
+        }
+    },
+    "mass": [
+        "lump",
+        "rou*vol",
+        "rou*vol",
+        "rou*vol"
+    ],
+    "damp": [
+        "lump",
+        "rou*alpha*vol",
+        "rou*alpha*vol",
+        "rou*alpha*vol"
+    ],
+    "matrix": {
+        "sm": [
+            "3",
+            "3",
+            [
+                "(1.-pv)",
+                "pv",
+                "pv"
+            ],
+            [
+                "pv",
+                "(1.-pv)",
+                "pv"
+            ],
+            [
+                "pv",
+                "pv",
+                "(1.-pv)"
+            ]
+        ],
+        "^enn": [
+            "3",
+            "3",
+            [
+                "^enn[1][1]",
+                "^enn[1][2]",
+                "^enn[1][3]"
+            ],
+            [
+                "^enn[2][1]",
+                "^enn[2][2]",
+                "^enn[2][3]"
+            ],
+            [
+                "^enn[3][1]",
+                "^enn[3][2]",
+                "^enn[3][3]"
+            ]
+        ],
+        "^en": [
+            "3",
+            "3",
+            [
+                "^en[1][1]",
+                "^en[1][2]",
+                "^en[1][3]"
+            ],
+            [
+                "^en[2][1]",
+                "^en[2][2]",
+                "^en[2][3]"
+            ],
+            [
+                "^en[3][1]",
+                "^en[3][2]",
+                "^en[3][3]"
+            ]
+        ]
+    },
+    "fmatr": {
+        "fl": [
+            "3",
+            "3",
+            [
+                "",
+                "",
+                ""
+            ],
+            [
+                "",
+                "",
+                ""
+            ],
+            [
+                "",
+                "",
+                ""
+            ]
+        ]
+    },
+    "stif": [
+        "dist",
+        "+[ev_i;ev_j]*sm_i_j*fact+[ep_i;ep_i]*shear*fact"
+    ],
+    "load": [
+        "+[u_i]*f_i*vol",
+        "+[ev_i]*denv_i*fact",
+        "+[ep_i]*enp_i*shear*fact"
+    ],
+    "coef_shap": {
+        "c8": [
+            "un",
+            "vn",
+            "wn"
+        ]
+    }
+}

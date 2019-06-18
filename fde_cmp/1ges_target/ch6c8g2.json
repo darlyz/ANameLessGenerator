@@ -1,0 +1,235 @@
+{
+    "code": {
+        "BFmate": [
+            "Insr_C: double pa,pm,fx,fy,fz,rou,pm1,pm3,emid,se,pk,fact1;",
+            "Insr_C: double enx,eny,enz,enxx,enyy,enzz,enxy,enyz,enxz,enyx,enzy,enzx;",
+            "Oprt_Asgn: singular.xyz"
+        ],
+        "AFmate": [
+            "Insr_C: pk=pa/(pm+1.);",
+            "Insr_C: pa=pa*2./3.;"
+        ],
+        "func": [
+            "Oprt_Asgn: vol.xyz",
+            "Oprt_Asgn: en_i_j=gradv.xyz(x,y,z,un,vn,wn)",
+            "Tnsr_Asgn: emid=+env_i*env_i+enp_i*enp_i*2.",
+            "Insr_C: emid = emid*2.0/3.+1.0e-010;",
+            "Insr_C: se = sqrt(emid);",
+            "Insr_C: pm1 =pm-1.;",
+            "Insr_C: fact=pa*pow(se,pm1)*vol;",
+            "Insr_C: pm3 =pm-3.;",
+            "Insr_C: fact1=pa*2./3.*(pm-1.)*pow(se,pm3)*vol;",
+            "Oprt_Asgn: [fe_i_j]=gradv.xyz()",
+            "Func_Asgn: [fp_i_j]=+[fe_i_j]+[fe_j_i]",
+            "Func_Asgn: [fev_i]=fe[1,5,9]",
+            "Func_Asgn: [fep_i]=fp[6,3,2]",
+            "Func_Asgn: ev_i=fev[]",
+            "Func_Asgn: ep_i=fep[]",
+            "Func_Asgn: [fexyz_i]=[fev_j]*env_j+[fep_j]*enp_j",
+            "Func_Asgn: exyz_i=fexyz[]",
+            "Oprt_Asgn: [fdiv_i]=div.xyz()",
+            "Func_Asgn: div_i=fdiv[]",
+            "fpa = [p]-[a]\n"
+        ]
+    },
+    "disp": [
+        "u",
+        "v",
+        "w",
+        "p",
+        "a"
+    ],
+    "coor": [
+        "x",
+        "y",
+        "z"
+    ],
+    "vect": {
+        "u": [
+            "3",
+            "u",
+            "v",
+            "w"
+        ],
+        "f": [
+            "3",
+            "fx",
+            "fy",
+            "fz"
+        ],
+        "ev": [
+            "3",
+            "exx",
+            "eyy",
+            "ezz"
+        ],
+        "ep": [
+            "3",
+            "eyz",
+            "exz",
+            "exy"
+        ],
+        "exyz": [
+            "1",
+            "exyz"
+        ],
+        "div": [
+            "1",
+            "div"
+        ],
+        "env": [
+            "3",
+            "enxx",
+            "enyy",
+            "enzz"
+        ],
+        "enp": [
+            "3",
+            "(enyz+enzy)/2.",
+            "(enxz+enzx)/2.",
+            "(enxy+enyx)/2."
+        ]
+    },
+    "coef": [
+        "un",
+        "vn",
+        "wn"
+    ],
+    "shap": {
+        "c8": [
+            "u",
+            "v",
+            "w",
+            "p"
+        ],
+        "c8c": [
+            "a"
+        ]
+    },
+    "gaus": "g2",
+    "mate": {
+        "default": {
+            "pa": "1.0e10",
+            "pm": "3.0",
+            "fx": "0.0",
+            "fy": "0.0",
+            "fz": "0.0",
+            "rou": "7800"
+        }
+    },
+    "func": [
+        "exx",
+        "eyy",
+        "ezz",
+        "eyz",
+        "exz",
+        "exy",
+        "exyz",
+        "div",
+        "fpa"
+    ],
+    "matrix": {
+        "en": [
+            "3",
+            "3",
+            [
+                "enxx",
+                "enxy",
+                "enxz"
+            ],
+            [
+                "enyx",
+                "enyy",
+                "enyz"
+            ],
+            [
+                "enzx",
+                "enzy",
+                "enzz"
+            ]
+        ]
+    },
+    "fmatr": {
+        "fe": [
+            "3",
+            "3",
+            [
+                "",
+                "",
+                ""
+            ],
+            [
+                "",
+                "",
+                ""
+            ],
+            [
+                "",
+                "",
+                ""
+            ]
+        ],
+        "fp": [
+            "3",
+            "3",
+            [
+                "",
+                "",
+                ""
+            ],
+            [
+                "",
+                "",
+                ""
+            ],
+            [
+                "",
+                "",
+                ""
+            ]
+        ]
+    },
+    "fvect": {
+        "fev": [
+            "3",
+            "",
+            "",
+            ""
+        ],
+        "fep": [
+            "3",
+            "",
+            "",
+            ""
+        ],
+        "fexyz": [
+            "1",
+            ""
+        ],
+        "fdiv": [
+            "1",
+            ""
+        ],
+        "fgp": [
+            "3",
+            "",
+            "",
+            ""
+        ]
+    },
+    "stif": [
+        "dist",
+        "+[ev_i;ev_i]*fact+[ep_i;ep_i]*fact/2.+[exyz;exyz]*fact1",
+        "+[div;p]*vol-[p;div]*vol+[fpa;fpa]*vol"
+    ],
+    "load": [
+        "+[u_i]*f_i*vol+[exyz]*fact*(pm-1.)"
+    ],
+    "coef_shap": {
+        "c8": [
+            "un",
+            "vn",
+            "wn"
+        ]
+    }
+}

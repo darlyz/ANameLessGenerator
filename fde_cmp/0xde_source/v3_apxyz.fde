@@ -1,0 +1,147 @@
+\ ------------- High Frequency Electromagnetic Problem (Ap mod) (ele-plane) -------------
+\                                d(D,t) + J = curl(H)
+\                                |D=ep0*epr*E+Dr
+\                                |B=mu0*mur*H+Br
+\                                |J=sgm*(E+VxB)
+\                                |B=curl(A)
+\                                |E=-d(A+grad(phi),t)
+\ -------------------------------- weak form of PDE -------------------------------------
+\       [(ep0*epr*dd(A+grad(phi),tt)+sgm*d(A+grad(phi),t);A]
+\       +[1/mu*curl(A);curl(A)] +[pc/mu*div(A);div(A)] -[sgm*V¡Ácrul(A);A+grad(phi)]
+\       = +[Je;A+grad(phi)] +[1/mu*Br;curl(A)] +[d(Dr,t);A+grad(phi)] -|n¡ÁH;A|
+\ PS1: Lorentz term deduced by Galilei transformation with low velocity(V<<C).
+\ ---------------------------------------------------------------------------------------
+DISP Ax Ay Az phi
+VECT A Ax Ay Az
+COOR x y z
+VECT x x y z
+FUNC Bx By Bz divA phix phiy phiz Ex Ey Ez VBx VBy VBz
+VECT B Bx By Bz
+VECT divA divA
+VECT gradp phix phiy phiz
+VECT E Ex Ey Ez
+VECT VB VBx VBy VBz
+SHAP %1 %2
+GAUS %3
+$CC //------------------------- Constitutive Coefficient -------------------------
+$CC double mur11,mur12,mur13;   // Relative permeability
+$CC double mur21,mur22,mur23;
+$CC double mur31,mur32,mur33;
+$CC double mur;
+$CC double epr11,epr12,epr13;   // Relative permittivity
+$CC double epr21,epr22,epr23;
+$CC double epr31,epr32,epr33;
+$CC double epr;
+$CC double sgm11,sgm12,sgm13;   // Conductivity
+$CC double sgm21,sgm22,sgm23;
+$CC double sgm31,sgm32,sgm33;
+$CC double sgm;
+$CC double pc;                  // Penalty factor
+$CC double Vx,Vy,Vz;            // Velocity
+$CC double Jex,Jey,Jez;         // Extern current
+$CC double Mx,My,Mz;            // Magnetization vector
+$CC double Ptx,Pty,Ptz;         // Time-derivative of Polarization vector
+$CC double Brx,Bry,Brz;         // Remanent mag-flux
+$CC double Drtx,Drty,Drtz;      // Time-derivative of remanent ele-displace
+$CC double pi  = 3.14159265358979; // 
+$CC double mu0 = 4*pi*1e-7;        // Vacuum permeability
+$CC double ep0=8.854187817e-12;    // Vacuum permittivity
+$CC //------------------------- Isotropic Converion ------------------------------
+\MATE mur11 mur12 mur13 mur21 mur22 mur23 mur31 mur32 mur33 \
+\epr11 epr12 epr13 epr21 epr22 epr23 epr31 epr32 epr33 \
+\sgm11 sgm12 sgm13 sgm21 sgm22 sgm23 sgm31 sgm32 sgm33 \
+\Jex Jey Jez pc Vx Vy Vz \
+\Brx Bry Brz Drtx Drty Drtz \
+\1 0 0 0 1 0 0 0 1 \
+\1 0 0 0 1 0 0 0 1 \
+\5.96e7 0 0 0 5.96e7 0 0 0 5.96e7 \
+\0 0 0 1 0 0 0 0 0 0 0 0 0
+MATE mur epr sgm Jex Jey Jez pc 1 1 5.96e7 0 0 0 1
+$CC mur11 = mur;    mur12 = 0;      mur13 = 0;
+$CC mur21 = 0;      mur22 = mur;    mur23 = 0;
+$CC mur31 = 0;      mur32 = 0;      mur33 = mur;
+$CC epr11 = epr;    epr12 = 0;      epr13 = 0;
+$CC epr21 = 0;      epr22 = epr;    epr23 = 0;
+$CC epr31 = 0;      epr32 = 0;      epr33 = epr;
+$CC sgm11 = sgm;    sgm12 = 0;      sgm13 = 0;
+$CC sgm21 = 0;      sgm22 = sgm;    sgm23 = 0;
+$CC sgm31 = 0;      sgm32 = 0;      sgm33 = sgm;
+$CC Drtx  = 0;      Drty  = 0;      Drtz  = 0;
+$CC Ptx   = 0;      Pty   = 0;      Ptz   = 0;
+$CC Mx    = 0;      My    = 0;      Mz    = 0;
+$CC Brx   = 0;      Bry   = 0;      Brz   = 0;
+$CC Vx    = 0;      Vy    = 0;      Vz    = 0;
+$CC //------------------------- Constitutive end     ------------------------------
+$CC //------------------------- Auxiliary Coefficient -----------------------------
+$CC double mdet;
+$CC double mu[9]={mur11,mur12,mur13,mur21,mur22,mur23,mur31,mur32,mur33};
+$CC double xm[9];
+$CC mdet=invm(3,mu,xm);
+$CC mdet=pow(mdet,1.0/3.0);
+$CC double jetag=1;
+$CC if(jetag!=0)jetag=1;     // Zero conductivity of extern current domain such as coil when set it to be 0
+VECT V Vx Vy Vz
+VECT M Mx My Mz
+VECT Je Jex Jey Jez
+VECT Pt Ptx Pty Ptz
+VECT Br Brx Bry Brz
+VECT Drt Drtx Drty Drtz
+@L singular.xy n
+MATRIX epr 3 3
+epr11 epr12 epr13
+epr21 epr22 epr23
+epr31 epr32 epr33
+
+MATRIX xmu 3 3
+xm[0] xm[1] xm[2]
+xm[3] xm[4] xm[5]
+xm[6] xm[7] xm[8]
+
+MATRIX sgm 3 3
+sgm11 sgm12 sgm13
+sgm21 sgm22 sgm23
+sgm31 sgm32 sgm33
+
+ 
+FUNC
+@L vol.xy n
+FVECT fcurl 3
+@L curl.xyz f fcurl x_i A_i
+@W B fcurl
+FVECT fdiv
+@L div.xyz f fdiv x_i A_i
+@W divA fdiv
+FVECT fgu 3
+@L grad.xyz f fgu x_i phi
+@W gradp fgu
+FVECT fe 3
+@R fe_i=+[A_i]
+@A fe_i=+[fe_i]*1.0+[fgu_i]
+@W E fe
+VBx=+[Ay/x]*Vy-[Ax/y]*Vy-[Ax/z]*Vz+[Az/x]*Vz
+
+VBy=+[Az/y]*Vz-[Ay/z]*Vz-[Ay/x]*Vx+[Ax/y]*Vx
+
+VBz=+[Ax/z]*Vx-[Az/x]*Vx-[Az/y]*Vy+[Ay/z]*Vy
+	
+MASS
+DIST=+[E_i;E_j]*vol*ep0*epr_j_i
+
+DAMP
+DIST=+[E_i;E_j]*vol*sgm_j_i
+ 
+STIF
+DIST=\
++[B_i;B_j]*vol/mu0*xmu_j_i
++[divA;divA]*vol*pc/mu0/mdet
+-[VB_i;E_j]*vol*sgm_j_i
+
+LOAD=\
++[A_i]*vol*Je_i
++[gradp_i]*vol*Je_i*Jetag
++[B_j]*vol*Br_i/mu0*xmu_j_i
++[B_i]*vol*M_i
++[E_i]*vol*Drt_i
++[E_i]*vol*Pt_i
+
+END
