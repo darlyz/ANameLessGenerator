@@ -7,7 +7,7 @@
 '''
 import re as regx
 import os,math
-from expr import idx_summation,cmplx_expr,split_expr,expr
+from expr import idx_summation,cmplx_expr,split_bracket_expr,expr
 
 def xde2ges(gesname, coor_type, xde_lists, list_addr, gesfile):
 
@@ -394,29 +394,27 @@ def xde2ges(gesname, coor_type, xde_lists, list_addr, gesfile):
             gesfile.write(xde_lists['vol'])
         if 'func' in code_use_dict:
             for strs in code_use_dict['func']:
-                gesfile.write(strs)
-                '''
+                #gesfile.write(strs)
+
                 if strs[0] == '$':
                     gesfile.write(strs)
                 else:
                     if strs.find('(') != -1:
-                        print(strs)
+                        strs = strs.rstrip('\n')
                         driv_list = set(regx.findall(r'\[[a-z][a-z0-9]*/[xyzros]\]', strs, regx.I))
                         rplc_list = ['driv'+str(i) for i in range(len(driv_list))]
                         for rplc, driv in zip(rplc_list, driv_list):
                             strs = strs.replace(driv, rplc)
 
-                        print(strs)
                         expr_objt = expr(strs.split('=')[1])
                         expr_strs = expr_objt.bracket_expand(expr_objt.expr_head)
                         for rplc, driv in zip(rplc_list, driv_list):
                             expr_strs = expr_strs.replace(rplc, driv)
-                        strs = strs.split('=')[0] + '=' + expr_strs
-                        print(expr_strs)
+                        strs = strs.split('=')[0] + '=' + expr_strs+'\n\n'
                         
                         gesfile.write(strs)
                     else: gesfile.write(strs)
-                '''
+
 
 
     # 11 write stif, mass, damp paragraph
@@ -433,7 +431,7 @@ def xde2ges(gesname, coor_type, xde_lists, list_addr, gesfile):
                     righ_expr += xde_lists[weak][ii]
 
                 expr_list = idx_summation(left_vara,righ_expr,xde_lists)
-                expr_list = split_expr(expr_list[0])
+                expr_list = split_bracket_expr(expr_list[0])
                 for strs in expr_list:
                     if strs == 'dist=':
                         gesfile.write(strs)
@@ -456,7 +454,7 @@ def xde2ges(gesname, coor_type, xde_lists, list_addr, gesfile):
         left_vara = 'load'
         righ_expr = ''.join(xde_lists['load'])
         expr_list = idx_summation(left_vara,righ_expr,xde_lists)
-        expr_list = split_expr(expr_list[0])
+        expr_list = split_bracket_expr(expr_list[0])
         for strs in expr_list:
             if strs == 'load=':
                 gesfile.write(strs)

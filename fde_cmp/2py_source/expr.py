@@ -17,12 +17,6 @@ class expr:
         self.expr_list = expr_strs2list(self.expr_strs, opr_list)
         self.expr_ordr = parsing_with_bracket_opr(self.expr_list.copy(), self.expr_dict, opr_oder_list, 0)
         self.expr_head = 'expr_'+str(self.expr_ordr)
-    def show_expr_strs(self):
-        return self.expr_strs
-    def show_expr_list(self):
-        return self.expr_list
-    def show_expr_dict(self):
-        return self.expr_dict
 
     def bracket_expand(self, expr_head):
 
@@ -151,10 +145,10 @@ def parsing_unequal_grade_opr(expr_list,expr_dict,opr_lists,expr_order):
 
     expr_i = expr_order
 
-    all_opr = set([opr for opr_list in opr_lists for opr in opr_list])
+    low_oprs = set([opr for opr_list in opr_lists for opr in opr_list])
 
     for opr_list in opr_lists[:-1]:
-        all_opr = all_opr.difference(set(opr_list))
+        low_oprs = low_oprs.difference(set(opr_list))
         upper_expr_lists, upper_expr_locat, upper_start, upper_end, upper_find = [], [], 0, 0, 0
 
         # draw the upper grade operator expression
@@ -162,20 +156,20 @@ def parsing_unequal_grade_opr(expr_list,expr_dict,opr_lists,expr_order):
 
             if strs in opr_list:
                 if upper_find == 0:
-                    upper_start = list_i - 1
                     upper_find = 1
+                    upper_start = list_i
 
-            elif strs in all_opr or list_i == len(expr_list) - 1:
+            elif strs in low_oprs or list_i + 1 == len(expr_list):
                 if upper_find == 1:
-                    if strs in all_opr:
-                        upper_end = list_i
-                    elif list_i == len(expr_list) - 1:
-                        upper_end = list_i + 1
                     upper_find = 0
+                    if list_i + 1 == len(expr_list):
+                        upper_end = list_i + 1
+                    elif strs in low_oprs:
+                        upper_end = list_i
 
             if upper_start != 0 and upper_end != 0:
-                upper_expr_lists.append(expr_list[upper_start:upper_end])
-                upper_expr_locat.append(list(range(upper_start,upper_end)))
+                upper_expr_lists.append(expr_list[upper_start-1:upper_end])
+                upper_expr_locat.append(list(range(upper_start-1,upper_end)))
                 upper_start, upper_end = 0, 0
 
         # parsing the upper grade operator expression and replace them in expr_list
@@ -195,7 +189,7 @@ def parsing_unequal_grade_opr(expr_list,expr_dict,opr_lists,expr_order):
         # replacing
         expr_list = [strs for strs in expr_list if strs != '']
 
-    expr_i = parsing_equal_grade_opr(expr_list, expr_dict, all_opr, expr_i)
+    expr_i = parsing_equal_grade_opr(expr_list, expr_dict, low_oprs, expr_i)
     
     return expr_i
 # end parsing_unequal_grade_opr()
