@@ -7,7 +7,7 @@
 '''
 import re as regx
 import os,math
-from expr import idx_summation,cmplx_expr,split_expr
+from expr import idx_summation,cmplx_expr,split_expr,expr
 
 def xde2ges(gesname, coor_type, xde_lists, list_addr, gesfile):
 
@@ -395,6 +395,29 @@ def xde2ges(gesname, coor_type, xde_lists, list_addr, gesfile):
         if 'func' in code_use_dict:
             for strs in code_use_dict['func']:
                 gesfile.write(strs)
+                '''
+                if strs[0] == '$':
+                    gesfile.write(strs)
+                else:
+                    if strs.find('(') != -1:
+                        print(strs)
+                        driv_list = set(regx.findall(r'\[[a-z][a-z0-9]*/[xyzros]\]', strs, regx.I))
+                        rplc_list = ['driv'+str(i) for i in range(len(driv_list))]
+                        for rplc, driv in zip(rplc_list, driv_list):
+                            strs = strs.replace(driv, rplc)
+
+                        print(strs)
+                        expr_objt = expr(strs.split('=')[1])
+                        expr_strs = expr_objt.bracket_expand(expr_objt.expr_head)
+                        for rplc, driv in zip(rplc_list, driv_list):
+                            expr_strs = expr_strs.replace(rplc, driv)
+                        strs = strs.split('=')[0] + '=' + expr_strs
+                        print(expr_strs)
+                        
+                        gesfile.write(strs)
+                    else: gesfile.write(strs)
+                '''
+
 
     # 11 write stif, mass, damp paragraph
     for weak in ['stif', 'mass', 'damp']:
@@ -462,7 +485,7 @@ def release_code(xde_lists,code_place,pfelacpath,code_use_dict):
             if regxrp.group() == 'Insr':
                 code_use_dict[code_place].append(code_strs.replace('Insr_Code:','$cc')+'\n')
 
-            # Tensor expr summation
+            # Tensor expres summation
             elif regxrp.group() == 'Tnsr':
 
                 vect_expr = code_strs.replace('Tnsr_Asgn: ','')
@@ -470,21 +493,21 @@ def release_code(xde_lists,code_place,pfelacpath,code_use_dict):
                 left_vara, righ_expr = left_vara.strip(), righ_expr.strip().strip(';')
 
                 expr_list = idx_summation(left_vara, righ_expr, xde_lists)
-                for expr in expr_list:
-                    code_use_dict[code_place].append('$cc '+expr+';\n')
+                for expres in expr_list:
+                    code_use_dict[code_place].append('$cc '+expres+';\n')
 
-            # complex expr expansion
+            # complex expres expansion
             elif regxrp.group() == 'Cplx':
                 cplx_expr = code_strs.replace('Cplx_Asgn: ','')
                 left_vara, righ_expr = cplx_expr.split('=')[:2]
                 left_vara, righ_expr = left_vara.strip(), righ_expr.strip().strip(';')
 
-                # if complex expr is a tensor expr, make summation first
+                # if complex expres is a tensor expres, make summation first
                 if left_vara.find('_') != -1 \
                 or righ_expr.find('_') != -1 :
                     expr_list = idx_summation(left_vara, righ_expr, xde_lists)
-                    for expr in expr_list:
-                        cplx_list = expr.split('=')
+                    for expres in expr_list:
+                        cplx_list = expres.split('=')
                         cplx_objt = cmplx_expr(cplx_list[1])
                         for ri,cmplexpr in zip(['r','i'], cplx_objt.complex_list):
                             code_use_dict[code_place] \
@@ -577,10 +600,10 @@ def release_code(xde_lists,code_place,pfelacpath,code_use_dict):
                         expr_list = oprt_strs.rstrip().split('\n')
 
                         if left_vara.count('_') == 0: # may be fault tackle
-                            expr = left_vara.lstrip('[').rstrip(']') + '='
+                            expres = left_vara.lstrip('[').rstrip(']') + '='
                             for strs in expr_list:
-                                expr += strs
-                            code_use_dict[code_place].append(expr)
+                                expres += strs
+                            code_use_dict[code_place].append(expres)
 
                         elif left_vara.count('_') == 1:
                             var = left_vara.lstrip('[').rstrip(']').split('_')[0]
@@ -602,23 +625,23 @@ def release_code(xde_lists,code_place,pfelacpath,code_use_dict):
                         expr_list = oprt_strs.rstrip().split('\n')
 
                         if left_vara.count('_') == 0:
-                            expr = left_vara.lstrip('[').rstrip(']')+'='
+                            expres = left_vara.lstrip('[').rstrip(']')+'='
                             for strs in expr_list:
-                                expr += strs
-                            code_use_dict[code_place].append('$cv '+expr)
+                                expres += strs
+                            code_use_dict[code_place].append('$cv '+expres)
 
                         elif left_vara.count('_') == 1:
-                            expr = left_vara.lstrip('[').rstrip(']').split('_')[0]
-                            if len(xde_lists['vect'][expr]) == len(expr_list)+1:
+                            expres = left_vara.lstrip('[').rstrip(']').split('_')[0]
+                            if len(xde_lists['vect'][expres]) == len(expr_list)+1:
                                 for ii in range(len(expr_list)):
                                     code_use_dict[code_place] \
-                                        .append('$cv '+ xde_lists['vect'][expr][ii+1] + '=' + expr_list[ii])
+                                        .append('$cv '+ xde_lists['vect'][expres][ii+1] + '=' + expr_list[ii])
 
                         elif left_vara.count('_') == 2:
-                            expr = left_vara.lstrip('[').rstrip(']').split('_')[0]
-                            matr_len = int(xde_lists['matrix'][expr][0]) \
-                                     * int(xde_lists['matrix'][expr][1])
-                            temp_list = xde_lists['matrix'][expr].copy()
+                            expres = left_vara.lstrip('[').rstrip(']').split('_')[0]
+                            matr_len = int(xde_lists['matrix'][expres][0]) \
+                                     * int(xde_lists['matrix'][expres][1])
+                            temp_list = xde_lists['matrix'][expres].copy()
                             temp_list.pop(0)
                             temp_list.pop(0)
                             if matr_len == len(expr_list):
@@ -659,12 +682,12 @@ def release_code(xde_lists,code_place,pfelacpath,code_use_dict):
                             righ_idxs = righ_expr.split('[')[1].rstrip(']').split(',')
 
                         if left_vara.count('_') == 0:
-                            expr = left_vara + '='
+                            expres = left_vara + '='
 
                             if 'fvect' in xde_lists \
                             and righ_vara in xde_lists['fvect']:
                                 for idx in righ_idxs:
-                                    expr += xde_lists['fvect'][righ_vara][int(idx)]
+                                    expres += xde_lists['fvect'][righ_vara][int(idx)]
 
                             elif 'fmatr' in xde_lists \
                             and righ_vara in xde_lists['fmatr']:
@@ -674,9 +697,9 @@ def release_code(xde_lists,code_place,pfelacpath,code_use_dict):
                                 fmatr = xde_lists['fmatr'][righ_vara][2:len(xde_lists['fmatr'][righ_vara])]
 
                                 for idx in righ_idxs:
-                                    expr += fmatr[math.ceil(int(idx)/clm)-1][int(idx)%clm-1]
+                                    expres += fmatr[math.ceil(int(idx)/clm)-1][int(idx)%clm-1]
 
-                            code_use_dict[code_place].append(expr+'\n\n')
+                            code_use_dict[code_place].append(expres+'\n\n')
 
                         elif left_vara.count('_') == 1: 
                             left_name = left_vara.split('_')[0]
@@ -760,12 +783,12 @@ def release_code(xde_lists,code_place,pfelacpath,code_use_dict):
 
                         if left_vara.count('_') == 0:
                             
-                            expr = left_vara + '='
+                            expres = left_vara + '='
 
                             if 'fvect' in xde_lists \
                             and righ_vara in xde_lists['fvect']:
                                 for idx in righ_idxs:
-                                    expr += xde_lists['fvect'][righ_vara][int(idx)]
+                                    expres += xde_lists['fvect'][righ_vara][int(idx)]
 
                             elif 'fmatr' in xde_lists \
                             and righ_vara in xde_lists['fmatr']:
@@ -774,9 +797,9 @@ def release_code(xde_lists,code_place,pfelacpath,code_use_dict):
                                 fmatr = xde_lists['fmatr'][righ_vara][2:len(xde_lists['fmatr'][righ_vara])]
 
                                 for idx in righ_idxs:
-                                    expr += fmatr[math.ceil(int(idx)/clm)-1][int(idx)%clm-1]
+                                    expres += fmatr[math.ceil(int(idx)/clm)-1][int(idx)%clm-1]
 
-                            code_use_dict[code_place].append(expr+'\n\n')
+                            code_use_dict[code_place].append(expres+'\n\n')
 
                         elif left_vara.count('_') == 1: 
                             left_name = left_vara.split('_')[0]

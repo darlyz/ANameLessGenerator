@@ -2,7 +2,7 @@
  Copyright: Copyright (c) 2019
  Created: 2019-4-19
  Author: Zhang_Licheng
- Title: complex tensor expression in dummy index summation
+ Title: complex, tensor expression in dummy index summation
  All rights reserved
 '''
 import re as regx
@@ -10,19 +10,13 @@ import re as regx
 # --------------------------------base expr class-------------------------------
 # ------------------------------------------------------------------------------
 class expr:
-    expr_strs = ''
-    expr_list = []
-    expr_dict = {}
-    expr_head = ''
-    def __init__(self,strs,opr_oder_list=[['*','/'],['+','-']]):
+    expr_strs, expr_list, expr_dict, expr_head = '', [], {}, ''
+    def __init__(self,strs, opr_oder_list=[['*','/'],['+','-']]):
         self.expr_strs = strs
-        opr_list = []
-        for lists in opr_oder_list:
-            opr_list += lists
-        opr_list += ['(',')']
-        self.expr_list  = expr_strs2list(self.expr_strs,opr_list)
-        self.expr_order = parsing_with_bracket_opr(self.expr_list.copy(),self.expr_dict,opr_oder_list,0)
-        self.expr_head  = 'expr_'+str(self.expr_order)
+        opr_list = [x for y in opr_oder_list for x in y] + ['(',')']
+        self.expr_list = expr_strs2list(self.expr_strs, opr_list)
+        self.expr_ordr = parsing_with_bracket_opr(self.expr_list.copy(), self.expr_dict, opr_oder_list, 0)
+        self.expr_head = 'expr_'+str(self.expr_ordr)
     def show_expr_strs(self):
         return self.expr_strs
     def show_expr_list(self):
@@ -30,33 +24,90 @@ class expr:
     def show_expr_dict(self):
         return self.expr_dict
 
-#   (a+b)*c --> ['(','a','+','b',')','*','c']
+    def bracket_expand(self, expr_head):
+
+        for strs in ['left','righ'] :
+            if self.expr_dict[expr_head][strs].find('expr') != -1:
+
+                expr_sub = self.expr_dict[expr_head][strs]
+                self.expr_dict[expr_head][strs] = self.bracket_expand(expr_sub)
+
+        left = self.expr_dict[expr_head]['left']
+        righ = self.expr_dict[expr_head]['righ']
+        opr  = self.expr_dict[expr_head]['opr']
+
+        left_list = split_unequal_grade_expr(left)
+        righ_list = split_unequal_grade_expr(righ)
+
+        expr_strs = ''
+
+        if opr == '*':
+            for left_str in left_list:
+                for righ_str in righ_list:
+                    left_opr, righ_opr = left_str[0], righ_str[0]
+                    left_val, righ_val = left_str.lstrip(left_opr), righ_str.lstrip(righ_opr)
+                    if   left_opr == righ_opr: strs_opr = '+'
+                    elif left_opr != righ_opr: strs_opr = '-'
+                    expr_strs += strs_opr + left_val + '*' + righ_val
+        elif opr == '/':
+            for left_str in left_list:
+                if len(righ_list) != 1 or righ[0] == '-':
+                    righ = '(' + righ + ')'
+                expr_strs += left_str + '/' + righ
+        elif opr == '-':
+            expr_strs += left
+            for righ_str in righ_list:
+                righ_opr = righ_str[0]
+                righ_val = righ_str.lstrip(righ_opr)
+                if   righ_opr == '-': strs_opr = '+'
+                elif righ_opr == '+': strs_opr = '-'
+                expr_strs += strs_opr + righ_val
+        elif opr == '+':
+            expr_strs += left + (righ if righ[0] in ['-','+'] else '+'+righ)
+
+        return expr_strs
+
+# -a+b*c --> ['-a','+b*c']
+def split_unequal_grade_expr(expr_strs):
+    opr_list = regx.findall(r'\+|\-',expr_strs)
+    val_list = regx.split(r'\+|\-',expr_strs)
+
+    if val_list[0] == '':
+        val_list.pop(0)
+    else:
+        opr_list.insert(0,'+')
+
+    return [opr+val for opr,val in zip(opr_list,val_list)]
+
+#   (-a+b)*c --> ['(','-a','+','b',')','*','c']
 def expr_strs2list (expr_strs,opr_list=['+','-','*','/','(',')']): 
-
+    
+    # make it compact
     expr_strs = expr_strs.replace(' ','')
-    expr_list = []
-    if expr_strs[0] == '+' \
-    or expr_strs[0] == '-' :
-        expr_strs = '0'+expr_strs
-    expr_strs=expr_strs.replace('(+','(0+')
-    expr_strs=expr_strs.replace('(-','(0-')
+    
+    # transform self-sign: 
+    # +a --> a; -a --> neg_a; (a) --> a
+    if expr_strs[0] == '+':
+        expr_strs = expr_strs.lstrip('+')
+    elif expr_strs[0] == '-':
+        expr_strs = 'neg_'+expr_strs.lstrip('-')
+    expr_strs = expr_strs.replace('(+','(').replace('(-','(neg_')
+    single_val = regx.findall(r'\([a-z]\w*\)', expr_strs, regx.I)
+    for val in single_val:
+        expr_strs = expr_strs.replace(val, val.lstrip('(').rstrip(')'))
 
-    regx_strs = ''
-    for strs in opr_list:
-        if strs in ['$','(',')','*','+','.','[','?','\\','^','{','|']:
-            regx_strs += '\\'+strs+'|'
-        else:
-            regx_strs += strs+'|'
-    pattern = regx.compile(regx_strs.rstrip('|'))
-
-    expr_opr_list = pattern.findall(expr_strs)
-    expr_var_list = regx.split(pattern,expr_strs)
-
-    for ii in range(len(expr_opr_list)):
-        if expr_var_list[ii] != '':
-            expr_list.append(expr_var_list[ii])
-        expr_list.append(expr_opr_list[ii])
-    expr_list.append(expr_var_list[-1])
+    # split
+    val_start, val_end, expr_list = 0, 0, []
+    for ii,char in enumerate(expr_strs) :
+        if char in opr_list:
+            if val_start != val_end:
+                expr_list.append(expr_strs[val_start:val_end].replace('neg_','-'))
+            expr_list.append(char)
+            val_start = ii + 1
+        val_end = ii+1
+        
+    if val_start != len(expr_strs):
+        expr_list.append(expr_strs[val_start:len(expr_strs)])
 
     return expr_list
 # end expr2list()
@@ -66,26 +117,26 @@ def expr_strs2list (expr_strs,opr_list=['+','-','*','/','(',')']):
 #                             expr1:'*'   c
 #                            /     \
 #                           a       b
-def parsing_equal_grade_opr(expr_list,expr_dict,opr_list,expr_order):
+def parsing_equal_grade_opr(expr_list, expr_dict, opr_list, expr_order):
 
     expr_i = expr_order
     expr_name = ''
-    for i in range(len(expr_list)):
 
-        for strs in opr_list:
-            if expr_list[i] == strs:
+    for i, strs in enumerate(expr_list):
 
-                expr_i += 1
-                expr_name = 'expr_'+str(expr_i)
-                expr_dict[expr_name] = {}
-                expr_dict[expr_name]['opr']  = expr_list[i]
-                if i > 2:
-                    for strr in opr_list:
-                        if expr_list[i] == strr:
-                            expr_dict[expr_name]['left'] = 'expr_'+str(expr_i-1)
-                else:
-                    expr_dict[expr_name]['left'] = expr_list[i-1]
-                expr_dict[expr_name]['righ'] = expr_list[i+1]
+        if strs in opr_list:
+
+            expr_i += 1
+            expr_name = 'expr_'+str(expr_i)
+            expr_dict[expr_name] = {}
+            expr_dict[expr_name]['opr']  = strs
+
+            if i > 2:
+                expr_dict[expr_name]['left'] = 'expr_'+str(expr_i-1)
+            else:
+                expr_dict[expr_name]['left'] = expr_list[i-1]
+
+            expr_dict[expr_name]['righ'] = expr_list[i+1]
 
     return expr_i
 # end parsing_equal_grade_opr()
@@ -99,73 +150,53 @@ def parsing_equal_grade_opr(expr_list,expr_dict,opr_list,expr_order):
 def parsing_unequal_grade_opr(expr_list,expr_dict,opr_lists,expr_order):
 
     expr_i = expr_order
-    for oprlist_i in range(len(opr_lists)):
 
-        opr_list = opr_lists[oprlist_i]
-        upper_expr_lists = []
-        upper_expr_locat = []
-        upper_expr_i = 0
+    all_opr = set([opr for opr_list in opr_lists for opr in opr_list])
+
+    for opr_list in opr_lists[:-1]:
+        all_opr = all_opr.difference(set(opr_list))
+        upper_expr_lists, upper_expr_locat, upper_start, upper_end, upper_find = [], [], 0, 0, 0
 
         # draw the upper grade operator expression
-        list_i = 0
-        for strs in expr_list:
+        for list_i, strs in enumerate(expr_list):
 
-            for opr_str in opr_list:
-                if strs == opr_str:
+            if strs in opr_list:
+                if upper_find == 0:
+                    upper_start = list_i - 1
+                    upper_find = 1
 
-                    upper_start_tag = 0
-                    if   list_i == 1 :
-                        upper_start_tag = 0
-                    elif list_i >  2 :
-                        for opr_str1 in opr_list:
-                            if expr_list[list_i-2] == opr_str1:
-                                upper_start_tag += 1
-                    if upper_start_tag == 0:
-                        upper_expr_lists.append([])
-                        upper_expr_locat.append([])
-                        upper_expr_i += 1
+            elif strs in all_opr or list_i == len(expr_list) - 1:
+                if upper_find == 1:
+                    if strs in all_opr:
+                        upper_end = list_i
+                    elif list_i == len(expr_list) - 1:
+                        upper_end = list_i + 1
+                    upper_find = 0
 
-                    upper_expr_lists[upper_expr_i-1].append(expr_list[list_i-1])
-                    upper_expr_lists[upper_expr_i-1].append(expr_list[list_i])
-                    upper_expr_locat[upper_expr_i-1].append(list_i-1)
-                    upper_expr_locat[upper_expr_i-1].append(list_i)
-
-                    upper_end_tag = 0
-                    if   list_i == len(expr_list) - 2:
-                        upper_end_tag = 0
-                    elif list_i <  len(expr_list) - 3:
-                        for opr_str1 in opr_list:
-                            if expr_list[list_i+2] == opr_str1:
-                                upper_end_tag += 1
-                    if upper_end_tag ==0:
-                        upper_expr_lists[upper_expr_i-1].append(expr_list[list_i+1])
-                        upper_expr_locat[upper_expr_i-1].append(list_i+1)
-
-            list_i += 1
+            if upper_start != 0 and upper_end != 0:
+                upper_expr_lists.append(expr_list[upper_start:upper_end])
+                upper_expr_locat.append(list(range(upper_start,upper_end)))
+                upper_start, upper_end = 0, 0
 
         # parsing the upper grade operator expression and replace them in expr_list
-        list_i = 0
-        for upper_list in upper_expr_lists:
+        for list_i, upper_list in enumerate(upper_expr_lists):
 
             # parsing
-            expr_i = parsing_equal_grade_opr(upper_list,expr_dict,opr_list,expr_i)
+            expr_i = parsing_equal_grade_opr(upper_list, expr_dict, opr_list, expr_i)
 
             # replacing
             upper_locat = upper_expr_locat[list_i]
-            for locat_i in range(len(upper_locat)):
+            for locat_i, upper in enumerate(upper_locat):
                 if locat_i == 0:
-                    expr_list[int(upper_locat[locat_i])] = 'expr_'+str(expr_i)
+                    expr_list[upper] = 'expr_'+str(expr_i)
                 else:
-                    expr_list[int(upper_locat[locat_i])] = ''
-            list_i += 1
+                    expr_list[upper] = ''
 
         # replacing
-        temp_list = expr_list.copy()
-        expr_list.clear()
-        for strs in temp_list:
-            if strs != '':
-                expr_list.append(strs)
+        expr_list = [strs for strs in expr_list if strs != '']
 
+    expr_i = parsing_equal_grade_opr(expr_list, expr_dict, all_opr, expr_i)
+    
     return expr_i
 # end parsing_unequal_grade_opr()
 
@@ -183,25 +214,20 @@ def parsing_with_bracket_opr(expr_list,expr_dict,opr_lists,expr_order):
 
     # count the max level of bracket
     bracket_tag = 0
-    max_bracket_level   = 0
+    max_bracket_level = 0
     for strs in expr_list:
-        if strs == '(':
-            bracket_tag += 1
-        elif strs == ')':
-            bracket_tag -= 1
+        if   strs == '(': bracket_tag += 1
+        elif strs == ')': bracket_tag -= 1
 
         if  max_bracket_level < bracket_tag:
             max_bracket_level = bracket_tag
-
 
     for level in reversed(range(1,max_bracket_level+1)):
 
         # locate the bracket
         bracket_tag = 0
-        left_bracket_locat = []
-        righ_bracket_locat = []
-        list_i = 0
-        for strs in expr_list:
+        left_bracket_locat, righ_bracket_locat = [], []
+        for list_i, strs in enumerate(expr_list):
 
             if   strs == '(':
                 bracket_tag += 1
@@ -213,37 +239,24 @@ def parsing_with_bracket_opr(expr_list,expr_dict,opr_lists,expr_order):
                     righ_bracket_locat.append(list_i)
                 bracket_tag -= 1
 
-            list_i += 1
-
         # draw expression in bracket, parsing and replace them
-        bracket_expr = []
-        for bracket_i in range(len(righ_bracket_locat)):
-
-            bracket_expr.append([])
-
-            for kk in range(left_bracket_locat[bracket_i]+1, \
-                            righ_bracket_locat[bracket_i]):
-                bracket_expr[bracket_i].append(expr_list[kk])
+        bracket_i = 0
+        for left_locat, righ_locat in zip(left_bracket_locat, righ_bracket_locat):
+            bracket_expr = expr_list[left_locat+1:righ_locat]
 
             # parsing bracket expression
-            expr_i = parsing_unequal_grade_opr(bracket_expr[bracket_i],expr_dict,opr_lists,expr_i)
+            expr_i = parsing_unequal_grade_opr(bracket_expr, expr_dict, opr_lists, expr_i)
 
             # replace the bracket expression in expr_list
-            for kk in range(left_bracket_locat[bracket_i], \
-                            righ_bracket_locat[bracket_i]+1):
-                if kk == left_bracket_locat[bracket_i]:
-                    expr_list[kk] = 'expr_'+str(expr_i)
-                else:
-                    expr_list[kk] = ''
+            for kk in range(left_locat, righ_locat+1):
+                expr_list[kk] = 'expr_'+str(expr_i) if kk == left_locat else ''
+
+            bracket_i += 1
 
         # replace the bracket expression in expr_list
-        temp_list = expr_list.copy()
-        expr_list.clear()
-        for strs in temp_list:
-            if strs != '':
-                expr_list.append(strs)
+        expr_list = [strs for strs in expr_list if strs != '']
 
-    expr_i = parsing_unequal_grade_opr(expr_list,expr_dict,opr_lists,expr_i)
+    expr_i = parsing_unequal_grade_opr(expr_list, expr_dict, opr_lists, expr_i)
 
     return expr_i
 # end parsing_with_bracket_opr()
@@ -281,11 +294,8 @@ class cmplx_expr(expr):
                 expr_sub = self.expr_dict[expr_head][strs]
                 self.expr_dict[expr_head][strs] = self.complex_expand(expr_sub)
 
-                if  (self.expr_dict[expr_head]['opr'] == '*' \
-                or   self.expr_dict[expr_head]['opr'] == '/') \
-                and (self.expr_dict[expr_sub ]['opr'] == '+' \
-                or   self.expr_dict[expr_sub ]['opr'] == '-' \
-                or   self.expr_dict[expr_sub ]['opr'] == '*') :
+                if  self.expr_dict[expr_head]['opr'] in ['*','/'] \
+                and self.expr_dict[expr_sub ]['opr'] in ['+','-','*'] :
                     self.expr_dict[expr_head][strs] = complex_add_bracket(self.expr_dict[expr_head][strs])
 
         left = self.expr_dict[expr_head]['left']
@@ -309,8 +319,7 @@ def complex_add(left,righ):
     elif righ == '0' and left != '0':
         return left
     elif righ != '0' and left != '0':
-        return [left[0]+'+'+righ[0], \
-                left[1]+'+'+righ[1]]
+        return [left[0]+'+'+righ[0], left[1]+'+'+righ[1]]
     else: return '0'
 
 def complex_sub(left,righ):
@@ -319,8 +328,7 @@ def complex_sub(left,righ):
     elif righ == '0' and left != '0':
         return left
     elif righ != '0' and left != '0':
-        return [left[0]+'-'+righ[0], \
-                left[1]+'-'+righ[1]]
+        return [left[0]+'-'+righ[0], left[1]+'-'+righ[1]]
     else: return '0'
 
 def complex_multiply(left,righ):
@@ -786,11 +794,9 @@ def matrix_expr(expr_head,expr_dict):
                 expr_dict[expr_head][strs] = tensor_add_bracket(expr_dict[expr_head][strs])
 
     if expr_dict[expr_head]['opr'] == '*' :
-        #print(expr_head)
         matrix_list = matrix_multiply(expr_dict[expr_head]['left'], \
                                       expr_dict[expr_head]['righ'])
     else:
-        #print(expr_head)
         matrix_list = tensor_opr(expr_dict[expr_head]['left'], \
                                  expr_dict[expr_head]['righ'], \
                                  expr_dict[expr_head]['opr'])
@@ -859,7 +865,7 @@ def idx_summation(left_var,righ_expr,xde_lists):
                 tlist = lists[1:len(lists)]
                 for ii in range(len(tlist)):
                     tlist[ii] = tlist[ii].lstrip('+')
-                    if len(split_expr(tlist[ii])) != 1 :
+                    if len(split_bracket_expr(tlist[ii])) != 1 :
                         tlist[ii] = '('+tlist[ii]+')'
                     tensor_dict[strs+str(ii)] = tlist[ii]
     for keys in ['matrix','fmatr']:
@@ -869,7 +875,7 @@ def idx_summation(left_var,righ_expr,xde_lists):
                 for ii in range(len(tlist)):
                     for jj in range(len(tlist[ii])):
                         tlist[ii][jj] = tlist[ii][jj].lstrip('+')
-                        if len(split_expr(tlist[ii][jj])) != 1 :
+                        if len(split_bracket_expr(tlist[ii][jj])) != 1 :
                             tlist[ii][jj] = '('+tlist[ii][jj]+')'
                         tensor_dict[strs+str(ii)+str(jj)] = tlist[ii][jj]
 
@@ -906,7 +912,7 @@ def idx_summation(left_var,righ_expr,xde_lists):
         left_indxi[keys] = 0
 
     righ_pack = {'righ_exp':[],'righ_len':[],'righ_rdx':[],'righ_idx':[]}
-    righ_expr_list = split_expr(righ_expr)
+    righ_expr_list = split_bracket_expr(righ_expr)
     righ_pack['righ_exp'] = righ_expr_list
 
     for expr_strs in righ_expr_list:
@@ -1088,7 +1094,7 @@ def left_loop(loop_level=0, left_var='', righ_pack={}, tensor_dict={}, \
 
 
 # split expr to list by the lowest priority
-def split_expr(expr):
+def split_bracket_expr(expr):
     expr_list = []
     bracket_count  = 0
     expr_left_addr = 0
@@ -1110,13 +1116,8 @@ def split_expr(expr):
             expr_list.append(expr[expr_left_addr:expr_righ_addr].replace(' ',''))
             expr_left_addr = expr_righ_addr
 
-    temp_list = []
-    for strs in expr_list:
-        if strs != '':
-            temp_list.append(strs)
-
-    return temp_list
-# end split_expr()
+    return [strs for strs in expr_list if strs != '']
+# end split_bracket_expr()
 
 # ------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------
