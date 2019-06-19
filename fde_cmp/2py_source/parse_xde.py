@@ -8,8 +8,8 @@
 import re as regx
 
 def parse_xde(gesname, coor_type, xde_lists, list_addr, xdefile):
-    
-    # 0 prepare
+
+    # prepare
     ges_shap_type = regx.search(r'[ltqwc][1-9]+',gesname,regx.I).group()
     ges_gaus_type = regx.search(r'g[1-9]+',gesname,regx.I)
     if ges_gaus_type != None:
@@ -20,6 +20,91 @@ def parse_xde(gesname, coor_type, xde_lists, list_addr, xdefile):
 
     ges_shap_nodn = regx.search(r'[1-9]+',ges_shap_type,regx.I).group()
     ges_shap_form = ges_shap_type[0]
+
+    ges_info = {}
+    ges_info['shap_nodn'] = ges_shap_nodn
+    ges_info['shap_form'] = ges_shap_form
+    ges_info['gaus_type'] = ges_gaus_type
+    ges_info['dim'] = dim
+    ges_info['axi'] = axi
+
+    # preliminary parse
+    pre_parse(ges_info, xde_lists, list_addr, xdefile)
+
+    import json
+    file = open('../1ges_target/'+'check.json',mode='w')
+    file.write(json.dumps(xde_lists,indent=4))
+    file.close()
+
+    # 2 checking
+    from check_xde import check_xde
+    error = check_xde(ges_info, xde_lists, list_addr)
+    if error : return error
+     
+    # 3 secondary parse
+    sec_parse(ges_info, xde_lists, list_addr, xdefile)
+    return False
+
+
+
+# key declare type1: DISP, COEF, COOR, GAUS, MATE
+def pushkeydeclar (strs, matrix_line, line, xde_lists, list_addr):
+    if strs in xde_lists:
+        print('warn: line {0}, duplicated declare, {1} has been declared at line {2}' \
+            .format(matrix_line, strs, list_addr[strs]))
+    else:
+        list_addr[strs] = matrix_line
+        xde_lists[strs] = []
+        line = line.replace(',',' ').replace(';',' ')
+        wordlist = line.split()
+        for j in range(2,len(wordlist)+1):
+            xde_lists[strs].append(wordlist[j-1])
+
+# common declare type: VECT, FMATR
+def pushcomdeclar (strs, matrix_line, line, xde_lists, list_addr):
+    if strs not in xde_lists: 
+        xde_lists[strs] = {}
+        list_addr[strs] = {}
+    wordlist = line.split()
+    for j in range(2,len(wordlist)+1):
+        if j == 2:
+            xde_lists[strs][wordlist[1]]=[]
+            list_addr[strs][wordlist[1]]=matrix_line
+        else:
+            xde_lists[strs][wordlist[1]].append(wordlist[j-1])
+
+# common code line : @x, $Cx
+def pushcodeline (matrix_line, line, keywd_tag, xde_lists, list_addr):
+    code_find = 0
+    keywd = keywd_tag['paragraph']
+    if keywd in ['BFmate','AFmate','func','stif','mass','damp']:
+        code_find = 1
+        if keywd not in xde_lists['code']:
+            xde_lists['code'][keywd] = []
+            list_addr['code'][keywd] = []
+        xde_lists['code'][keywd].append(line)
+        list_addr['code'][keywd].append(matrix_line)
+    if code_find == 0:
+        print('error: line {}, wrong position inserted'.format(matrix_line))
+
+# stif, mass, damp declare
+def pushwekdeclar (strs, matrix_line, line, keywd_tag, xde_lists, list_addr):
+    if strs in xde_lists:
+        print('error: line {0}, duplicated declare, {1} has been declared at line {2}' \
+            .format(matrix_line, strs, list_addr[strs][0]))
+    else:
+        list_addr[strs] = []
+        xde_lists[strs] = []
+        wordlist = line.split()
+        if len(wordlist) > 1:
+            list_addr[strs].append(matrix_line)
+            for j in range(2,len(wordlist)+1):
+                xde_lists[strs].append(wordlist[j-1])
+        else:
+            keywd_tag['paragraph'] = strs
+
+
+def pre_parse(ges_info, xde_lists, list_addr, xdefile):
 
     keyws_reg  = r'DEFI|DISP|COEF|COOR|SHAP|GAUS|MATE|MASS|DAMP|STIF|'
     keyws_reg += r'FUNC|VECT|MATRIX|FVECT|FMATR|ARRAY|DIST|LOAD|END|'
@@ -99,13 +184,13 @@ def parse_xde(gesname, coor_type, xde_lists, list_addr, xdefile):
                     xde_lists['fvect'][line_list[1]].append('1')
 
             elif keywd.find('$')!= -1 or keywd.find('@')!= -1:
-                line = line.replace('%1',ges_shap_form).replace('%2',ges_shap_nodn)
+                line = line.replace('%1',ges_info['shap_form']).replace('%2',ges_info['shap_nodn'])
                 pushcodeline (line_i, line, keywd_tag, xde_lists, list_addr)
                 if code_regx.group().lower() == '$cp':
                     keywd_tag['complex'] = 1
 
             elif keywd in ['common','array']:
-                line = line.replace('%1',ges_shap_form).replace('%2',ges_shap_nodn)
+                line = line.replace('%1',ges_info['shap_form']).replace('%2',ges_info['shap_nodn'])
                 pushcodeline (line_i, line, keywd_tag, xde_lists, list_addr)
 
             elif keywd in ['mass','damp','stif']:
@@ -198,17 +283,7 @@ def parse_xde(gesname, coor_type, xde_lists, list_addr, xdefile):
             else:
                 print('redundant information or wrong declare, line {}: '.format(line_i)+line)
 
-    import json
-    file = open('../1ges_target/'+'check.json',mode='w')
-    file.write(json.dumps(xde_lists,indent=4))
-    file.close()
-
-    # 2 checking
-    from check_xde import check_xde
-    error = check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type)
-    if error : return error
-     
-    # 3 second step parsing
+def sec_parse(ges_info, xde_lists, list_addr, xdefile):
     # 3.1 parsing shap
     if 'shap' in xde_lists:
         shap_dict = {}
@@ -217,9 +292,9 @@ def parse_xde(gesname, coor_type, xde_lists, list_addr, xdefile):
         for shap_list in xde_lists['shap']:
             if len(shap_list) == 2:
                 if  shap_list[0] == '%1':
-                    shap_list[0] = ges_shap_form
+                    shap_list[0] = ges_info['shap_form']
                 if  shap_list[1] == '%2':
-                    shap_list[1] = ges_shap_nodn
+                    shap_list[1] = ges_info['shap_nodn']
                 base_shap_type = shap_list[0] + shap_list[1]
 
                 shap_dict[base_shap_type] = []
@@ -236,7 +311,7 @@ def parse_xde(gesname, coor_type, xde_lists, list_addr, xdefile):
         for shap_list in xde_lists['shap']:
             if len(shap_list) >= 3:
                 if  shap_list[0] == '%1':
-                    shap_list[0] = ges_shap_form
+                    shap_list[0] = ges_info['shap_form']
 
                 if  shap_list[1] == '%4' \
                 or  shap_list[1].isnumeric():
@@ -310,7 +385,7 @@ def parse_xde(gesname, coor_type, xde_lists, list_addr, xdefile):
                     
                     pena_var_list = set(pena_var_list)&set(xde_lists['disp'])
 
-                    shap_list[1]   = shap_list[1].replace('%2',ges_shap_nodn)
+                    shap_list[1]   = shap_list[1].replace('%2',ges_info['shap_nodn'])
                     subs_shap_type = shap_list[0]+shap_list[1]
 
                     if subs_shap_type not in shap_dict:
@@ -323,9 +398,9 @@ def parse_xde(gesname, coor_type, xde_lists, list_addr, xdefile):
         xde_lists['shap'] = shap_dict
 
     # 3.2 parsing gaus
-    if ges_gaus_type != None: 
-          xde_lists['gaus'] = ges_gaus_type
-    else: xde_lists['gaus'] = ges_shap_type
+    if ges_info['gaus_type'] != None: 
+          xde_lists['gaus'] = ges_info['gaus_type']
+    else: xde_lists['gaus'] = ges_info['gaus_type']
 
     # 3.3 parsing mate
     mate_dict = {}
@@ -542,60 +617,3 @@ def parse_xde(gesname, coor_type, xde_lists, list_addr, xdefile):
                         
                         temp_str += var_strs + ','
                     xde_lists['code'][code_place][code_i] = temp_str.rstrip(',') +';'
-    return False
-
-# key declare type1: DISP, COEF, COOR, GAUS, MATE
-def pushkeydeclar (strs, matrix_line, line, xde_lists, list_addr):
-    if strs in xde_lists:
-        print('warn: line {0}, duplicated declare, {1} has been declared at line {2}' \
-            .format(matrix_line, strs, list_addr[strs]))
-    else:
-        list_addr[strs] = matrix_line
-        xde_lists[strs] = []
-        line = line.replace(',',' ').replace(';',' ')
-        wordlist = line.split()
-        for j in range(2,len(wordlist)+1):
-            xde_lists[strs].append(wordlist[j-1])
-
-# common declare type: VECT, FMATR
-def pushcomdeclar (strs, matrix_line, line, xde_lists, list_addr):
-    if strs not in xde_lists: 
-        xde_lists[strs] = {}
-        list_addr[strs] = {}
-    wordlist = line.split()
-    for j in range(2,len(wordlist)+1):
-        if j == 2:
-            xde_lists[strs][wordlist[1]]=[]
-            list_addr[strs][wordlist[1]]=matrix_line
-        else:
-            xde_lists[strs][wordlist[1]].append(wordlist[j-1])
-
-# common code line : @x, $Cx
-def pushcodeline (matrix_line, line, keywd_tag, xde_lists, list_addr):
-    code_find = 0
-    keywd = keywd_tag['paragraph']
-    if keywd in ['BFmate','AFmate','func','stif','mass','damp']:
-        code_find = 1
-        if keywd not in xde_lists['code']:
-            xde_lists['code'][keywd] = []
-            list_addr['code'][keywd] = []
-        xde_lists['code'][keywd].append(line)
-        list_addr['code'][keywd].append(matrix_line)
-    if code_find == 0:
-        print('error: line {}, wrong position inserted'.format(matrix_line))
-
-# stif, mass, damp declare
-def pushwekdeclar (strs, matrix_line, line, keywd_tag, xde_lists, list_addr):
-    if strs in xde_lists:
-        print('error: line {0}, duplicated declare, {1} has been declared at line {2}' \
-            .format(matrix_line, strs, list_addr[strs][0]))
-    else:
-        list_addr[strs] = []
-        xde_lists[strs] = []
-        wordlist = line.split()
-        if len(wordlist) > 1:
-            list_addr[strs].append(matrix_line)
-            for j in range(2,len(wordlist)+1):
-                xde_lists[strs].append(wordlist[j-1])
-        else:
-            keywd_tag['paragraph'] = strs

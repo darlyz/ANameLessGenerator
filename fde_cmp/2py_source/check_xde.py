@@ -17,17 +17,11 @@ import re as regx
 import os
 
 
-def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
+def check_xde(ges_info, xde_lists, list_addr):
 
     error = False
 
-    dim = regx.search(r'[1-9]+', coor_type, regx.I).group()
-    axi = coor_type.split('d')[1]
-
-    ges_shap_nodn = regx.search(r'[1-9]+', ges_shap_type, regx.I).group()
-    ges_shap_form = ges_shap_type[0]
-
-    coor_list = list(axi)
+    coor_list = list(ges_info['axi'])
     coor_strs = ' '.join(coor_list)
 
     # save all shap function name to shap_name_list
@@ -101,7 +95,7 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
         for shap_list, line_num in zip(xde_lists['shap'], list_addr['shap']):
 
             if shap_list[0] == '%1':
-                shap_form = ges_shap_form
+                shap_form = ges_info['shap_form']
             else: shap_form = shap_list[0]
 
             shap_node = [['%2','2','3'], \
@@ -115,13 +109,13 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
             node_dgree2   = ['3','6','9','10','27']
 
             if   shap_list[1] == '%2':
-                 shap_nodn = ges_shap_nodn
+                 shap_nodn = ges_info['shap_nodn']
             elif shap_list[1] == '%4':
                 for sform, snodn in zip(shap_forms, node_dgree1):
                     if shap_form == sform:
                        shap_nodn = snodn
             elif  shap_list[1] == '%2c':
-                  shap_nodn = shap_list[1].replace('%2',ges_shap_nodn)
+                  shap_nodn = shap_list[1].replace('%2',ges_info['shap_nodn'])
             else: shap_nodn = shap_list[1]
 
             if shap_form not in shap_forms:
@@ -140,7 +134,7 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
 
                     base_shap_form = shap_form
                     if shap_list[1] == '%2':
-                          base_shap_node = ges_shap_nodn
+                          base_shap_node = ges_info['shap_nodn']
                     else: base_shap_node = shap_list[1]
 
                     if base_shap_dclr_times == 1:
@@ -253,7 +247,7 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
 
                 if not shap_list[1].isnumeric \
                 and shap_list[-1] in ['m','a','v','p','e']:
-                    if 'd' + dim + shap_form + shap_nodn + '.sub' not in shap_name_list:
+                    if 'd' + ges_info['dim'] + shap_form + shap_nodn + '.sub' not in shap_name_list:
                         fault_declare(line_num, 'shap', \
                             shap_form + shap_nodn + 'is not a valid shap.')
 
@@ -591,9 +585,9 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
                         if len(dif_set) != 0:
                             error_form(line_num,'',"'{}' must be declared in 'DISP'.\n".format(' '.join(list(dif_set))))
 
-                        if  oprt_objt not in xde_lists['fvect'] \
-                        and oprt_objt not in xde_lists['fmatr']:
-                            not_declare(line_num,oprt_objt,"it must be declared by 'FVECT' or 'FMATR'.\n")
+                        if 'fvect' in xde_lists and oprt_objt in xde_lists['fvect'] \
+                        or 'fmatr' in xde_lists and oprt_objt in xde_lists['fmatr'] :  pass
+                        else: not_declare(line_num,oprt_objt,"it must be declared by 'FVECT' or 'FMATR'.\n")
 
                     else:
                         error_form(line_num,'', \
@@ -683,7 +677,10 @@ def check_xde(xde_lists, list_addr, ges_shap_type, ges_gaus_type, coor_type):
                             'the size of {} is not consistent with the right indexs.\n'.format(left_vara))
 
 
-            elif lower_key in ['@a','@r'] :
+            elif lower_key == '@a':
+                pass
+
+            elif lower_key == '@r':
                 pass
 
     # check mate

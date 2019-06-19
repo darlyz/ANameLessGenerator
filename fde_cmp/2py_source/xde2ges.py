@@ -2,7 +2,7 @@
  Copyright: Copyright (c) 2019
  Created: 2019-4-15
  Author: Zhang_Licheng
- Title: generate the jason data to ges gesfile
+ Title: generate the dict data to ges gesfile
  All rights reserved
 '''
 import re as regx
