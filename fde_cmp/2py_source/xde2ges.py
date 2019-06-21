@@ -499,8 +499,8 @@ def write_shap_tran(pfelacpath, ges_info, xde_lists, gesfile):
     geslib_coor = ['x','y','z']
     base_shap_strs = ''
     base_shap_type = list(xde_lists['shap'].keys())[0]
-    base_shap_nodn = regx.search(r'[1-9]+',base_shap_type,regx.I).group()
-    base_shap_form = base_shap_type[0]
+    #base_shap_nodn = regx.search(r'[1-9]+',base_shap_type,regx.I).group()
+    #base_shap_form = base_shap_type[0]
 
     # 9.1 write shap
     for shap in xde_lists['shap'].keys():

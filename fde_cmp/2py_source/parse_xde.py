@@ -5,7 +5,6 @@
  Title: parse the xde file and check it
  All rights reserved
 '''
-
 import re as regx
 
 def parse_xde(ges_info, xde_lists, list_addr, xdefile):
@@ -19,9 +18,9 @@ def parse_xde(ges_info, xde_lists, list_addr, xdefile):
     file.close()
 
     # 2 checking
-    #from check_xde import check_xde
-    #error = check_xde(ges_info, xde_lists, list_addr)
-    #if error : return error
+    from check_xde import check_xde
+    error = check_xde(ges_info, xde_lists, list_addr)
+    if error : return error
      
     # 3 secondary parse
     sec_parse(ges_info, xde_lists, list_addr)
