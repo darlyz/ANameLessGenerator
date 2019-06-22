@@ -62,8 +62,42 @@ def check_xde(ges_info, xde_lists, list_addr):
         report_error('*', error_type + sgest_info)
 
     # check insert code
+    c_declares = set()
     c_declares_BFmate = set()
-    check_code(ges_info, xde_lists, list_addr, c_declares_BFmate)
+    check_code(ges_info, xde_lists, list_addr, c_declares, c_declares_BFmate)
+
+    # check mate
+    is_var = r'[a-z]\w*'
+    for var in xde_lists['mate']:
+        if regx.match(is_var, var, regx.I) != None :
+            if var.find('['):
+                var = var.split('[')[0]
+            if var not in c_declares_BFmate:
+                report_error(list_addr['mate'], not_declared(var, 'Error') + '\n')
+
+    # check vect
+    if 'vect' in xde_lists:
+        for vect in xde_lists['vect'].keys():
+            for strs in xde_lists['vect'][vect]:
+                for var in regx.findall(r'[a-z]\w*', strs, regx.I):
+                    if var not in c_declares:
+                        report_error(list_addr['vect'][vect], not_declared(var, 'Error') + '\n')
+
+    # check matrix
+    if 'matrix' in xde_lists:
+        check_matrix(xde_lists, list_addr, c_declares)
+
+    # check fvect
+    if 'fvect' in xde_lists:
+        for name,lists in xde_lists['fvect'].items():
+            if len(lists) != 1:
+                report_error(list_addr['fvect'][name], faultly_declared(name, 'Error') + f'sugest declare as \'FVECT {name} [len]\'.\n')
+
+    # check fvect
+    if 'fmatr' in xde_lists:
+        for name,lists in xde_lists['fmatr'].items():
+            if len(lists) != 2:
+                report_error(list_addr['fmatr'][name], faultly_declared(name, 'Error') + f'sugest declare as \'FMATR {name} [row] [clm]\'.\n')
 
     print('Error=',error)
     return error
@@ -96,7 +130,7 @@ def check_shap(ges_info, xde_lists, list_addr):
                      ['%2','8','20','27'] ]
         shap_forms    = ['l','t','q','w','c']
         node_dgree1   = ['2','3','4','4','8']
-        node_dgree1_5 = ['' ,'' ,'8','' ,'20']
+        #node_dgree1_5 = ['' ,'' ,'8','' ,'20']
         node_dgree2   = ['3','6','9','10','27']
 
         if   shap_list[1] == '%2':
@@ -244,7 +278,7 @@ def check_shap(ges_info, xde_lists, list_addr):
                     shap_form + shap_nodn + ' is not a valid shap.')
 # end check_shap()
 
-def check_code(ges_info, xde_lists, list_addr, c_declares_BFmate):
+def check_code(ges_info, xde_lists, list_addr, c_declares, c_declares_BFmate):
 
     # the inner declaration
     all_declares  = {'tmax','dt','nstep','itnmax','time'}
@@ -254,9 +288,9 @@ def check_code(ges_info, xde_lists, list_addr, c_declares_BFmate):
     all_declares |= {'ngaus','igaus','det','ndisp','nrefc','ncoor'}
 
     # gather C declares and check code
-    c_declares = all_declares.copy()
-    c_declares_BFmate = all_declares.copy()
-    c_declares_array  = all_declares.copy()
+    c_declares |= all_declares.copy()
+    c_declares_BFmate |= all_declares.copy()
+    c_declares_array   = all_declares.copy()
 
     for strs in ["disp","coef","coor","func"]:
         if strs in xde_lists:
@@ -299,18 +333,29 @@ def check_code(ges_info, xde_lists, list_addr, c_declares_BFmate):
                 code_list = code_strs.split()
 
                 if lower_key == '@l':
-                    if check_operator(code_list, line_num, xde_lists, list_addr):
+                    if check_operator(code_list, line_num, xde_lists, list_addr, c_declares):
                         continue
 
+                elif lower_key == '@w':
+                    check_func_asgn1(code_list, line_num, xde_lists)
+
+                elif lower_key == '@s':
+                    check_func_asgn2(code_list, line_num, xde_lists)
+
+            elif lower_key == '@a':
+                pass
+
+            elif lower_key == '@r':
+                pass
 # end check_code()
 
 def gather_declare(code_strs, line_num, assist_dict, c_declares, c_declares_BFmate):
     # check $cc code
     code_key   = assist_dict['ckey']
-    lower_key  = assist_dict['lkey']
+    #lower_key  = assist_dict['lkey']
     stitchline = assist_dict['stitch']
     c_dclr_key = r"char|int|long|short|double|float"
-    c_dclr_exp = r"[a-z].*="
+    #c_dclr_exp = r"[a-z].*="
     c_func_exp = r"\w+\(.*\)"
     
     #if    code_strs[-1] != ';' and code_strs[-1] != '{' \
@@ -449,7 +494,7 @@ def check_complex_assign(code_strs, line_num, xde_lists, list_addr, c_declares_a
                                 report_error(line_num, error_type + '\n')
 # end check_complex_assign()
 
-def check_operator(code_list, line_num, xde_lists, list_addr ):
+def check_operator(code_list, line_num, xde_lists, list_addr, c_declares):
 
     # save all operator name to oprt_name_list
     pfelacpath = os.environ['pfelacpath']
@@ -522,12 +567,11 @@ def check_operator(code_list, line_num, xde_lists, list_addr ):
         elif strs.count('_') == 1:
             vector = strs.split('_')[0]
             if vector not in xde_lists['vect']:
-                not_declare(line_num,vector,"It must be declared by 'VECT'.\n")
+                report_error(line_num, not_declared(vector, 'Error') + "It must be declared by 'VECT'.\n")
             else:
                 vars_list += xde_lists['vect'][vector]
         else:
-            error_form(line_num,'',"only vector or scalar can be operator's variable.\n")
-            error = True
+            report_error(line_num, unsuitable_form('', 'Error') + "only vector or scalar can be operator's variable.\n")
 
     # replenish default variables
     if len(vars_list) == 0 \
@@ -555,24 +599,22 @@ def check_operator(code_list, line_num, xde_lists, list_addr ):
         need_len = len(oprt_dict[oprt_name][oprt_axis]['axis'])
         provided = len(oprt_axis_list)
         if provided != need_len :
-            error_form(line_num,'',"need {} axis but provided {}.\n".format(need_len, provided))
-            error = True
+            report_error(line_num, unsuitable_form('', 'Error') + f"need {need_len} axis but provided {provided}.\n")
 
 
     # warning that operator's axis be not in accordance with 'coor' declaration
-    if oprt_axis != xde_axi:
-        addon_info    = "coordinate of operator " + Empha_color + "'" + oprt_axis + "'"
-        addon_info += Warnn_color + " is not consistance with 'coor' declaration "
-        addon_info += Empha_color + "'" + xde_coor_strs + "'" + Warnn_color + ' in line '
-        addon_info += Empha_color + str(list_addr['coor']) + ', '
-        addon_info += Warnn_color + "and please make sure that it is necessary to do so.\n"
-        warn_form(line_num, '', addon_info)
+    if oprt_axis != ''.join(xde_lists['coor']):
+        sgest_info  = f"coordinate of operator {Empha_color}'{oprt_axis}' "
+        sgest_info += f"{Warnn_color}is not consistance with 'coor' declaration "
+        sgest_info += f"{Empha_color}'{' '.join(xde_lists['coor'])}' {Warnn_color}in line "
+        sgest_info += f"{Empha_color}{str(list_addr['coor'])}, {Warnn_color}"
+        sgest_info += "and please make sure that it is necessary to do so.\n"
+        report_warn(line_num, unsuitable_form('', 'Warn') + sgest_info)
 
     # 'n' means no variable
     if   oprt_deed.lower() == 'n': 
         if len(code_list) > 2:
-            warn_form(line_num, '', "useless information after 'n'")
-    
+            report_warn(line_num, unsuitable_form('', 'Warn') + "useless information after 'n'.\n")    
     
     elif oprt_deed.lower() in ['c','v','m']: 
 
@@ -582,22 +624,22 @@ def check_operator(code_list, line_num, xde_lists, list_addr ):
         else:
             dif_set = set(oprt_disp_list).difference(set(xde_lists['coef']))
         if len(dif_set) != 0:
-            error_form(line_num,'',"'{}' must be declared in 'COEF'.\n".format(' '.join(list(dif_set))))
+            report_error(line_num, unsuitable_form('', 'Error') + f"'{' '.join(list(dif_set))}' must be declared in 'COEF'.\n")
         
         # 'c' means resault of operator assigned to scalar (c code declared)
         if oprt_deed.lower() == 'c':
             if oprt_objt not in c_declares:
-                not_declare(line_num,oprt_objt,'it must be declared before line {}.\n'.format(line_num))
+                report_error(line_num, not_declared(oprt_objt, 'Error') + f'it must be declared before line {line_num}.\n')
         
         # 'v' means resault of operator assigned to vector (vect declared)
         elif oprt_deed.lower() == 'v':
             if oprt_objt not in xde_lists['vect']:
-                not_declare(line_num,oprt_objt,"it must be declared by 'VECT'.\n")
+                report_error(line_num, not_declared(oprt_objt, 'Error') + "it must be declared by 'VECT'.\n")
         
         # 'm' means resault of operator assigned to matrix (matrix declared)
         elif oprt_deed.lower() == 'm':
             if oprt_objt not in xde_lists['matrix']:
-                not_declare(line_num,oprt_objt,"it must be declared by 'MATRIX'.\n")
+                report_error(line_num, not_declared(oprt_objt, 'Error') + "it must be declared by 'MATRIX'.\n")
     
     # 'f' means resault of operator assigned to fvect or fmatr
     elif oprt_deed.lower() == 'f':
@@ -608,16 +650,129 @@ def check_operator(code_list, line_num, xde_lists, list_addr ):
         else:
             dif_set = set(oprt_disp_list).difference(set(xde_lists['disp']))
         if len(dif_set) != 0:
-            error_form(line_num,'',"'{}' must be declared in 'DISP'.\n".format(' '.join(list(dif_set))))
+            report_error(line_num, unsuitable_form('', 'Error') + f"'{' '.join(list(dif_set))}' must be declared in 'DISP'.\n")
 
-        if  oprt_objt not in xde_lists['fvect'] \
-        and oprt_objt not in xde_lists['fmatr']:
-            not_declare(line_num,oprt_objt,"it must be declared by 'FVECT' or 'FMATR'.\n")
+        if  ('fvect' in xde_lists and oprt_objt not in xde_lists['fvect']) \
+        and ('fmatr' in xde_lists and oprt_objt not in xde_lists['fmatr']):
+            report_error(line_num, not_declared(oprt_objt, 'Error') + "it must be declared by 'FVECT' or 'FMATR'.\n")
 
     else:
-        error_form(line_num,'', \
-            "first variable of operator must be one of '[n, c, v, m, f]'.\n")
+        report_error(line_num, unsuitable_form('', 'Error') + "first variable of operator must be one of '[n, c, v, m, f]'.\n")
 # end check_operator()
+
+def check_func_asgn1(code_list, line_num, xde_lists):
+    left_vara, righ_tnsr = code_list[:2]
+    left_size, tnsr_size = 0,0
+    tnsr_idxs = code_list[2:len(code_list)]
+
+    if  ( ('vect'   in xde_lists and left_vara not in xde_lists['vect'] ) \
+      and ('matrix' in xde_lists and left_vara not in xde_lists['matrix'] ) ) \
+    or ('vect' not in xde_lists and 'matrix' not in xde_lists) :
+        report_error(line_num, not_declared(left_vara, 'Error') + "must be declared by 'VECT' or 'MATRIX'.\n")
+
+    if  ( ('fvect' in xde_lists and righ_tnsr not in xde_lists['fvect'] ) \
+      and ('fmatr' in xde_lists and righ_tnsr not in xde_lists['fmatr'] ) ) \
+    or ('fvect' not in xde_lists and 'fmatr' not in xde_lists) :
+        report_error(line_num, not_declared(righ_tnsr, 'Error') + "must be declared by 'FVECT' or 'FMATR'.\n")
+
+    if   'fvect' in xde_lists and righ_tnsr in xde_lists['fvect']:
+        tnsr_size = int(xde_lists['fvect'][righ_tnsr][0])
+    elif 'fmatr' in xde_lists and righ_tnsr in xde_lists['fmatr']:
+        tnsr_size = int(xde_lists['fmatr'][righ_tnsr][0]) \
+                  * int(xde_lists['fmatr'][righ_tnsr][1])
+
+    dflt_idxs = list(map(str,map(lambda x:x+1, range(tnsr_size))))
+    if len(tnsr_idxs) == 0:
+        tnsr_idxs = dflt_idxs
+    dif_set = set(tnsr_idxs).difference(set(dflt_idxs))
+    if len(dif_set) != 0:
+        report_error(line_num, unsuitable_form('', 'Error') + f"the indexs '{' '.join(dif_set)}' of '{righ_tnsr}' is out of range.\n")
+
+    if   'vect'   in xde_lists and left_vara in xde_lists['vect']:
+        left_size = len(xde_lists['vect'][left_vara])
+    elif 'matrix' in xde_lists and left_vara in xde_lists['matrix']:
+        if  xde_lists['matrix'][left_vara][0].isnumeric() \
+        and xde_lists['matrix'][left_vara][0].isnumeric() :
+            left_size = int(xde_lists['matrix'][left_vara][0]) \
+                      * int(xde_lists['matrix'][left_vara][1])
+        else:
+            left_size = len(xde_lists['matrix'][left_vara]) \
+                          *(xde_lists['matrix'][left_vara].count(' ')+1)
+
+    if left_size != len(tnsr_idxs):
+        report_error(line_num, unsuitable_form('', 'Error') + f'the size of {left_vara} is not consistent with the right indexs.\n')
+# end check_func_asgn1()
+
+def check_func_asgn2(code_list, line_num, xde_lists):
+    left_vara, righ_tnsr = code_list[:2]
+    left_size, tnsr_size = 0,0
+    tnsr_idxs = code_list[2:len(code_list)]
+    
+    if  ( ('fvect' in xde_lists and left_vara not in xde_lists['fvect'] ) \
+      and ('fmatr' in xde_lists and left_vara not in xde_lists['fmatr'] ) ) \
+    or ('fvect' not in xde_lists and 'fmatr' not in xde_lists) :
+        report_error(line_num, not_declared(left_vara, 'Error') + "must be declared by 'FVECT' or 'FMATR'.\n")
+    
+    if  ( ('fvect' in xde_lists and righ_tnsr not in xde_lists['fvect'] ) \
+      and ('fmatr' in xde_lists and righ_tnsr not in xde_lists['fmatr'] ) ) \
+    or ('fvect' not in xde_lists and 'fmatr' not in xde_lists) :
+        report_error(line_num, not_declared(righ_tnsr, 'Error') + "must be declared by 'FVECT' or 'FMATR'.\n")
+
+    if   'fvect' in xde_lists and righ_tnsr in xde_lists['fvect']:
+        tnsr_size = int(xde_lists['fvect'][righ_tnsr][0])
+    elif 'fmatr' in xde_lists and righ_tnsr in xde_lists['fmatr']:
+        tnsr_size = int(xde_lists['fmatr'][righ_tnsr][0]) \
+                  * int(xde_lists['fmatr'][righ_tnsr][1])
+
+    dflt_idxs = list(map(str,map(lambda x:x+1, range(tnsr_size))))
+    if len(tnsr_idxs) == 0:
+        tnsr_idxs = dflt_idxs
+    dif_set = set(tnsr_idxs).difference(set(dflt_idxs))
+    if len(dif_set) != 0:
+        report_error(line_num, unsuitable_form('', 'Error') + f"the indexs '{' '.join(dif_set)}' of '{righ_tnsr}' is out of range.\n")
+
+    if   'fvect' in xde_lists and left_vara in xde_lists['fvect']:
+        left_size = int(xde_lists['fvect'][left_vara][0])
+    elif 'fmatr' in xde_lists and left_vara in xde_lists['fmatr']:
+        left_size = int(xde_lists['fmatr'][left_vara][0]) \
+                  * int(xde_lists['fmatr'][left_vara][1])
+    if left_size != len(tnsr_idxs):
+        report_error(line_num, unsuitable_form('', 'Error') + f'the size of {left_vara} is not consistent with the right indexs.\n')
+# end check_func_asgn2()
+
+def check_matrix(xde_lists, list_addr, c_declares):
+    for matrix in xde_lists['matrix'].keys():
+        line_nums = list_addr['matrix'][matrix].copy()
+        matr_name_line = line_nums.pop(0)
+
+        matr_list = [var \
+            for var in xde_lists['matrix'][matrix] \
+                if not var.isnumeric()]
+
+        row_lenth = set()
+        for row,line_num in zip(matr_list,line_nums):
+            row_list = row.split()
+            row_lenth.add(len(row_list))
+            for strs in row_list:
+                for var in regx.findall(r'[a-z]\w*',strs,regx.I):
+                    if var not in c_declares:
+                        report_error(line_num, not_declared(var, 'Error') + '\n')
+
+        if xde_lists['matrix'][matrix][0].isnumeric:
+            row = xde_lists['matrix'][matrix][0]
+            if xde_lists['matrix'][matrix][1].isnumeric:
+                clm = xde_lists['matrix'][matrix][1]
+
+                if len(matr_list) != int(row):
+                    report_error(matr_name_line, faultly_declared(matrix, 'Error') + 'The matrix row is not in accordance with which defined.\n')
+                if int(clm) not in row_lenth:
+                    report_error(matr_name_line, faultly_declared(matrix, 'Error') + 'The matrix column is not in accordance with which defined.\n')
+            else:
+                report_error(matr_name_line, faultly_declared(matrix, 'Error') + 'need to define row and column number at the same time.\n')
+
+        if len(row_lenth) != 1:
+            report_error(matr_name_line, faultly_declared(matrix, 'Error') + 'lenth of every row is not equal.\n')
+# end check_matrix()
 
 def report(repr_type):
     def _report(func):
