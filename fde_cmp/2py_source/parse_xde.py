@@ -171,8 +171,11 @@ def pre_parse(ges_info, xde_lists, list_addr, xdefile):
             and keywd in xde_lists:
 
                 if line.find('[')!= -1 and line.find(']')!= -1:
-
                     xde_lists[keywd].append(line)
+                    list_addr[keywd].append(line_i)
+
+                elif line.rstrip().lower() == 'null':
+                    xde_lists[keywd].append(line.rstrip())
                     list_addr[keywd].append(line_i)
 
             elif  keywd == 'func':
@@ -206,6 +209,8 @@ def pushcomdeclar (strs, matrix_line, line, xde_lists, list_addr):
         xde_lists[strs], list_addr[strs] = {}, {}
     wordlist = line.split()
     list_addr[strs][wordlist[1]] = matrix_line
+    if wordlist[2] == '=':
+        wordlist.remove('=')
     xde_lists[strs][wordlist[1]] = wordlist[2:]
 
 # common code line : @x, $Cx
@@ -366,25 +371,24 @@ def parse_shap(ges_info, xde_lists):
                             xde_lists['coef_shap'][subs_shap_type].append(var_name)
 
             elif shap_list[1] == '%2c' \
-            or  (shap_list[1][-1] == 'c' and shap_list[1][:-1].isnumeric) :
+            or  (shap_list[1][-1].lower() == 'c' and shap_list[1][:-1].isnumeric) :
 
                 var_list = shap_list[2:]
 
-                pena_var_list = []
+                pena_vars = {}
                 for var_name in var_list:
                     if var_name.isnumeric(): continue
-                    if var_name.find('_'):   var_name = var_name.split('_')[0]
-                    pena_var_list.append(var_name)
-                pena_var_list = set(pena_var_list)&set(xde_lists['disp'])
+                    if var_name.find('_'):
+                        var_name, pan_name = var_name.split('_')[:2]
+                    pena_vars[var_name] = pan_name
 
                 shap_list[1]   = shap_list[1].replace('%2',ges_info['shap_nodn'])
                 subs_shap_type = shap_list[0] + shap_list[1]
 
                 if subs_shap_type not in shap_dict:
-                    shap_dict[subs_shap_type] = []
-                for pena_var in pena_var_list :
+                    shap_dict[subs_shap_type] = pena_vars
+                for pena_var in pena_vars.keys() :
                     shap_dict[base_shap_type].remove(pena_var)
-                    shap_dict[subs_shap_type].append(pena_var)
 
     xde_lists['shap'] = shap_dict
 # end parse_shap()

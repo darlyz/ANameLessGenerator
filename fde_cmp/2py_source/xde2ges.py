@@ -90,7 +90,7 @@ def xde2ges(ges_info, xde_lists, list_addr, gesfile):
 
     # 14 write load paragraph
     if 'load' in xde_lists:
-        write_load(code_use_dict, xde_lists, gesfile)
+        write_load(xde_lists, gesfile)
 
     gesfile.write('\nend')
 
@@ -474,7 +474,11 @@ def write_disp_var(ges_info, xde_lists, gesfile):
 
     # 1.2 parsing var
     var_dict = {}
+    pan_vars = set()
     for shap in xde_lists['shap'].keys():
+        if shap[-1] == 'c':
+            pan_vars |= set(xde_lists['shap'][shap])
+            continue
         nodn = int(regx.search(r'[1-9]+', shap, regx.I).group())
         
         for var in xde_lists['shap'][shap]:
@@ -484,7 +488,7 @@ def write_disp_var(ges_info, xde_lists, gesfile):
     i = 0
     gesfile.write('var')
     for nodi in range(int(ges_info['shap_nodn'])):
-        for strs in xde_lists['disp']:
+        for strs in set(xde_lists['disp']).difference(pan_vars):
             if nodi >= len(var_dict[strs]):
                 continue
             gesfile.write(' '+var_dict[strs][nodi])
@@ -534,7 +538,10 @@ def write_shap_tran(pfelacpath, ges_info, xde_lists, gesfile):
 
         # 9.1.3 replace shap func's disp by xde's disp and write
         for shap_var in xde_lists['shap'][shap]:
-            temp_strs = shap_strs.replace('u',shap_var)
+            if shap[-1].lower() == 'c':
+                temp_strs = shap_strs.replace('u',xde_lists['shap'][shap][shap_var])
+            else:
+                temp_strs = shap_strs.replace('u',shap_var)
             gesfile.write(shap_var+'=\n')
             gesfile.write(temp_strs)
             gesfile.write('\n')
@@ -793,7 +800,9 @@ def write_func(code_use_dict, xde_lists, gesfile):
 # end write_func()
 
 def write_weak(weak, code_use_dict, xde_lists, gesfile):
-    gesfile.write('\n{}\n'.format(weak))
+    if xde_lists[weak][0].lower() != 'null' or weak in code_use_dict:
+        gesfile.write('\n{}\n'.format(weak))
+    else: return
 
     if weak in code_use_dict:
         for strs in code_use_dict[weak]:
@@ -824,7 +833,7 @@ def write_weak(weak, code_use_dict, xde_lists, gesfile):
                         .format(xde_lists[weak][1], vara, ii+1))
 # end write_weak()
 
-def write_load(code_use_dict, xde_lists, gesfile):
+def write_load(xde_lists, gesfile):
     gesfile.write('\n')
     left_vara = 'load'
     righ_expr = ''.join(xde_lists['load'])
