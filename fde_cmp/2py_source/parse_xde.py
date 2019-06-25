@@ -132,9 +132,16 @@ def pre_parse(ges_info, xde_lists, list_addr, xdefile):
                 if not 'load' in xde_lists:
                     xde_lists['load'] = []
                     list_addr['load'] = []
-                xde_lists['load'].append(line.split('=')[1].strip())
-                list_addr['load'].append(line_i)
-                keywd_tag['paragraph'] = 'load'
+                if line.find('=') != -1:
+                    xde_lists['load'].append(line.split('=')[1].strip())
+                    list_addr['load'].append(line_i)
+                    keywd_tag['paragraph'] = 'load'
+                else:
+                    load_list = line.rstrip().split()[1:]
+                    xde_lists['load'].append(str(len(load_list)))
+                    xde_lists['load'] += load_list
+                    list_addr['load'].append(line_i)
+                
 
             elif keywd == 'func':
                 wordlist = line.split()
@@ -303,6 +310,11 @@ def sec_parse(ges_info, xde_lists, list_addr):
             for ii in range(row):
                 lists[ii+2] = lists[ii+2].split()
 
+    if 'load' in xde_lists:
+        if xde_lists['load'][0].isnumeric():
+            xde_lists['load'] = ['+[' + xde_lists['disp'][i] + ']*' + xde_lists['load'][i+1] \
+                                    for i in range(int(xde_lists['load'][0]))]
+
     # 3.6 parsing code
     parse_code(xde_lists)
 # end sec_parse()
@@ -414,7 +426,7 @@ def parse_mate(xde_lists):
         if var_i < len(mate_val):
             mate_dict['default'][var] = mate_val[var_i]
         else:
-            mate_dict['default'][var] = 0.0
+            mate_dict['default'][var] = '0.0'
     xde_lists['mate'] = mate_dict
 # end parse_mate()
 

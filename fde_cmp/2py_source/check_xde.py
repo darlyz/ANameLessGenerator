@@ -451,12 +451,12 @@ def check_tensor_assign(code_strs, line_num, xde_lists, c_declares):
         for tnsr in set(tnsr_list):
             tnsr_name = tnsr.split('_')[0]
             if tnsr.count('_') == 1:
-                if  tnsr_name not in xde_lists['vect'] \
+                if  ('vect' in xde_lists and tnsr_name not in xde_lists['vect']) \
                 and tnsr_name not in c_declares['array']['vect']:
                     report_error(line_num, not_declared(tnsr_name, 'Error') + \
                         "It must declared by 'VECT' or 'ARRAY'.")
             elif tnsr.count('_') == 2:
-                if  tnsr_name not in xde_lists['matrix'] \
+                if  ('matrix' in xde_lists and tnsr_name not in xde_lists['matrix']) \
                 and tnsr_name not in c_declares['array']['matrix']:
                      report_error(line_num, not_declared(tnsr_name, 'Error') + \
                         "It must declared by 'MATRIX' or 'ARRAY'.")
