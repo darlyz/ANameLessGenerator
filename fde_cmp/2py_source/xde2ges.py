@@ -173,8 +173,8 @@ def release_operator_code(code_strs, code_place, pfelacpath, xde_lists, code_use
             
             oprt_strs, oprt_find = '', 0
             for line in file_oprt.readlines():
-                oprt_start_file = regx.match('sub '+oprt_expr,line,regx.I)
-                oprt_end_file   = regx.match('end '+oprt_expr,line,regx.I)
+                oprt_start_file = regx.match('sub '+oprt_expr+'\(',line, regx.I)
+                oprt_end_file   = regx.match('sub '+oprt_expr+'\n',line, regx.I)
                 if oprt_start_file != None:
                     oprt_find = 1
                     continue
@@ -212,8 +212,8 @@ def release_operator_code(code_strs, code_place, pfelacpath, xde_lists, code_use
         # find operator in pde.lib
         oprt_strs, oprt_find = '', 0
         for line in file_oprt.readlines():
-            oprt_start_file = regx.search('sub '+oprt_name,line,regx.I)
-            oprt_end_file   = regx.search('end '+oprt_name,line,regx.I)
+            oprt_start_file = regx.search('sub '+oprt_name+'\(',line,regx.I)
+            oprt_end_file   = regx.search('end '+oprt_name+'\n',line,regx.I)
             if oprt_start_file != None:
                 oprt_find = 1
                 # find variables of operator in pde.lib

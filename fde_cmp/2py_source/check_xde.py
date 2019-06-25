@@ -68,19 +68,29 @@ def check_xde(ges_info, xde_lists, list_addr):
     # check mate
     if 'mate' in xde_lists:
         for var in xde_lists['mate']:
-            if regx.match(r'\^?[a-z]\w*', var, regx.I) != None :
-                if var.find('['):
-                    var = var.split('[')[0]
-                if var not in c_declares['BFmate']:
-                    report_error(list_addr['mate'], not_declared(var, 'Error') + '\n')
+            if regx.match(r'\^?[a-z]\w*(?:\[\d\])*', var, regx.I) != None :
+                if var in c_declares['BFmate']:
+                    continue
+                elif var.find('[') != -1:
+                    idx_list = regx.findall(r'\[\d+\]',var,regx.I)
+                    var = '*'*len(idx_list) + var.split('[')[0].strip()
+                    if var in c_declares['BFmate']:
+                        continue
+                report_error(list_addr['mate'], not_declared(var, 'Error') + '\n')
 
     # check vect
     if 'vect' in xde_lists:
         for vect in xde_lists['vect'].keys():
             for strs in xde_lists['vect'][vect]:
-                for var in regx.findall(r'\^?[a-z]\w*', strs, regx.I):
-                    if var not in c_declares['all']:
-                        report_error(list_addr['vect'][vect], not_declared(var, 'Error') + '\n')
+                for var in regx.findall(r'\^?[a-z]\w*(?:\[\d\])*', strs, regx.I):
+                    if var in c_declares['all']:
+                        continue
+                    elif var.find('[') != -1:
+                        idx_list = regx.findall(r'\[\d+\]',var,regx.I)
+                        var = '*'*len(idx_list) + var.split('[')[0].strip()
+                        if var in c_declares['all']:
+                            continue
+                    report_error(list_addr['vect'][vect], not_declared(var, 'Error') + '\n')
 
     # check matrix
     if 'matrix' in xde_lists:
@@ -90,13 +100,15 @@ def check_xde(ges_info, xde_lists, list_addr):
     if 'fvect' in xde_lists:
         for name, lists in xde_lists['fvect'].items():
             if len(lists) != 1:
-                report_error(list_addr['fvect'][name], faultly_declared(name, 'Error') + f'sugest declare as \'FVECT {name} [len]\'.\n')
+                report_error(list_addr['fvect'][name], faultly_declared(name, 'Error') \
+                    + f'sugest declare as \'FVECT {name} [len]\'.\n')
 
     # check fvect
     if 'fmatr' in xde_lists:
         for name, lists in xde_lists['fmatr'].items():
             if len(lists) != 2:
-                report_error(list_addr['fmatr'][name], faultly_declared(name, 'Error') + f'sugest declare as \'FMATR {name} [row] [clm]\'.\n')
+                report_error(list_addr['fmatr'][name], faultly_declared(name, 'Error') \
+                    + f'sugest declare as \'FMATR {name} [row] [clm]\'.\n')
 
     print('Error=',error)
     return error
@@ -294,7 +306,9 @@ def check_code(ges_info, xde_lists, list_addr, c_declares):
     # gather C declares and check code
     c_declares['all']    = all_declares.copy()
     c_declares['BFmate'] = all_declares.copy()
-    c_declares['array']  = set()
+    c_declares['array']  = {}
+    c_declares['array']['vect'] = set()
+    c_declares['array']['matrix'] = set()
 
     for strs in ["disp","coef","coor","func"]:
         if strs in xde_lists:
@@ -323,12 +337,29 @@ def check_code(ges_info, xde_lists, list_addr, c_declares):
                     continue
 
             elif lower_key == 'array':
-                vara_list = regx.split(r'ARRAY',code_strs,regx.I)[-1].strip().split(',')
-                for var in vara_list:
-                    if var.find('['): var = var.split('[')[0].strip()
-                    c_declares['all'].add(var.lstrip('*'))
-                    c_declares['array'].add(var.lstrip('*'))
-                    if addr == 'BFmate': c_declares['BFmate'].add(var.lstrip('*'))
+                vara_list = code_strs.replace(code_key,'').strip().split(',')
+
+                for var_strs in vara_list:
+                    var_name = var_strs.strip().split('[')[0]
+                    idx_list = regx.findall(r'\[\d+\]',var_strs,regx.I)
+
+                    if len(idx_list) == 1:
+                        vect_len  = idx_list[0].lstrip('[').rstrip(']')
+                        vect_list = [var_name + '[' + str(ii+1) + ']' \
+                                        for ii in range(int(vect_len))]
+                        c_declares['all'] |= set(vect_list)
+                        c_declares['array']['vect'].add(var_name)
+                        if addr == 'BFmate': c_declares['BFmate'] != set(vect_list)
+
+                    elif len(idx_list) == 2:
+                        matr_row  = idx_list[0].lstrip('[').rstrip(']')
+                        matr_clm  = idx_list[1].lstrip('[').rstrip(']')
+                        matr_list = [var_name+'['+str(ii+1)+']['+str(jj+1)+']' \
+                                        for jj in range(int(matr_clm)) \
+                                            for ii in range(int(matr_row))]
+                        c_declares['all'] |= set(matr_list)
+                        c_declares['array']['matrix'].add(var_name)
+                        if addr == 'BFmate': c_declares['BFmate'] != set(matr_list)
 
             elif lower_key == '$cv':
                 check_tensor_assign(code_strs, line_num, xde_lists, c_declares)
@@ -399,12 +430,13 @@ def gather_declare(code_strs, line_num, assist_dict, c_declares):
                 if var.find('=') != -1:
                     var = regx.sub(r'=.*', '', var)
 
-                if var.find('['):
-                    var = var.split('[')[0].strip()
+                if var.find('[') != -1:
+                    idx_list = regx.findall(r'\[\d+\]',var,regx.I)
+                    var = '*'*len(idx_list) + var.split('[')[0].strip()
 
-                c_declares['all'].add(var.lstrip('*'))
+                c_declares['all'].add(var)
                 if assist_dict['addrss'] == 'BFmate':
-                    c_declares['BFmate'].add(var.lstrip('*'))
+                    c_declares['BFmate'].add(var)
     else: return True
     return False
 # end check_common_code()
@@ -412,20 +444,20 @@ def gather_declare(code_strs, line_num, assist_dict, c_declares):
 def check_tensor_assign(code_strs, line_num, xde_lists, c_declares):
     pattern = regx.compile(r'\^?[a-z][a-z0-9]*(?:_[a-z])+',regx.I)
     tnsr_list = pattern.findall(code_strs)
-    if len(tnsr_list) == 0:
-        report_warn(line_num,"there is no tensor, need not to use '$CV'.")
+    if len(tnsr_list) == 0 and code_strs.find('{') == -1:
+        report_warn(line_num,"there is no tensor or derivation of 'coef' variable, need not to use '$CV'.")
 
     else:
         for tnsr in set(tnsr_list):
             tnsr_name = tnsr.split('_')[0]
             if tnsr.count('_') == 1:
                 if  tnsr_name not in xde_lists['vect'] \
-                and tnsr_name not in c_declares['array']:
+                and tnsr_name not in c_declares['array']['vect']:
                     report_error(line_num, not_declared(tnsr_name, 'Error') + \
                         "It must declared by 'VECT' or 'ARRAY'.")
             elif tnsr.count('_') == 2:
                 if  tnsr_name not in xde_lists['matrix'] \
-                and tnsr_name not in c_declares['array']:
+                and tnsr_name not in c_declares['array']['matrix']:
                      report_error(line_num, not_declared(tnsr_name, 'Error') + \
                         "It must declared by 'MATRIX' or 'ARRAY'.")
 # end check_tensor_assign()
@@ -461,7 +493,7 @@ def check_complex_assign(code_strs, line_num, xde_lists, list_addr, c_declares):
             if tnsr.count('_') == 1:
 
                 if tnsr_name not in xde_lists['vect'] \
-                or tnsr_name in c_declares['array']:
+                or tnsr_name in c_declares['array']['vect']:
                     report_error(line_num, not_declared(tnsr_name, 'Error') + \
                         "It must declared by 'VECT'.\n")
 
@@ -478,7 +510,7 @@ def check_complex_assign(code_strs, line_num, xde_lists, list_addr, c_declares):
 
             elif tnsr.count('_') == 2:
                 if tnsr_name not in xde_lists['matrix'] \
-                or tnsr_name in c_declares['array']:
+                or tnsr_name in c_declares['array']['matrix']:
                     report_error(line_num, not_declared(tnsr_name, 'Error') + \
                         "It must declared by 'matrix'.\n")
                 else:
@@ -510,6 +542,7 @@ def check_operator(code_list, line_num, xde_lists, list_addr, c_declares):
     oprt_name_list = [oprt_name.rstrip() for oprt_name in file_oprt.readlines()]     
     file_oprt.close()
 
+    # save default variables of all operator 
     # oprt_dict['grad']['xy'] = ['x','y','u']
     oprt_dict = {}
     path_oprt = pfelacpath + 'ges/pde.lib'
@@ -568,25 +601,27 @@ def check_operator(code_list, line_num, xde_lists, list_addr, c_declares):
     
     # expand the vector in operator variables
     vars_list = []
-    for strs in code_list[3:len(code_list)]:
-        if   strs.find('_') == -1:
-            vars_list.append(strs)
-        elif strs.count('_') == 1:
-            vector = strs.split('_')[0]
-            if vector not in xde_lists['vect']:
-                report_error(line_num, not_declared(vector, 'Error') + "It must be declared by 'VECT'.\n")
+    if oprt_deed.lower() != 'n' and oprt_len > 3:
+        for strs in code_list[3:len(code_list)]:
+            if   strs.find('_') == -1:
+                vars_list.append(strs)
+            elif strs.count('_') == 1:
+                vector = strs.split('_')[0]
+                if vector not in xde_lists['vect']:
+                    report_error(line_num, not_declared(vector, 'Error') + \
+                        "It must be declared by 'VECT'.\n")
+                else:
+                    vars_list += xde_lists['vect'][vector]
             else:
-                vars_list += xde_lists['vect'][vector]
-        else:
-            report_error(line_num, unsuitable_form('', 'Error') + "only vector or scalar can be operator's variable.\n")
+                report_error(line_num, unsuitable_form('', 'Error') + \
+                    "only vector or scalar can be operator's variable.\n")
 
     # replenish default variables
-    if len(vars_list) == 0 \
-    and oprt_name not in ['singular','vol']:
-        if oprt_deed == 'f':
+    elif oprt_deed.lower() != 'n' and oprt_len == 3:
+        if 'disp' in xde_lists and oprt_deed.lower() == 'f':
             vars_list += list(oprt_axis) \
                 + xde_lists['disp'][:len(oprt_dict[oprt_name][oprt_axis]['disp'])]
-        elif 'coef' in xde_lists and oprt_deed in ['c','v','m']:
+        elif 'coef' in xde_lists and oprt_deed.lower() in ['c','v','m']:
             vars_list += list(oprt_axis) \
                 + xde_lists['coef'][:len(oprt_dict[oprt_name][oprt_axis]['disp'])]
 
@@ -601,11 +636,11 @@ def check_operator(code_list, line_num, xde_lists, list_addr, c_declares):
     for strs in oprt_axis_list:
         oprt_disp_list.remove(strs)
     
-    else:
+    if oprt_deed.lower() != 'n':
         # compare provided axis counting with which in 'pde.lib'
         need_len = len(oprt_dict[oprt_name][oprt_axis]['axis'])
         provided = len(oprt_axis_list)
-        if provided != need_len and oprt_deed.lower() == 'n':
+        if provided != need_len: 
             report_error(line_num, unsuitable_form('', 'Error') + f"need {need_len} axis but provided {provided}.\n")
 
 
@@ -631,22 +666,28 @@ def check_operator(code_list, line_num, xde_lists, list_addr, c_declares):
         else:
             dif_set = set(oprt_disp_list).difference(set(xde_lists['coef']))
         if len(dif_set) != 0:
-            report_error(line_num, unsuitable_form('', 'Error') + f"'{' '.join(list(dif_set))}' must be declared in 'COEF'.\n")
+            report_error(line_num, unsuitable_form('', 'Error') \
+                + f"'{' '.join(list(dif_set))}' must be declared in 'COEF'.\n")
         
         # 'c' means resault of operator assigned to scalar (c code declared)
         if oprt_deed.lower() == 'c':
             if oprt_objt not in c_declares['all']:
-                report_error(line_num, not_declared(oprt_objt, 'Error') + f'it must be declared before line {line_num}.\n')
+                report_error(line_num, not_declared(oprt_objt, 'Error') \
+                    + f'it must be declared before line {line_num}.\n')
         
         # 'v' means resault of operator assigned to vector (vect declared)
         elif oprt_deed.lower() == 'v':
-            if oprt_objt not in xde_lists['vect'] and oprt_objt not in c_declares['array']:
-                report_error(line_num, not_declared(oprt_objt, 'Error') + "it must be declared by 'VECT'.\n")
+            if  oprt_objt not in xde_lists['vect'] \
+            and oprt_objt not in c_declares['array']['vect']:
+                report_error(line_num, not_declared(oprt_objt, 'Error') \
+                    + "it must be declared by 'VECT' or 'ARRAY'.\n")
         
         # 'm' means resault of operator assigned to matrix (matrix declared)
         elif oprt_deed.lower() == 'm':
-            if oprt_objt not in xde_lists['matrix'] and oprt_objt not in c_declares['array']:
-                report_error(line_num, not_declared(oprt_objt, 'Error') + "it must be declared by 'MATRIX'.\n")
+            if  oprt_objt not in xde_lists['matrix'] \
+            and oprt_objt not in c_declares['array']['matrix']:
+                report_error(line_num, not_declared(oprt_objt, 'Error') \
+                    + "it must be declared by 'MATRIX' or 'ARRAY'.\n")
     
     # 'f' means resault of operator assigned to fvect or fmatr
     elif oprt_deed.lower() == 'f':
@@ -761,9 +802,15 @@ def check_matrix(xde_lists, list_addr, c_declares):
             row_list = row.split()
             row_lenth.add(len(row_list))
             for strs in row_list:
-                for var in regx.findall(r'\^?[a-z]\w*',strs,regx.I):
-                    if var not in c_declares['all']:
-                        report_error(line_num, not_declared(var, 'Error') + '\n')
+                for var in regx.findall(r'\^?[a-z]\w*(?:\[\d\])*',strs,regx.I):
+                    if var in c_declares['all']:
+                        continue
+                    elif var.find('[') != -1:
+                        idx_list = regx.findall(r'\[\d+\]',var,regx.I)
+                        var = '*'*len(idx_list) + var.split('[')[0].strip()
+                        if var in c_declares['all']:
+                            continue
+                    report_error(line_num, not_declared(var, 'Error') + '\n')
 
         if xde_lists['matrix'][matrix][0].isnumeric:
             row = xde_lists['matrix'][matrix][0]
@@ -771,14 +818,18 @@ def check_matrix(xde_lists, list_addr, c_declares):
                 clm = xde_lists['matrix'][matrix][1]
 
                 if len(matr_list) != int(row):
-                    report_error(matr_name_line, faultly_declared(matrix, 'Error') + 'The matrix row is not in accordance with which defined.\n')
+                    report_error(matr_name_line, faultly_declared(matrix, 'Error') \
+                        + 'The matrix row is not in accordance with which defined.\n')
                 if int(clm) not in row_lenth:
-                    report_error(matr_name_line, faultly_declared(matrix, 'Error') + 'The matrix column is not in accordance with which defined.\n')
+                    report_error(matr_name_line, faultly_declared(matrix, 'Error') \
+                        + 'The matrix column is not in accordance with which defined.\n')
             else:
-                report_error(matr_name_line, faultly_declared(matrix, 'Error') + 'need to define row and column number at the same time.\n')
+                report_error(matr_name_line, faultly_declared(matrix, 'Error') \
+                    + 'need to define row and column number at the same time.\n')
 
         if len(row_lenth) != 1:
-            report_error(matr_name_line, faultly_declared(matrix, 'Error') + 'lenth of every row is not equal.\n')
+            report_error(matr_name_line, faultly_declared(matrix, 'Error') \
+                + 'lenth of every row is not equal.\n')
 # end check_matrix()
 
 def report(repr_type):

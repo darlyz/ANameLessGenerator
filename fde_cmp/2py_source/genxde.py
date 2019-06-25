@@ -64,18 +64,18 @@ def main(argvs=None):
     xdefile.close()
     if error: return
 
-    # export xde element
-    import json
-    file = open('../1ges_target/'+gesname+'.json',mode='w')
-    file.write(json.dumps(xde_lists,indent=4))
-    file.close()
-
     # generate ges by xde element
     from xde2ges import xde2ges
     gesfile = open('../1ges_target/'+gesname+'.ges1', mode='w')
     error = xde2ges(ges_info, xde_lists, list_addr, gesfile)
     gesfile.close()
     if error: return
+
+    # export xde element
+    import json
+    file = open('../1ges_target/'+gesname+'.json',mode='w')
+    file.write(json.dumps(xde_lists,indent=4))
+    file.close()
 
     end   = time()
     print ('parsing time: {}s'.format(end-start))

@@ -47,6 +47,12 @@ def pre_parse(ges_info, xde_lists, list_addr, xdefile):
     for line in xdefile.readlines():
         line_i += 1
 
+        # 1.1.2 skip comment line and blank line
+        #if regx.match(r'\s*[\\(\/\/)]?.*\n',line,regx.I) != None:
+        #    continue
+        if regx.match(r'\s*\\.*\n|\s*//.*\n|\s*\n',line,regx.I) != None:
+            continue
+
         # 1.1 deal with comment and blank line
         # 1.1.1 identify comment and stitch the next line begin with '\'
         line = stitchline + line
@@ -54,10 +60,6 @@ def pre_parse(ges_info, xde_lists, list_addr, xdefile):
             stitchline = line.split('\\')[0]
             continue
         else: stitchline = ''
-
-        # 1.1.2 skip comment line and blank line
-        if regx.match(r'\s*[\\(//)]*\n',line,regx.I) != None:
-            continue
 
         # 1.1.3 identify comment begin with '//'
         if line.find('//') != -1:
@@ -261,9 +263,13 @@ def sec_parse(ges_info, xde_lists, list_addr):
     if 'mass' in xde_lists:
         if  xde_lists['mass'][0] == '%1':
             xde_lists['mass'][0] = 'lump'
+        if  len(xde_lists['mass']) == 1:
+            xde_lists['mass'].append('1.0')
     if 'damp' in xde_lists:
         if  xde_lists['damp'][0] == '%1':
             xde_lists['damp'][0] = 'lump'
+        if  len(xde_lists['damp']) == 1:
+            xde_lists['mass'].append('1.0')
 
     # 3.5 parsing fvect, fmatr, vect, matrix
     if 'fvect' in xde_lists:
@@ -505,7 +511,7 @@ def parse_code(xde_lists):
                 xde_lists['code'][code_place][code_i] = temp_str
 
             elif code_key.lower() == 'array':
-                var_list = code_line.replace(code_key,'').lstrip().split(',')
+                var_list = code_line.replace(code_key,'').strip().split(',')
                 temp_str = 'Insr_Code: double '
 
                 for var_strs in var_list:
