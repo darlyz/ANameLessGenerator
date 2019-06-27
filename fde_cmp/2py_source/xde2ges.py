@@ -174,13 +174,13 @@ def release_operator_code(code_strs, code_place, pfelacpath, xde_lists, code_use
             oprt_strs, oprt_find = '', 0
             for line in file_oprt.readlines():
                 oprt_start_file = regx.match('sub '+oprt_expr+'\(',line, regx.I)
-                oprt_end_file   = regx.match('sub '+oprt_expr+'\n',line, regx.I)
+                oprt_end_file   = regx.match('end '+oprt_expr+'\n',line, regx.I)
                 if oprt_start_file != None:
                     oprt_find = 1
                     continue
                 if oprt_end_file   != None:
                     oprt_find = 0
-                    continue
+                    break
                 if oprt_find == 1:
                     oprt_strs += line
     
@@ -221,7 +221,7 @@ def release_operator_code(code_strs, code_place, pfelacpath, xde_lists, code_use
                 continue
             if oprt_end_file   != None:
                 oprt_find = 0
-                continue
+                break
             if oprt_find == 1:
                 oprt_strs += line
 
@@ -485,10 +485,13 @@ def write_disp_var(ges_info, xde_lists, gesfile):
             var_dict[var] = [var+str(ii+1) for ii in range(nodn)]
 
     # 1.3 write var declare
-    i = 0
     gesfile.write('var')
+    disp_vars = xde_lists['disp'].copy()
+    i = 0
+    for pan_var in pan_vars:
+        disp_vars.remove(pan_var)
     for nodi in range(int(ges_info['shap_nodn'])):
-        for strs in set(xde_lists['disp']).difference(pan_vars):
+        for strs in disp_vars:
             if nodi >= len(var_dict[strs]):
                 continue
             gesfile.write(' '+var_dict[strs][nodi])
@@ -824,6 +827,10 @@ def write_weak(weak, code_use_dict, xde_lists, gesfile):
     elif xde_lists[weak][0] == 'lump':
         if len(xde_lists[weak]) == 1:
             xde_lists[weak].append('1.0')
+
+        lump_expr = {}
+        if len(xde_lists[weak]) == 2: pass
+
         gesfile.write('lump =\n')
         for shaps in xde_lists['shap']:
             nodn = regx.search(r'\d+',shaps,regx.I).group()

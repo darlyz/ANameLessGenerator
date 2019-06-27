@@ -23,7 +23,7 @@ def check_xde(ges_info, xde_lists, list_addr):
     if 'disp' in xde_lists:
         pass
     else:
-        error_type  = not_declared('SHAP', 'Error')
+        error_type  = not_declared('DISP', 'Error')
         sgest_info  = "May be declared as 'DISP * *' in the first garaph, "
         sgest_info += "and '* *' could be referened in 'mdi' file.\n"
         report_error('*', error_type + sgest_info)
@@ -297,15 +297,15 @@ def check_shap(ges_info, xde_lists, list_addr):
 def check_code(ges_info, xde_lists, list_addr, c_declares):
 
     # the inner declaration
-    all_declares  = {'tmax','dt','nstep','itnmax','time'}
-    all_declares |= {'tolerance','dampalfa','dampbeta'}
-    all_declares |= {'it','stop','itn','end'}
-    all_declares |= {'imate','nmate','nelem','nvar','nnode'}
-    all_declares |= {'ngaus','igaus','det','ndisp','nrefc','ncoor'}
+    inner_declares  = {'tmax','dt','nstep','itnmax','time'}
+    inner_declares |= {'tolerance','dampalfa','dampbeta'}
+    inner_declares |= {'it','stop','itn','end'}
+    inner_declares |= {'imate','nmate','nelem','nvar','nnode'}
+    inner_declares |= {'ngaus','igaus','det','ndisp','nrefc','ncoor'}
 
     # gather C declares and check code
-    c_declares['all']    = all_declares.copy()
-    c_declares['BFmate'] = all_declares.copy()
+    c_declares['all']    = inner_declares.copy()
+    c_declares['BFmate'] = inner_declares.copy()
     c_declares['array']  = {}
     c_declares['array']['vect'] = set()
     c_declares['array']['matrix'] = set()
@@ -332,34 +332,15 @@ def check_code(ges_info, xde_lists, list_addr, c_declares):
             if lower_key not in ['$cc','$c6'] :
                 code_strs = code_strs.replace(code_key,'').lstrip()
 
+            if lower_key[0] == '@':
+                code_list = code_strs.split()
+
             if lower_key in ['$cc','$c6','common'] :
                 if gather_declare(code_strs, line_num, assist, c_declares):
                     continue
 
             elif lower_key == 'array':
-                vara_list = code_strs.replace(code_key,'').strip().split(',')
-
-                for var_strs in vara_list:
-                    var_name = var_strs.strip().split('[')[0]
-                    idx_list = regx.findall(r'\[\d+\]',var_strs,regx.I)
-
-                    if len(idx_list) == 1:
-                        vect_len  = idx_list[0].lstrip('[').rstrip(']')
-                        vect_list = [var_name + '[' + str(ii+1) + ']' \
-                                        for ii in range(int(vect_len))]
-                        c_declares['all'] |= set(vect_list)
-                        c_declares['array']['vect'].add(var_name)
-                        if addr == 'BFmate': c_declares['BFmate'] != set(vect_list)
-
-                    elif len(idx_list) == 2:
-                        matr_row  = idx_list[0].lstrip('[').rstrip(']')
-                        matr_clm  = idx_list[1].lstrip('[').rstrip(']')
-                        matr_list = [var_name+'['+str(ii+1)+']['+str(jj+1)+']' \
-                                        for jj in range(int(matr_clm)) \
-                                            for ii in range(int(matr_row))]
-                        c_declares['all'] |= set(matr_list)
-                        c_declares['array']['matrix'].add(var_name)
-                        if addr == 'BFmate': c_declares['BFmate'] != set(matr_list)
+                gather_array_declare(code_strs, line_num, assist, c_declares)
 
             elif lower_key == '$cv':
                 check_tensor_assign(code_strs, line_num, xde_lists, c_declares)
@@ -367,18 +348,15 @@ def check_code(ges_info, xde_lists, list_addr, c_declares):
             elif lower_key == '$cp':
                 check_complex_assign(code_strs, line_num, xde_lists, list_addr, c_declares)
 
-            elif lower_key in ['@l','@w','@s']:
-                code_list = code_strs.split()
+            elif lower_key == '@l':
+                if check_operator(code_list, line_num, xde_lists, list_addr, c_declares):
+                    continue
 
-                if lower_key == '@l':
-                    if check_operator(code_list, line_num, xde_lists, list_addr, c_declares):
-                        continue
+            elif lower_key == '@w':
+                check_func_asgn1(code_list, line_num, xde_lists)
 
-                elif lower_key == '@w':
-                    check_func_asgn1(code_list, line_num, xde_lists)
-
-                elif lower_key == '@s':
-                    check_func_asgn2(code_list, line_num, xde_lists)
+            elif lower_key == '@s':
+                check_func_asgn2(code_list, line_num, xde_lists)
 
             elif lower_key == '@a':
                 pass
@@ -440,6 +418,41 @@ def gather_declare(code_strs, line_num, assist_dict, c_declares):
     else: return True
     return False
 # end check_common_code()
+
+def gather_array_declare(code_strs, line_num, assist, c_declares):
+    
+    vara_list = code_strs.replace(assist['ckey'],'').strip().split(',')
+
+    for var_strs in vara_list:
+        var_name = var_strs.strip().split('[')[0]
+        idx_list = regx.findall(r'\[\d+\]',var_strs,regx.I)
+
+        if len(idx_list) == 1:
+
+            vect_len  = idx_list[0].lstrip('[').rstrip(']')
+            vect_list = [var_name + '[' + str(ii+1) + ']' \
+                            for ii in range(int(vect_len))]
+
+            c_declares['all'] |= set(vect_list)
+            c_declares['array']['vect'].add(var_name)
+
+            if assist['addrss'] == 'BFmate':
+                c_declares['BFmate'] != set(vect_list)
+
+        elif len(idx_list) == 2:
+            
+            matr_row  = idx_list[0].lstrip('[').rstrip(']')
+            matr_clm  = idx_list[1].lstrip('[').rstrip(']')
+            matr_list = [var_name+'['+str(ii+1)+']['+str(jj+1)+']' \
+                            for jj in range(int(matr_clm)) \
+                                for ii in range(int(matr_row))]
+
+            c_declares['all'] |= set(matr_list)
+            c_declares['array']['matrix'].add(var_name)
+
+            if assist['addrss'] == 'BFmate':
+                c_declares['BFmate'] != set(matr_list)
+# end gather_array_declare()
 
 def check_tensor_assign(code_strs, line_num, xde_lists, c_declares):
     pattern = regx.compile(r'\^?[a-z][a-z0-9]*(?:_[a-z])+',regx.I)
@@ -716,12 +729,14 @@ def check_func_asgn1(code_list, line_num, xde_lists):
     if  ( ('vect'   in xde_lists and left_vara not in xde_lists['vect'] ) \
       and ('matrix' in xde_lists and left_vara not in xde_lists['matrix'] ) ) \
     or ('vect' not in xde_lists and 'matrix' not in xde_lists) :
-        report_error(line_num, not_declared(left_vara, 'Error') + "must be declared by 'VECT' or 'MATRIX'.\n")
+        report_error(line_num, not_declared(left_vara, 'Error') \
+            + "must be declared by 'VECT' or 'MATRIX'.\n")
 
     if  ( ('fvect' in xde_lists and righ_tnsr not in xde_lists['fvect'] ) \
       and ('fmatr' in xde_lists and righ_tnsr not in xde_lists['fmatr'] ) ) \
     or ('fvect' not in xde_lists and 'fmatr' not in xde_lists) :
-        report_error(line_num, not_declared(righ_tnsr, 'Error') + "must be declared by 'FVECT' or 'FMATR'.\n")
+        report_error(line_num, not_declared(righ_tnsr, 'Error') \
+            + "must be declared by 'FVECT' or 'FMATR'.\n")
 
     if   'fvect' in xde_lists and righ_tnsr in xde_lists['fvect']:
         tnsr_size = int(xde_lists['fvect'][righ_tnsr][0])
@@ -734,7 +749,8 @@ def check_func_asgn1(code_list, line_num, xde_lists):
         tnsr_idxs = dflt_idxs
     dif_set = set(tnsr_idxs).difference(set(dflt_idxs))
     if len(dif_set) != 0:
-        report_error(line_num, unsuitable_form('', 'Error') + f"the indexs '{' '.join(dif_set)}' of '{righ_tnsr}' is out of range.\n")
+        report_error(line_num, unsuitable_form('', 'Error') \
+            + f"the indexs '{' '.join(dif_set)}' of '{righ_tnsr}' is out of range.\n")
 
     if   'vect'   in xde_lists and left_vara in xde_lists['vect']:
         left_size = len(xde_lists['vect'][left_vara])
@@ -748,7 +764,8 @@ def check_func_asgn1(code_list, line_num, xde_lists):
                           *(xde_lists['matrix'][left_vara].count(' ')+1)
 
     if left_size != len(tnsr_idxs):
-        report_error(line_num, unsuitable_form('', 'Error') + f"the size of '{left_vara}' is not consistent with the right indexs.\n")
+        report_error(line_num, unsuitable_form('', 'Error') \
+            + f"the size of '{left_vara}' is not consistent with the right indexs.\n")
 # end check_func_asgn1()
 
 def check_func_asgn2(code_list, line_num, xde_lists):
@@ -759,12 +776,14 @@ def check_func_asgn2(code_list, line_num, xde_lists):
     if  ( ('fvect' in xde_lists and left_vara not in xde_lists['fvect'] ) \
       and ('fmatr' in xde_lists and left_vara not in xde_lists['fmatr'] ) ) \
     or ('fvect' not in xde_lists and 'fmatr' not in xde_lists) :
-        report_error(line_num, not_declared(left_vara, 'Error') + "must be declared by 'FVECT' or 'FMATR'.\n")
+        report_error(line_num, not_declared(left_vara, 'Error') \
+            + "must be declared by 'FVECT' or 'FMATR'.\n")
     
     if  ( ('fvect' in xde_lists and righ_tnsr not in xde_lists['fvect'] ) \
       and ('fmatr' in xde_lists and righ_tnsr not in xde_lists['fmatr'] ) ) \
     or ('fvect' not in xde_lists and 'fmatr' not in xde_lists) :
-        report_error(line_num, not_declared(righ_tnsr, 'Error') + "must be declared by 'FVECT' or 'FMATR'.\n")
+        report_error(line_num, not_declared(righ_tnsr, 'Error') \
+            + "must be declared by 'FVECT' or 'FMATR'.\n")
 
     if   'fvect' in xde_lists and righ_tnsr in xde_lists['fvect']:
         tnsr_size = int(xde_lists['fvect'][righ_tnsr][0])
@@ -777,7 +796,8 @@ def check_func_asgn2(code_list, line_num, xde_lists):
         tnsr_idxs = dflt_idxs
     dif_set = set(tnsr_idxs).difference(set(dflt_idxs))
     if len(dif_set) != 0:
-        report_error(line_num, unsuitable_form('', 'Error') + f"the indexs '{' '.join(dif_set)}' of '{righ_tnsr}' is out of range.\n")
+        report_error(line_num, unsuitable_form('', 'Error') \
+            + f"the indexs '{' '.join(dif_set)}' of '{righ_tnsr}' is out of range.\n")
 
     if   'fvect' in xde_lists and left_vara in xde_lists['fvect']:
         left_size = int(xde_lists['fvect'][left_vara][0])
@@ -785,7 +805,8 @@ def check_func_asgn2(code_list, line_num, xde_lists):
         left_size = int(xde_lists['fmatr'][left_vara][0]) \
                   * int(xde_lists['fmatr'][left_vara][1])
     if left_size != len(tnsr_idxs):
-        report_error(line_num, unsuitable_form('', 'Error') + f'the size of {left_vara} is not consistent with the right indexs.\n')
+        report_error(line_num, unsuitable_form('', 'Error') \
+            + f'the size of {left_vara} is not consistent with the right indexs.\n')
 # end check_func_asgn2()
 
 def check_matrix(xde_lists, list_addr, c_declares):
@@ -862,7 +883,7 @@ def not_declared(key_word, report_type):
     return f"{Empha_color}'{key_word}' {color[report_type]}not be declared. "
 
 def duplicate_declared(key_word, report_type):
-    return f"{Empha_color}'{key_word}' {color[report_type]}is duplicatedly declared. "
+    return f"{Empha_color}'{key_word}' {color[report_type]}is a duplicated declaration. "
 
 def unsuitable_form(form_info, report_type):
     return f"{Empha_color}'{form_info}' {color[report_type]}is not a suitable form. "

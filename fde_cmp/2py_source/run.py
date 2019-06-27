@@ -3,7 +3,7 @@ import re as regx
 
 dirs = os.listdir("../0xde_source/all_fde")
 
-out_put = 1
+out_put = 0
 
 if out_put == 1:
 	os.system("del run.log")

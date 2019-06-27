@@ -5,17 +5,19 @@
  Title: parse the xde file and check it
  All rights reserved
 '''
+from colorama import init, Fore, Back, Style
+init(autoreset=True)
+Error_color = Fore.MAGENTA
+Warnn_color = Fore.CYAN
+Empha_color = Fore.GREEN
 import re as regx
+pre_check = 1
+sec_check = 1
 
 def parse_xde(ges_info, xde_lists, list_addr, xdefile):
 
     # preliminary parse
     pre_parse(ges_info, xde_lists, list_addr, xdefile)
-
-    import json
-    file = open('../1ges_target/'+'check.json',mode='w')
-    file.write(json.dumps(xde_lists,indent=4))
-    file.close()
 
     # 2 checking
     from check_xde import check_xde
@@ -24,19 +26,20 @@ def parse_xde(ges_info, xde_lists, list_addr, xdefile):
      
     # 3 secondary parse
     sec_parse(ges_info, xde_lists, list_addr)
+
     return False
 
 def pre_parse(ges_info, xde_lists, list_addr, xdefile):
 
     # all the xde keys
-    keyws_reg  = r'ARRAY|COEF|COOR|COMMON|DAMP|DEFI|DISP|DIST|END|USERC|'
-    keyws_reg += r'FUNC|FVECT|FMATR|GAUS|LOAD|MATE|MASS|MATRIX|SHAP|STIF|VECT|'
-    keyws_reg += r'\$C[CPV6]|\$I|@[LAWSR]'
+    keyws_reg  = r'ARRAY|COEF|COOR|COMMON|DAMP|DEFI|DISP|DIST|END|USERC|' \
+               + r'FUNC|FVECT|FMATR|GAUS|LOAD|MATE|MASS|MATRIX|SHAP|STIF|VECT|' \
+               + r'\$C[CPV6]|\$I|@[LAWSR]'
 
-    keywd_tag = {'disp':0, 'coor':0, 'shap':0, \
-                 'gaus':0, 'stif':0, 'load':0, \
-                 'mate':0, 'mass':0, 'damp':0, \
-                 'complex':0, 'paragraph':'BFmate',\
+    keywd_tag = {'bf_matrix'   : '', \
+                 'cmplx_tag'   : 0, \
+                 'matr_dclr'   : 0,
+                 'paragraph'   : 'BFmate',\
     }
 
     line_i, stitchline = 0, ''
@@ -48,12 +51,10 @@ def pre_parse(ges_info, xde_lists, list_addr, xdefile):
         line_i += 1
 
         # 1.1.2 skip comment line and blank line
-        #if regx.match(r'\s*[\\(\/\/)]?.*\n',line,regx.I) != None:
-        #    continue
-        if regx.match(r'\s*\\.*\n|\s*//.*\n|\s*\n',line,regx.I) != None:
+        if regx.match(r'\s*(\$c[c6])?\s*((\\|//).*)?\s*\n',line,regx.I) != None:
             continue
 
-        # 1.1 deal with comment and blank line
+        # 1.1 deal with valid sentence with comment
         # 1.1.1 identify comment and stitch the next line begin with '\'
         line = stitchline + line
         if line.find('\\') != -1 :
@@ -63,72 +64,69 @@ def pre_parse(ges_info, xde_lists, list_addr, xdefile):
 
         # 1.1.3 identify comment begin with '//'
         if line.find('//') != -1:
-            line = line.split('//')[0]+'\n'
-            if regx.match(r'\$CC \n',line,regx.I) != None:
-                continue
+            line = line.split('//')[0]
 
         # 1.1.4 pop the space from head and tail
         line = line.strip()
 
         # 1.2 retrieve the keywords
-        code_regx = regx.match(keyws_reg,line,regx.I)
+        code_regx = regx.match(keyws_reg, line, regx.I)
 
         # 1.2.1 find the keyword at the head
         if code_regx != None:
 
-            matrix_name, matrix_line = '', ''
-            keywd = code_regx.group().lower()
+            key_lower = code_regx.group().lower()
 
             # 1.2.1.1 match and pop to xde_lists
-            if keywd in ['disp','coef','coor','gaus']:
-                pushkeydeclar(keywd, line_i, line, xde_lists, list_addr)
+            if key_lower in ['disp','coef','coor','gaus']:
+                push_key_declare(key_lower, line_i, line, xde_lists, list_addr)
 
-            elif keywd == 'mate':
-                pushkeydeclar('mate', line_i, line, xde_lists, list_addr)
+            elif key_lower == 'mate':
+                push_key_declare('mate', line_i, line, xde_lists, list_addr)
                 keywd_tag['paragraph'] = 'AFmate'
 
-            elif keywd == 'vect':
-                pushcomdeclar('vect', line_i, line, xde_lists, list_addr)
-                if line.find('|') != -1: keywd_tag['complex'] = 1
+            elif key_lower == 'vect':
+                push_tonser_declare('vect', line_i, line, xde_lists, list_addr)
+                if line.find('|') != -1: keywd_tag['cmplx_tag'] = 1
 
-            elif keywd in ['fmatr','fvect']:
-                pushcomdeclar(keywd, line_i, line, xde_lists, list_addr)
+            elif key_lower in ['fmatr','fvect']:
+                push_tonser_declare(key_lower, line_i, line, xde_lists, list_addr)
 
-            elif keywd.find('$')!= -1 or keywd.find('@')!= -1:
+            elif key_lower.find('$')!= -1 or key_lower.find('@')!= -1:
                 line = line \
                     .replace('%1',ges_info['shap_form']) \
                     .replace('%2',ges_info['shap_nodn'])
-                pushcodeline (line_i, line, keywd_tag, xde_lists, list_addr)
+                push_code_line (line_i, line, keywd_tag, xde_lists, list_addr)
                 if code_regx.group().lower() == '$cp':
-                    keywd_tag['complex'] = 1
+                    keywd_tag['cmplx_tag'] = 1
 
-            elif keywd in ['common','array']:
+            elif key_lower in ['common','array']:
                 line = line \
                     .replace('%1',ges_info['shap_form']) \
                     .replace('%2',ges_info['shap_nodn'])
-                pushcodeline (line_i, line, keywd_tag, xde_lists, list_addr)
+                push_code_line (line_i, line, keywd_tag, xde_lists, list_addr)
 
-            elif keywd in ['mass','damp','stif']:
-                pushwekdeclar(keywd, line_i, line, keywd_tag, xde_lists, list_addr)
+            elif key_lower in ['mass','damp','stif']:
+                push_weak_declare(key_lower, line_i, line, keywd_tag, xde_lists, list_addr)
 
-            elif keywd == 'shap':
+            elif key_lower == 'shap':
                 if not 'shap' in xde_lists:
                     list_addr['shap'] = []
                     xde_lists['shap'] = []
                 list_addr['shap'].append(line_i)
                 xde_lists['shap'].append(line.split()[1:])
 
-            elif keywd == 'dist':
+            elif key_lower == 'dist':
                 if line.find('|') != -1:
-                    keywd_tag['complex'] = 1
+                    keywd_tag['cmplx_tag'] = 1
                 if keywd_tag['paragraph'] in ['mass','damp','stif']:
                     xde_lists[keywd_tag['paragraph']].append('dist')
                     xde_lists[keywd_tag['paragraph']].append(line.split('=')[1].strip())
                     list_addr[keywd_tag['paragraph']].append(line_i)
 
-            elif keywd == 'load':
+            elif key_lower == 'load':
                 if line.find('|') != -1:
-                    keywd_tag['complex'] = 1
+                    keywd_tag['cmplx_tag'] = 1
                 if not 'load' in xde_lists:
                     xde_lists['load'] = []
                     list_addr['load'] = []
@@ -143,7 +141,7 @@ def pre_parse(ges_info, xde_lists, list_addr, xdefile):
                     list_addr['load'].append(line_i)
                 
 
-            elif keywd == 'func':
+            elif key_lower == 'func':
                 wordlist = line.split()
                 if len(wordlist) != 1:
                     if not 'func' in xde_lists:
@@ -153,99 +151,115 @@ def pre_parse(ges_info, xde_lists, list_addr, xdefile):
                 else:
                     keywd_tag['paragraph'] = 'func'
 
-            elif keywd == 'matrix':
-                pushcomdeclar('matrix', line_i, line, xde_lists, list_addr)
+            elif key_lower == 'matrix':
+                push_tonser_declare('matrix', line_i, line, xde_lists, list_addr)
                 matrix_name = line.split()[1]
-                matrix_line = list_addr['matrix'][matrix_name]
+                line_num    = list_addr['matrix'][matrix_name]
                 list_addr['matrix'][matrix_name] = []
-                list_addr['matrix'][matrix_name].append(matrix_line)
+                list_addr['matrix'][matrix_name].append(line_num)
+                
+                # tackle that code line write between matrix and other paragraph
+                if  keywd_tag['matr_dclr'] == 0:
+                    keywd_tag['matr_dclr'] = 1
+                    keywd_tag['bf_matrix'] = keywd_tag['paragraph']
                 keywd_tag['paragraph'] = 'matrix'
 
-            elif keywd == 'userc':
+            elif key_lower == 'userc':
                 pass
 
             # not a necessary key word using this generator
-            elif keywd in ['defi','end']:
+            elif key_lower in ['defi','end']:
                 pass
 
         # 1.2.2 find the non-keyword-head line in 'func' 'stif' 'mass' and 'damp' paragraph
         else:
-            # 1.2.2.1 find complex tag
+            # 1.2.2.1 find cmplx_tag tag
             if line.find('|') != -1:
-                keywd_tag['complex'] = 1
-            keywd = keywd_tag['paragraph']
+                keywd_tag['cmplx_tag'] = 1
+            key_words= keywd_tag['paragraph']
 
             # 1.2.2.2 find weak form and disp var deform in non-keyword-head line
-            if  keywd in ['mass','damp','stif','load'] \
-            and keywd in xde_lists:
+            if  key_words in ['mass','damp','stif','load'] \
+            and key_words in xde_lists:
 
                 if line.find('[')!= -1 and line.find(']')!= -1:
-                    xde_lists[keywd].append(line)
-                    list_addr[keywd].append(line_i)
+                    xde_lists[key_words].append(line)
+                    list_addr[key_words].append(line_i)
 
                 elif line.rstrip().lower() == 'null':
-                    xde_lists[keywd].append(line.rstrip())
-                    list_addr[keywd].append(line_i)
+                    xde_lists[key_words].append(line.rstrip())
+                    list_addr[key_words].append(line_i)
 
-            elif  keywd == 'func':
+            elif  key_words == 'func':
 
                 if line.find('[')!= -1 and line.find(']')!= -1:
 
-                    xde_lists['code'][keywd].append(line)
-                    list_addr['code'][keywd].append(line_i)
+                    xde_lists['code'][key_words].append(line)
+                    list_addr['code'][key_words].append(line_i)
 
-            elif keywd == 'matrix' :
+            elif key_words == 'matrix' :
                 xde_lists['matrix'][matrix_name].append(line)
                 list_addr['matrix'][matrix_name].append(line_i)
 
             else:
-                print('redundant information or wrong declare, line {}: '.format(line_i)+line)
+                print(f'{Warnn_color}redundant information or wrong declare, line {line_i}: ' + line)
+
+    if pre_check == 1:
+        import json
+        file = open('../1ges_target/'+'pre_check.json',mode='w')
+        file.write(json.dumps(xde_lists,indent=4))
+        file.close()
 # end pre_parse()
 
 # key declare type1: DISP, COEF, COOR, GAUS, MATE
-def pushkeydeclar (strs, matrix_line, line, xde_lists, list_addr):
+def push_key_declare (strs, line_num, line, xde_lists, list_addr):
     if strs in xde_lists:
-        print('warn: line {0}, duplicated declare, {1} has been declared at line {2}' \
-            .format(matrix_line, strs, list_addr[strs]))
+        print(f'{Warnn_color}Warn: line {Empha_color}{line_num}, {strs} {Warnn_color}' \
+             +f'has been declared at line {Empha_color}{list_addr[strs]}\n')
     else:
         line = line.replace(',',' ').replace(';',' ')
-        list_addr[strs] = matrix_line
+        list_addr[strs] = line_num
         xde_lists[strs] = line.split()[1:]
 
 # common declare type: VECT, FMATR
-def pushcomdeclar (strs, matrix_line, line, xde_lists, list_addr):
+def push_tonser_declare (strs, line_num, line, xde_lists, list_addr):
     if strs not in xde_lists: 
         xde_lists[strs], list_addr[strs] = {}, {}
     wordlist = line.split()
-    list_addr[strs][wordlist[1]] = matrix_line
+    list_addr[strs][wordlist[1]] = line_num
     if wordlist[2] == '=':
         wordlist.remove('=')
     xde_lists[strs][wordlist[1]] = wordlist[2:]
 
 # common code line : @x, $Cx
-def pushcodeline (matrix_line, line, keywd_tag, xde_lists, list_addr):
+def push_code_line (line_num, line, keywd_tag, xde_lists, list_addr):
     code_find = 0
-    keywd = keywd_tag['paragraph']
-    if keywd in ['BFmate','AFmate','func','stif','mass','damp']:
+    key_words = keywd_tag['paragraph']
+
+    # tackle that code line write between matrix and other paragraph
+    if key_words == 'matrix':
+        key_words = keywd_tag['bf_matrix']
+
+    if key_words in ['BFmate','AFmate','func','stif','mass','damp']:
         code_find = 1
-        if keywd not in xde_lists['code']:
-            xde_lists['code'][keywd] = []
-            list_addr['code'][keywd] = []
-        xde_lists['code'][keywd].append(line)
-        list_addr['code'][keywd].append(matrix_line)
+        if key_words not in xde_lists['code']:
+            xde_lists['code'][key_words] = []
+            list_addr['code'][key_words] = []
+        xde_lists['code'][key_words].append(line)
+        list_addr['code'][key_words].append(line_num)
     if code_find == 0:
-        print('error: line {}, wrong position inserted'.format(matrix_line))
+        print(f'{Error_color}Error: line {line_num}, wrong position inserted.\n')
 
 # stif, mass, damp declare
-def pushwekdeclar (strs, matrix_line, line, keywd_tag, xde_lists, list_addr):
+def push_weak_declare (strs, line_num, line, keywd_tag, xde_lists, list_addr):
     if strs in xde_lists:
-        print('error: line {0}, duplicated declare, {1} has been declared at line {2}' \
-            .format(matrix_line, strs, list_addr[strs][0]))
+        print(f'{Error_color}Error: line {Empha_color}{line_num}, {strs} {Error_color}' \
+            + f'has been declared at line {Empha_color}{list_addr[strs][0]}.\n')
     else:
         list_addr[strs], xde_lists[strs] = [], []
         wordlist = line.split()
         if len(wordlist) > 1:
-            list_addr[strs].append(matrix_line)
+            list_addr[strs].append(line_num)
             xde_lists[strs] = wordlist[1:]
         else:
             keywd_tag['paragraph'] = strs
@@ -317,6 +331,12 @@ def sec_parse(ges_info, xde_lists, list_addr):
 
     # 3.6 parsing code
     parse_code(xde_lists)
+
+    if sec_check == 1:
+        import json
+        file = open('../1ges_target/'+'sec_check.json',mode='w')
+        file.write(json.dumps(xde_lists,indent=4))
+        file.close()
 # end sec_parse()
 
 def parse_shap(ges_info, xde_lists):
