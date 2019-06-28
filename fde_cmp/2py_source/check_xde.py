@@ -549,15 +549,161 @@ def check_complex_assign(code_strs, line_num, xde_lists, list_addr, c_declares):
 def check_operator(code_list, line_num, xde_lists, list_addr, c_declares):
 
     # save all operator name to oprt_name_list
+    # save default variables of all operator 
+    # oprt_dict['grad']['xy']['vars'] = ['x','y','u']
+    oprt_dict = {}
     pfelacpath = os.environ['pfelacpath']
+    oprt_name_list = get_operator_info(pfelacpath, oprt_dict)
+
+    # first check length of '@l' code
+    oprt_len = len(code_list)
+    if oprt_len > 1:
+        if code_list[1].lower() != 'n':
+            if oprt_len == 2:
+                report_error(line_num, unsuitable_form('', 'Error') \
+                    + 'not enough information for operator.\n')
+                return True
+        else:
+            if len(code_list) > 2:
+                report_warn(line_num, unsuitable_form('', 'Warn') \
+                    + "useless information after 'n'.\n")
+    else:
+        report_error(line_num, unsuitable_form('', 'Error') \
+            + 'not enough information for operator.\n')
+        return True
+
+    # check the operator in 'pde.lib' if or not
+    if code_list[0].find('.') == -1:
+        report_error(line_num, unsuitable_form('', 'Error') \
+            + "operator name form as 'name.axi', such as 'grad.xyz'.\n")
+        return True
+
+    elif code_list[0].lower() not in oprt_name_list:
+        sgest_info  = Empha_color + code_list[0] \
+                    + Error_color + " is not a default operator."
+        report_error(line_num, unsuitable_form('', 'Error') + sgest_info)
+        return True
+
+    # split operator name, axis, variables
+    oprt_name, oprt_deed = map(lambda strs: strs.lower(), code_list[:2])
+    oprt_name, oprt_axis = oprt_name.split('.')[:2]
+    if oprt_deed != 'n': oprt_objt = code_list[2]
+    
+    # expand the vector in operator variables
+    vars_list = []
+    if oprt_deed != 'n' and oprt_len > 3:
+        for strs in code_list[3:len(code_list)]:
+            if   strs.find('_') == -1:
+                vars_list.append(strs)
+            elif strs.count('_') == 1:
+                vector = strs.split('_')[0]
+                if vector not in xde_lists['vect']:
+                    report_error(line_num, not_declared(vector, 'Error') + \
+                        "It must be declared by 'VECT'.\n")
+                else:
+                    vars_list += xde_lists['vect'][vector]
+            else:
+                report_error(line_num, unsuitable_form('', 'Error') + \
+                    "only vector or scalar can be operator's variable.\n")
+
+    # replenish default variables
+    elif oprt_deed != 'n' and oprt_len == 3:
+        if 'disp' in xde_lists and oprt_deed == 'f':
+            vars_list += list(oprt_axis) \
+                + xde_lists['disp'][:len(oprt_dict[oprt_name][oprt_axis]['disp'])]
+        elif 'coef' in xde_lists and oprt_deed in ['c','v','m']:
+            vars_list += list(oprt_axis) \
+                + xde_lists['coef'][:len(oprt_dict[oprt_name][oprt_axis]['disp'])]
+
+    # split axis and normal variables
+    oprt_axis_list = []
+    for strs in vars_list:
+        if strs in list('xyzros'):
+            oprt_axis_list.append(strs)
+        else: break
+
+    oprt_disp_list = vars_list.copy()
+    for strs in oprt_axis_list:
+        oprt_disp_list.remove(strs)
+    
+    if oprt_deed != 'n':
+        # compare provided axis counting with which in 'pde.lib'
+        need_len = len(oprt_dict[oprt_name][oprt_axis]['axis'])
+        provided = len(oprt_axis_list)
+        if provided != need_len: 
+            report_error(line_num, unsuitable_form('', 'Error') + f"need {need_len} axis but provided {provided}.\n")
+
+
+    # warning that operator's axis be not in accordance with 'coor' declaration
+    if oprt_axis != ''.join(xde_lists['coor']):
+        sgest_info  = f"coordinate of operator {Empha_color}'{oprt_axis}' "
+        sgest_info += f"{Warnn_color}is not consistance with 'coor' declaration "
+        sgest_info += f"{Empha_color}'{' '.join(xde_lists['coor'])}' {Warnn_color}in line "
+        sgest_info += f"{Empha_color}{str(list_addr['coor'])}, {Warnn_color}"
+        sgest_info += "and please make sure that it is necessary to do so.\n"
+        report_warn(line_num, unsuitable_form('', 'Warn') + sgest_info)
+
+    if oprt_deed == 'n': pass
+    elif oprt_deed in ['c','v','m']: 
+
+        # normal variables of operator must be declared in 'COEF'
+        if 'coef' not in xde_lists:
+            dif_set = set(oprt_disp_list)
+        else:
+            dif_set = set(oprt_disp_list).difference(set(xde_lists['coef']))
+        if len(dif_set) != 0:
+            report_error(line_num, unsuitable_form('', 'Error') \
+                + f"'{' '.join(list(dif_set))}' must be declared in 'COEF'.\n")
+        
+        # 'c' means resault of operator assigned to scalar (c code declared)
+        if oprt_deed == 'c':
+            if oprt_objt not in c_declares['all']:
+                report_error(line_num, not_declared(oprt_objt, 'Error') \
+                    + f'it must be declared before line {line_num}.\n')
+        
+        # 'v' means resault of operator assigned to vector (vect declared)
+        elif oprt_deed == 'v':
+            if  oprt_objt not in xde_lists['vect'] \
+            and oprt_objt not in c_declares['array']['vect']:
+                report_error(line_num, not_declared(oprt_objt, 'Error') \
+                    + "it must be declared by 'VECT' or 'ARRAY'.\n")
+        
+        # 'm' means resault of operator assigned to matrix (matrix declared)
+        elif oprt_deed == 'm':
+            if  oprt_objt not in xde_lists['matrix'] \
+            and oprt_objt not in c_declares['array']['matrix']:
+                report_error(line_num, not_declared(oprt_objt, 'Error') \
+                    + "it must be declared by 'MATRIX' or 'ARRAY'.\n")
+    
+    # 'f' means resault of operator assigned to fvect or fmatr
+    elif oprt_deed == 'f':
+
+        # normal variables of operator must be declared in 'DISP'
+        if 'disp' not in xde_lists:
+            dif_set = set(oprt_disp_list)
+        else:
+            dif_set = set(oprt_disp_list).difference(set(xde_lists['disp']))
+        if len(dif_set) != 0:
+            report_error(line_num, unsuitable_form('', 'Error') + f"'{' '.join(list(dif_set))}' must be declared in 'DISP'.\n")
+
+        if  ('fvect' in xde_lists and oprt_objt not in xde_lists['fvect']) \
+        and ('fmatr' in xde_lists and oprt_objt not in xde_lists['fmatr']):
+            report_error(line_num, not_declared(oprt_objt, 'Error') + "it must be declared by 'FVECT' or 'FMATR'.\n")
+
+    else:
+        report_error(line_num, unsuitable_form('', 'Error') + "first variable of operator must be one of '[n, c, v, m, f]'.\n")
+# end check_operator()
+
+def get_operator_info(pfelacpath, oprt_dict):
+
+    # save all operator name to oprt_name_list
     path_oprt = pfelacpath +'ges/pdesub'
     file_oprt = open(path_oprt, mode='r')
     oprt_name_list = [oprt_name.rstrip() for oprt_name in file_oprt.readlines()]     
     file_oprt.close()
 
     # save default variables of all operator 
-    # oprt_dict['grad']['xy'] = ['x','y','u']
-    oprt_dict = {}
+    # oprt_dict['grad']['xy']['vars'] = ['x','y','u']
     path_oprt = pfelacpath + 'ges/pde.lib'
     file_oprt = open(path_oprt,mode='r')
     for strs in file_oprt.readlines():
@@ -582,144 +728,19 @@ def check_operator(code_list, line_num, xde_lists, list_addr, c_declares):
                 = [ strs for strs in vars_list if strs not in list('xyzros')]
     file_oprt.close()
 
-    # first check length of '@l' code
-    oprt_len = len(code_list)
-    if oprt_len > 1:
-        if code_list[1] != 'n':
-            if oprt_len == 2:
-                report_error(line_num, unsuitable_form('', 'Error') \
-                    + 'not enough information for operator.\n')
-                return True
-    else:
-        report_error(line_num, unsuitable_form('', 'Error') \
-            + 'not enough information for operator.\n')
-        return True
+    # print oprt_dict
+    #for opr in oprt_dict:
+    #    print('-'*56)
+    #    for i,axi in enumerate( oprt_dict[opr]):
+    #        if i != 0:
+    #            opr_str = ' '*len(opr)
+    #        else:
+    #            opr_str = opr
+    #        axi_str = axi + ' '*(3-len(axi))
+    #        print(opr_str,axi_str,oprt_dict[opr][axi]['vars'])
 
-    # check the operator in 'pde.lib' if or not
-    if code_list[0].find('.') == -1:
-        report_error(line_num, unsuitable_form('', 'Error') \
-            + "operator name form as 'name.axi', such as 'grad.xyz'.\n")
-        return True
-
-    elif code_list[0] not in oprt_name_list:
-        sgest_info  = Empha_color + code_list[0]
-        sgest_info += Error_color + " is not a default operator."
-        report_error(line_num, unsuitable_form('', 'Error') + sgest_info)
-        return True
-
-    # split operator name, axis, variables
-    oprt_name, oprt_deed = code_list[:2]
-    oprt_name, oprt_axis = oprt_name.split('.')[:2]
-    if oprt_deed != 'n': oprt_objt = code_list[2]
-    
-    # expand the vector in operator variables
-    vars_list = []
-    if oprt_deed.lower() != 'n' and oprt_len > 3:
-        for strs in code_list[3:len(code_list)]:
-            if   strs.find('_') == -1:
-                vars_list.append(strs)
-            elif strs.count('_') == 1:
-                vector = strs.split('_')[0]
-                if vector not in xde_lists['vect']:
-                    report_error(line_num, not_declared(vector, 'Error') + \
-                        "It must be declared by 'VECT'.\n")
-                else:
-                    vars_list += xde_lists['vect'][vector]
-            else:
-                report_error(line_num, unsuitable_form('', 'Error') + \
-                    "only vector or scalar can be operator's variable.\n")
-
-    # replenish default variables
-    elif oprt_deed.lower() != 'n' and oprt_len == 3:
-        if 'disp' in xde_lists and oprt_deed.lower() == 'f':
-            vars_list += list(oprt_axis) \
-                + xde_lists['disp'][:len(oprt_dict[oprt_name][oprt_axis]['disp'])]
-        elif 'coef' in xde_lists and oprt_deed.lower() in ['c','v','m']:
-            vars_list += list(oprt_axis) \
-                + xde_lists['coef'][:len(oprt_dict[oprt_name][oprt_axis]['disp'])]
-
-    # split axis and normal variables
-    oprt_axis_list = []
-    for strs in vars_list:
-        if strs in list('xyzros'):
-            oprt_axis_list.append(strs)
-        else: break
-
-    oprt_disp_list = vars_list.copy()
-    for strs in oprt_axis_list:
-        oprt_disp_list.remove(strs)
-    
-    if oprt_deed.lower() != 'n':
-        # compare provided axis counting with which in 'pde.lib'
-        need_len = len(oprt_dict[oprt_name][oprt_axis]['axis'])
-        provided = len(oprt_axis_list)
-        if provided != need_len: 
-            report_error(line_num, unsuitable_form('', 'Error') + f"need {need_len} axis but provided {provided}.\n")
-
-
-    # warning that operator's axis be not in accordance with 'coor' declaration
-    if oprt_axis != ''.join(xde_lists['coor']):
-        sgest_info  = f"coordinate of operator {Empha_color}'{oprt_axis}' "
-        sgest_info += f"{Warnn_color}is not consistance with 'coor' declaration "
-        sgest_info += f"{Empha_color}'{' '.join(xde_lists['coor'])}' {Warnn_color}in line "
-        sgest_info += f"{Empha_color}{str(list_addr['coor'])}, {Warnn_color}"
-        sgest_info += "and please make sure that it is necessary to do so.\n"
-        report_warn(line_num, unsuitable_form('', 'Warn') + sgest_info)
-
-    # 'n' means no variable
-    if   oprt_deed.lower() == 'n': 
-        if len(code_list) > 2:
-            report_warn(line_num, unsuitable_form('', 'Warn') + "useless information after 'n'.\n")    
-    
-    elif oprt_deed.lower() in ['c','v','m']: 
-
-        # normal variables of operator must be declared in 'COEF'
-        if 'coef' not in xde_lists:
-            dif_set = set(oprt_disp_list)
-        else:
-            dif_set = set(oprt_disp_list).difference(set(xde_lists['coef']))
-        if len(dif_set) != 0:
-            report_error(line_num, unsuitable_form('', 'Error') \
-                + f"'{' '.join(list(dif_set))}' must be declared in 'COEF'.\n")
-        
-        # 'c' means resault of operator assigned to scalar (c code declared)
-        if oprt_deed.lower() == 'c':
-            if oprt_objt not in c_declares['all']:
-                report_error(line_num, not_declared(oprt_objt, 'Error') \
-                    + f'it must be declared before line {line_num}.\n')
-        
-        # 'v' means resault of operator assigned to vector (vect declared)
-        elif oprt_deed.lower() == 'v':
-            if  oprt_objt not in xde_lists['vect'] \
-            and oprt_objt not in c_declares['array']['vect']:
-                report_error(line_num, not_declared(oprt_objt, 'Error') \
-                    + "it must be declared by 'VECT' or 'ARRAY'.\n")
-        
-        # 'm' means resault of operator assigned to matrix (matrix declared)
-        elif oprt_deed.lower() == 'm':
-            if  oprt_objt not in xde_lists['matrix'] \
-            and oprt_objt not in c_declares['array']['matrix']:
-                report_error(line_num, not_declared(oprt_objt, 'Error') \
-                    + "it must be declared by 'MATRIX' or 'ARRAY'.\n")
-    
-    # 'f' means resault of operator assigned to fvect or fmatr
-    elif oprt_deed.lower() == 'f':
-
-        # normal variables of operator must be declared in 'DISP'
-        if 'disp' not in xde_lists:
-            dif_set = set(oprt_disp_list)
-        else:
-            dif_set = set(oprt_disp_list).difference(set(xde_lists['disp']))
-        if len(dif_set) != 0:
-            report_error(line_num, unsuitable_form('', 'Error') + f"'{' '.join(list(dif_set))}' must be declared in 'DISP'.\n")
-
-        if  ('fvect' in xde_lists and oprt_objt not in xde_lists['fvect']) \
-        and ('fmatr' in xde_lists and oprt_objt not in xde_lists['fmatr']):
-            report_error(line_num, not_declared(oprt_objt, 'Error') + "it must be declared by 'FVECT' or 'FMATR'.\n")
-
-    else:
-        report_error(line_num, unsuitable_form('', 'Error') + "first variable of operator must be one of '[n, c, v, m, f]'.\n")
-# end check_operator()
+    return oprt_name_list
+# end get_operator_info()
 
 def check_func_asgn1(code_list, line_num, xde_lists):
     left_vara, righ_tnsr = code_list[:2]
