@@ -11,22 +11,29 @@ from time import time
 import re as regx
 
 def prepare(gesname, coortype, ges_info):
-    ges_shap_type = regx.search(r'[ltqwc][1-9]+',gesname,regx.I).group()
-    ges_gaus_type = regx.search(r'g[1-9]+',gesname,regx.I)
+    ges_shap_type = regx.search(r'[ltqwc][1-9][0-9]*',gesname,regx.I).group()
+    ges_gaus_type = regx.search(r'g[1-9][0-9]*',gesname,regx.I)
     if ges_gaus_type != None:
         ges_gaus_type = ges_gaus_type.group()
     else: ges_gaus_type = ges_shap_type
 
-    ges_shap_nodn = regx.search(r'[1-9]+',ges_shap_type,regx.I).group()
+    ges_shap_nodn = regx.search(r'[1-9][0-9]*',ges_shap_type,regx.I).group()
     ges_shap_form = ges_shap_type[0]
 
-    dim = regx.search(r'[1-9]+',coortype,regx.I).group()
+    dim = regx.search(r'[1-9]+', coortype, regx.I).group()
     axi = coortype.split('d')[1]
     ges_info['shap_nodn'] = ges_shap_nodn
     ges_info['shap_form'] = ges_shap_form
     ges_info['gaus_type'] = ges_gaus_type
     ges_info['dim'] = dim
     ges_info['axi'] = axi
+
+    from felac_data import get_operator_data, \
+                           get_gaussian_data, \
+                           get_shapfunc_data
+    get_operator_data()
+    get_gaussian_data()
+    get_shapfunc_data()
 
 # ...$python genfde.py filename elemtype axis
 def main(argvs=None):

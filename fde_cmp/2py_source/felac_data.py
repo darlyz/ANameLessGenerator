@@ -11,7 +11,7 @@ import re
 import os
 
 operator_data = {}
-gaussain_data = {}
+gaussian_data = {}
 shapfunc_data = {}
 
 pfelacpath = os.environ['pfelacpath']
@@ -26,7 +26,7 @@ def get_operator_data():
         if opr_pattern != None:
             opr_find = 1
             opr_name, opr_vars = opr_pattern.group().split('(')[:2]
-            opr_name, opr_axis = opr_name.split('.')[:2]
+            opr_name, opr_axis = opr_name.replace('sub ','').split('.')[:2]
 
             var_list = opr_vars.split(')')[0].split(',')
 
@@ -70,16 +70,16 @@ def print_operator_data():
                 print(' '*(len(opr_str)+len(axi_str)+2),strs)
 # end print_operator_data()
 
-def get_gaussain_data():
+def get_gaussian_data():
     read_gaus_file('gaus', 'line', r'n=\d+')
     read_gaus_file('gaust', 'triangle', r'P\d+')
     read_gaus_file('gausw', 'tetrahedron', r'P\d+')
-# end get_gaussain_data()
+# end get_gaussian_data()
 
 def read_gaus_file(gaus_file, shap_type, pattern):
 
     file_gaus = open(pfelacpath + f'ges/{gaus_file}.pnt', mode='r')
-    gaussain_data[shap_type] = {}
+    gaussian_data[shap_type] = {}
 
     gaus_find, gaus_ordr = 0, ''
     for strings in file_gaus.readlines():
@@ -90,7 +90,7 @@ def read_gaus_file(gaus_file, shap_type, pattern):
                 gaus_ordr = gaus_pattern.group().split('=')[1]
             elif shap_type[0] == 't':
                 gaus_ordr = gaus_pattern.group()[1:]
-            gaussain_data[shap_type][gaus_ordr] = ''
+            gaussian_data[shap_type][gaus_ordr] = ''
             continue
 
         if strings[0] == '\n':
@@ -98,24 +98,24 @@ def read_gaus_file(gaus_file, shap_type, pattern):
             continue
 
         if gaus_find == 1:
-            gaussain_data[shap_type][gaus_ordr] += strings
+            gaussian_data[shap_type][gaus_ordr] += strings
 
     file_gaus.close()
 # end read_gaus_file()
 
-def print_gaussain_data():
-    for shap in gaussain_data:
+def print_gaussian_data():
+    for shap in gaussian_data:
         print('-'*56)
-        for i, order in enumerate(gaussain_data[shap]):
+        for i, order in enumerate(gaussian_data[shap]):
             if i != 0:
                 shap_str = ' '*len(shap)
             else:
                 shap_str = shap
             order_str = 'order ' + order + ' '*(2-len(order))
             print(shap_str, order_str)
-            for strs in gaussain_data[shap][order].rstrip().split('\n'):
+            for strs in gaussian_data[shap][order].rstrip().split('\n'):
                 print(' '*(len(shap_str)+len(order_str)+2),strs)
-# end print_gaussain_data()
+# end print_gaussian_data()
 
 def get_shapfunc_data():
     file_shap = open(pfelacpath + 'ges/ges.lib', mode='r')
@@ -144,7 +144,7 @@ def get_shapfunc_data():
 
             continue
 
-        shap_end = re.match(r'end [0-9a-z]\.', strings, re.I)
+        shap_end = re.match(r'end [0-9a-z]+\.', strings, re.I)
         if shap_end != None:
             shap_find = 0
             continue
@@ -170,5 +170,5 @@ def print_shapfunc_data():
 # end print_shapfunc_data()
 
 #get_operator_data()
-#get_gaussain_data()
+#get_gaussian_data()
 #get_shapfunc_data()

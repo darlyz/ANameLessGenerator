@@ -17,6 +17,15 @@ import os
 
 error = False
 
+from felac_data import operator_data
+oprt_name_list = [opr_name+'.'+opr_axis \
+                    for opr_name in operator_data.keys() \
+                        for opr_axis in operator_data[opr_name].keys()]
+oprt_dict = operator_data
+
+from felac_data import shapfunc_data
+shap_name_list = [ shap_name for shap_name in shapfunc_data['sub'].keys()]
+
 def check_xde(ges_info, xde_lists, list_addr):
 
     # check disp
@@ -115,15 +124,6 @@ def check_xde(ges_info, xde_lists, list_addr):
 # end check_xde()
 
 def check_shap(ges_info, xde_lists, list_addr):
-
-    # save all shap function name to shap_name_list
-    pfelacpath = os.environ['pfelacpath']
-    path_shap = pfelacpath + 'ges/gessub'
-    file_shap = open(path_shap, mode='r')
-    shap_name_list = [shap_name.rstrip() \
-        for shap_name in file_shap.readlines() \
-            if shap_name.split('.')[1] == 'sub\n']
-    file_shap.close()
 
     base_shap_dclr_times = 0
     base_shap_line = 0
@@ -289,7 +289,7 @@ def check_shap(ges_info, xde_lists, list_addr):
 
         if not shap_list[1].isnumeric() \
         and shap_list[1][-1] in ['m','a','v','p','e']:
-            if 'd' + ges_info['dim'] + shap_form + shap_nodn + '.sub' not in shap_name_list:
+            if 'd' + ges_info['dim'] + shap_form + shap_nodn not in shap_name_list:
                 report_error(line_num, faultly_declared('SHAP', 'Error') + \
                     shap_form + shap_nodn + ' is not a valid shap.')
 # end check_shap()
@@ -548,13 +548,6 @@ def check_complex_assign(code_strs, line_num, xde_lists, list_addr, c_declares):
 
 def check_operator(code_list, line_num, xde_lists, list_addr, c_declares):
 
-    # save all operator name to oprt_name_list
-    # save default variables of all operator 
-    # oprt_dict['grad']['xy']['vars'] = ['x','y','u']
-    oprt_dict = {}
-    pfelacpath = os.environ['pfelacpath']
-    oprt_name_list = get_operator_info(pfelacpath, oprt_dict)
-
     # first check length of '@l' code
     oprt_len = len(code_list)
     if oprt_len > 1:
@@ -693,54 +686,6 @@ def check_operator(code_list, line_num, xde_lists, list_addr, c_declares):
     else:
         report_error(line_num, unsuitable_form('', 'Error') + "first variable of operator must be one of '[n, c, v, m, f]'.\n")
 # end check_operator()
-
-def get_operator_info(pfelacpath, oprt_dict):
-
-    # save all operator name to oprt_name_list
-    path_oprt = pfelacpath +'ges/pdesub'
-    file_oprt = open(path_oprt, mode='r')
-    oprt_name_list = [oprt_name.rstrip() for oprt_name in file_oprt.readlines()]     
-    file_oprt.close()
-
-    # save default variables of all operator 
-    # oprt_dict['grad']['xy']['vars'] = ['x','y','u']
-    path_oprt = pfelacpath + 'ges/pde.lib'
-    file_oprt = open(path_oprt,mode='r')
-    for strs in file_oprt.readlines():
-        regx_oprt = regx.search(r'[a-z]+\.[xyzros123d]+\(.*\)', strs, regx.I)
-        if regx_oprt != None:
-            oprt_name,oprt_vars = regx_oprt.group().split('(')[:2]
-            oprt_name,oprt_axis = oprt_name.split('.')[:2]
-
-            oprt_vars = oprt_vars.split(')')[0]
-            vars_list = oprt_vars.split(',')
-
-            if oprt_name not in oprt_dict:
-                oprt_dict[oprt_name] = {}
-            if oprt_name in oprt_dict \
-            and oprt_axis not in oprt_dict[oprt_name]:
-                oprt_dict[oprt_name][oprt_axis] = {}
-
-            oprt_dict[oprt_name][oprt_axis]['vars'] = vars_list.copy()
-            oprt_dict[oprt_name][oprt_axis]['axis'] \
-                = [ strs for strs in vars_list if strs in list('xyzros')]
-            oprt_dict[oprt_name][oprt_axis]['disp'] \
-                = [ strs for strs in vars_list if strs not in list('xyzros')]
-    file_oprt.close()
-
-    # print oprt_dict
-    #for opr in oprt_dict:
-    #    print('-'*56)
-    #    for i,axi in enumerate( oprt_dict[opr]):
-    #        if i != 0:
-    #            opr_str = ' '*len(opr)
-    #        else:
-    #            opr_str = opr
-    #        axi_str = axi + ' '*(3-len(axi))
-    #        print(opr_str,axi_str,oprt_dict[opr][axi]['vars'])
-
-    return oprt_name_list
-# end get_operator_info()
 
 def check_func_asgn1(code_list, line_num, xde_lists):
     left_vara, righ_tnsr = code_list[:2]

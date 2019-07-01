@@ -7,7 +7,13 @@
 '''
 import re as regx
 import os,math
-from expr import idx_summation,cmplx_expr,split_bracket_expr,expr
+from expr import split_bracket_expr, \
+                 idx_summation, \
+                 cmplx_expr, \
+                 expr
+from felac_data import operator_data, \
+                       shapfunc_data, \
+                       gaussian_data
 
 def xde2ges(ges_info, xde_lists, list_addr, gesfile):
 
@@ -163,28 +169,13 @@ def release_complex_code(code_strs, code_place, xde_lists, code_use_dict):
 # end release_complex_code()
 
 def release_operator_code(code_strs, code_place, pfelacpath, xde_lists, code_use_dict):
-    path_oprt = pfelacpath+'ges/pde.lib'
-    file_oprt = open(path_oprt, mode='r')
     oprt_expr = code_strs.replace('Oprt_Asgn: ','')
+    oprt_name, oprt_axis = oprt_expr.split('.')
 
     # singularity and volume operators
     for oprt_key in ['singular','vol']:
         if oprt_expr.find(oprt_key) != -1:
-            
-            oprt_strs, oprt_find = '', 0
-            for line in file_oprt.readlines():
-                oprt_start_file = regx.match('sub '+oprt_expr+r'\(',line, regx.I)
-                oprt_end_file   = regx.match('end '+oprt_expr+'\n',line, regx.I)
-                if oprt_start_file != None:
-                    oprt_find = 1
-                    continue
-                if oprt_end_file   != None:
-                    oprt_find = 0
-                    break
-                if oprt_find == 1:
-                    oprt_strs += line
-    
-            xde_lists[oprt_key] = oprt_strs
+            xde_lists[oprt_key] = operator_data[oprt_name][oprt_axis]['expr']
 
     # other operators as grad, div, curl...
     if  oprt_expr.find('singular') == -1 \
@@ -193,6 +184,7 @@ def release_operator_code(code_strs, code_place, pfelacpath, xde_lists, code_use
         # split aa=grad.xy(x,y,u) to aa, grad.xy, [x,y,u]
         left_vara, righ_expr = oprt_expr.split('=')[:2]
         oprt_name, oprt_vars = righ_expr.split('(')[:2]
+        oprt_name, oprt_axis = oprt_name.split('.')
         oprt_vars = oprt_vars.rstrip(')').split(',')
 
         # expand vector variable list [x_i,a_i...] --> [x,y,z,a1,a2,...]
@@ -209,21 +201,7 @@ def release_operator_code(code_strs, code_place, pfelacpath, xde_lists, code_use
                     temp_vars += matr_row
         oprt_vars = temp_vars.copy()
 
-        # find operator in pde.lib
-        oprt_strs, oprt_find = '', 0
-        for line in file_oprt.readlines():
-            oprt_start_file = regx.search('sub '+oprt_name+r'\(',line,regx.I)
-            oprt_end_file   = regx.search('end '+oprt_name+'\n',line,regx.I)
-            if oprt_start_file != None:
-                oprt_find = 1
-                # find variables of operator in pde.lib
-                temp_vars = line.split('(')[1].rstrip().rstrip(')').split(',').copy()
-                continue
-            if oprt_end_file   != None:
-                oprt_find = 0
-                break
-            if oprt_find == 1:
-                oprt_strs += line
+        oprt_strs = operator_data[oprt_name][oprt_axis]['expr']
 
         # replace default variable by operator variable
         if len(oprt_vars) == len(temp_vars):
@@ -279,7 +257,6 @@ def release_operator_code(code_strs, code_place, pfelacpath, xde_lists, code_use
                         for strs in lists:
                             code_use_dict[code_place].append('$cv '+strs+'='+expr_list[ii]+'\n')
                             ii += 1
-    file_oprt.close()
 # end release_operator_code()
 
 def release_funcasgn_code(code_strs, code_place, xde_lists, code_use_dict):
@@ -512,24 +489,8 @@ def write_shap_tran(pfelacpath, ges_info, xde_lists, gesfile):
     # 9.1 write shap
     for shap in xde_lists['shap'].keys():
 
-        shap_func = 'd' + ges_info['dim'] + shap + '.sub'
-        path_shap = pfelacpath + 'ges/ges.lib'
-        file_shap = open(path_shap, mode='r')
-        shap_find, shap_strs = 0, ''
-
-        # 9.1.1 find shap function in ges.lib
-        for line in file_shap.readlines():
-            shap_start_file = regx.search('sub '+shap_func,line,regx.I)
-            shap_end_file   = regx.search('end '+shap_func,line,regx.I)
-            if shap_start_file != None:
-                shap_find = 1
-                continue
-            if shap_end_file   != None:
-                shap_find = 0
-                continue
-            if shap_find == 1:
-                shap_strs += line
-        file_shap.close()
+        shap_func = 'd' + ges_info['dim'] + shap
+        shap_strs = shapfunc_data['sub'][shap_func]['expr']
 
         # note: save the base shap function for mix element when write tran
         if shap == base_shap_type:
@@ -581,28 +542,11 @@ def write_coefshap(pfelacpath, ges_info, xde_lists, gesfile):
     geslib_coor = ['x','y','z']
     for shap in xde_lists['coef_shap'].keys():
 
-        shap_func = 'd' + ges_info['dim'] + shap + '.sub'
-        path_shap = pfelacpath + 'ges/ges.lib'
-        file_shap = open(path_shap, mode='r')
-        shap_find, shap_strs = 0, ''
-
-        # 9.3.1 find shap function in ges.lib
-        for line in file_shap.readlines():
-            shap_start_file = regx.search('sub '+shap_func,line,regx.I)
-            shap_end_file   = regx.search('end '+shap_func,line,regx.I)
-            if shap_start_file != None:
-                shap_find = 1
-                continue
-            if shap_end_file     != None:
-                shap_find = 0
-                continue
-            if shap_find == 1:
-                shap_strs += line
-        file_shap.close()
+        shap_func = 'd' + ges_info['dim'] + shap
+        shap_strs = shapfunc_data['sub'][shap_func]['expr']
 
         # 9.2.1 add '()'
-        shap_expr_list = shap_strs.split('\n')
-        shap_expr_list.remove('')
+        shap_expr_list = shap_strs.rstrip().split('\n')
         coef_expr_list = []
 
         for shap_expr in shap_expr_list:
@@ -634,27 +578,13 @@ def write_gaus(pfelacpath, ges_info, xde_lists, gesfile):
         # 9.1.1 line square or cube shap
         if ges_info['shap_form'].lower() in ['l','q','c']:
 
-            path_gaus = pfelacpath+'ges/gaus.pnt'
-            file_gaus = open(path_gaus, mode='r')
-            gaus_find, gaus_axis, gaus_weit = 0, [], []
-
-            # 9.1.1.1 read gaus axis and weight in gaus.pnt
-            for line in file_gaus.readlines():
-                gaus_start_file = regx.search('n='+gaus_degree,line,regx.I)
-                if gaus_start_file != None:
-                    gaus_find = 1
-                    continue
-                if gaus_find == 1 and line=='\n':
-                    gaus_find = 0
-                    continue
-                if gaus_find == 1:
-                    gaus_strs = line.split()
-                    if  gaus_strs[0][0] not in ['-' ,'+'] :
-                        gaus_strs[0] = ' '+gaus_strs[0]
-                    gaus_axis.append(gaus_strs[0])
-                    gaus_weit.append(gaus_strs[1])
-
-            file_gaus.close()
+            gaus_axis, gaus_weit = [], []
+            for line in gaussian_data['line'][gaus_degree].rstrip().split('\n'):
+                gaus_strs = line.split()
+                if  gaus_strs[0][0] not in ['-' ,'+'] :
+                    gaus_strs[0] = ' '+gaus_strs[0]
+                gaus_axis.append(gaus_strs[0])
+                gaus_weit.append(gaus_strs[1])
 
             # 9.1.1.2 write line square or cube's gaussian integra
             gesfile.write('gaus = '+str(len(gaus_weit)**int(ges_info['dim']))+'\n')
@@ -688,10 +618,6 @@ def write_gaus(pfelacpath, ges_info, xde_lists, gesfile):
         # 9.1.2 triangle shap
         elif ges_info['shap_form'].lower()=='t':
 
-            path_gaus = pfelacpath+'ges/gaust.pnt'
-            file_gaus = open(path_gaus, mode='r')
-            gaus_find, gaus_strs = 0, ''
-
             # 9.1.2.1 tackle the gaussian degree
             if gaus_degree == '6':
                 gaus_degree = '5'
@@ -700,27 +626,10 @@ def write_gaus(pfelacpath, ges_info, xde_lists, gesfile):
             elif int(gaus_degree) > 17:
                 gaus_degree = '17'
 
-            # 9.1.2.2 read gaus axis and weight in gaust.pnt and write
-            for line in file_gaus.readlines():
-                gaus_start_file = regx.match('P'+gaus_degree,line,regx.I)
-                if gaus_start_file != None:
-                    gaus_find = 1
-                    continue
-                if gaus_find == 1 and regx.match(r'\s*\n',line,regx.I) != None:
-                    gaus_find = 0
-                    continue
-                if gaus_find == 1:
-                    gaus_strs += line
-
-            file_gaus.close()
-            gesfile.write(gaus_strs)
+            gesfile.write(gaussian_data['triangle'][gaus_degree])
 
         # 9.1.3 tetrahedron shap
         elif ges_info['shap_form'].lower()=='w':
-
-            path_gaus = pfelacpath+'ges/gausw.pnt'
-            file_gaus = open(path_gaus, mode='r')
-            gaus_find, gaus_strs = 0, ''
 
             # 9.1.3.1 tackle the gaussian degree
             if gaus_degree == '4':
@@ -730,45 +639,14 @@ def write_gaus(pfelacpath, ges_info, xde_lists, gesfile):
             elif int(gaus_degree) > 7:
                 gaus_degree = '7'
 
-            # 9.1.2.2 read gaus axis and weight in gausw.pnt and write
-            for line in file_gaus.readlines():
-                gaus_start_file = regx.search('P'+gaus_degree,line,regx.I)
-                if gaus_start_file != None:
-                    gaus_find = 1
-                    continue
-                if gaus_find == 1 and regx.match(r'\s*\n',line,regx.I) != None:
-                    gaus_find = 0
-                    continue
-                if gaus_find == 1:
-                    gaus_strs += line
-
-            file_gaus.close()
-            gesfile.write(gaus_strs)
+            gesfile.write(gaussian_data['tetrahedron'][gaus_degree])
 
         else: pass
 
     # 9.2 node integral
     else:
-        path_gaus = pfelacpath+'ges/ges.lib'
-        file_gaus = open(path_gaus, mode='r')
-        gaus_find, gaus_strs = 0, ''
-
-        # 9.2.1 read gaus axis and weight in ges.lib and write
-        for line in file_gaus.readlines():
-            gaus_name = ' d'+ ges_info['dim'] + xde_lists['gaus']+'.gau'
-            gaus_start_file = regx.search('sub' + gaus_name, line,regx.I)
-            gaus_end_file   = regx.search('end' + gaus_name, line,regx.I)
-            if gaus_start_file != None:
-                gaus_find = 1
-                continue
-            if gaus_end_file != None:
-                gaus_find = 0
-                continue
-            if gaus_find == 1:
-                gaus_strs += line
-
-        file_gaus.close()
-        gesfile.write(gaus_strs)
+        shap_name = 'd'+ges_info['dim']+ges_info['shap_form']+ges_info['shap_nodn']
+        gesfile.write(shapfunc_data['gau'][shap_name]['expr'])
 # end write_gaus()
 
 def write_func(code_use_dict, xde_lists, gesfile):
