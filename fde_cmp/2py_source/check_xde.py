@@ -33,8 +33,8 @@ def check_xde(ges_info, xde_lists, list_addr):
         pass
     else:
         error_type  = not_declared('DISP', 'Error')
-        sgest_info  = "May be declared as 'DISP * *' in the first garaph, "
-        sgest_info += "and '* *' could be referened in 'mdi' file.\n"
+        sgest_info  = "May be declared as 'DISP * *' in the first garaph, " \
+                    + "and '* *' could be referened in 'mdi' file.\n"
         report_error('*', error_type + sgest_info)
 
     # check coor
@@ -48,8 +48,8 @@ def check_xde(ges_info, xde_lists, list_addr):
     else:
         error_type  = not_declared('COOR', 'Error')
         sgest_info  = "May be declared as 'COOR {}' " \
-                      .format(' '.join(list(ges_info['axi'])))
-        sgest_info += "in the first garaph.\n"
+                      .format(' '.join(list(ges_info['axi']))) \
+                    + "in the first garaph.\n"
         report_error('*', error_type + sgest_info)
 
     # check shap
@@ -57,8 +57,8 @@ def check_xde(ges_info, xde_lists, list_addr):
         check_shap(ges_info, xde_lists, list_addr)
     else:
         error_type  = not_declared('SHAP', 'Error')
-        sgest_info  = "Shap function may be declared as "
-        sgest_info += "'SHAP %1 %2' in the first garaph."
+        sgest_info  = "Shap function may be declared as " \
+                    + "'SHAP %1 %2' in the first garaph."
         report_error('*', error_type + sgest_info)
 
     # check gaus
@@ -66,8 +66,8 @@ def check_xde(ges_info, xde_lists, list_addr):
         pass
     else:
         error_type  = not_declared('GAUS', 'Error')
-        sgest_info  = "gauss integral may be declared as "
-        sgest_info += "'GAUS %3' in the first garaph."
+        sgest_info  = "gauss integral may be declared as " \
+                    + "'GAUS %3' in the first garaph."
         report_error('*', error_type + sgest_info)
 
     # check insert code
@@ -155,8 +155,8 @@ def check_shap(ges_info, xde_lists, list_addr):
 
         if shap_form not in shap_forms:
             error_type  = faultly_declared('SHAP', 'Error')
-            sgest_info  = "the first variable of shap declaration must to be "
-            sgest_info += f"one of {shap_forms}, or '%1'.\n"
+            sgest_info  = "the first variable of shap declaration must to be " \
+                        + f"one of {shap_forms}, or '%1'.\n"
             report_error(line_num, error_type + sgest_info)
 
         else:
@@ -181,8 +181,8 @@ def check_shap(ges_info, xde_lists, list_addr):
                     snodn = shap_node[shap_forms.index(shap_form)]
                     if base_shap_node not in snodn:
                         error_type  = faultly_declared('shap', 'Error')
-                        sgest_info  = "the second variable of shap declaration"
-                        sgest_info += f" is suggested to be one of {snodn}.\n"
+                        sgest_info  = "the second variable of shap declaration" \
+                                    + f" is suggested to be one of {snodn}.\n"
                         report_error(line_num, error_type + sgest_info)
 
             # advance shap declare
@@ -190,8 +190,8 @@ def check_shap(ges_info, xde_lists, list_addr):
 
                 if shap_form != base_shap_form:
                     error_type  = faultly_declared('SHAP', 'Error')
-                    sgest_info  = 'the first variable must be same to base shap '
-                    sgest_info += f"declared at line {Empha_color}{base_shap_line}"
+                    sgest_info  = 'the first variable must be same to base shap ' \
+                                + f"declared at line {Empha_color}{base_shap_line}"
                     report_error(line_num, error_type + sgest_info)
 
                 # sub shap declare using mix element
@@ -222,19 +222,19 @@ def check_shap(ges_info, xde_lists, list_addr):
                     base_index = shap_forms.index(base_shap_form)
                     if base_shap_node != node_dgree2[base_index]:
                         error_type  = faultly_declared('SHAP', 'Error')
-                        sgest_info  = 'The second variable of base shap must to be '
-                        sgest_info += Empha_color + node_dgree2[base_index]
-                        sgest_info += Error_color + '(second order), '
-                        sgest_info += 'since using mix order element.\n'
+                        sgest_info  = 'The second variable of base shap must to be ' \
+                                    + Empha_color + node_dgree2[base_index] \
+                                    + Error_color + '(second order), ' \
+                                    + 'since using mix order element.\n'
                         report_error(base_shap_line, error_type + sgest_info)
 
                     # sub shap is not coordinate with base or not coordinate with shap_form
                     if shap_nodn != node_dgree1[base_index]:
                         error_type  = faultly_declared('SHAP', 'Error')
-                        sgest_info  = 'The second variable of mixed shap must to be '
-                        sgest_info += Empha_color + node_dgree1[base_index]
-                        sgest_info += Error_color + '(first order), '
-                        sgest_info += 'since using mix order element.\n'
+                        sgest_info  = 'The second variable of mixed shap must to be ' \
+                                    + Empha_color + node_dgree1[base_index] \
+                                    + Error_color + '(first order), ' \
+                                    + 'since using mix order element.\n'
                         report_error(line_num, error_type + sgest_info)
 
                 # penalty disp var shap declare
@@ -272,19 +272,19 @@ def check_shap(ges_info, xde_lists, list_addr):
                     base_index = shap_forms.index(base_shap_form)
                     if base_shap_node != node_dgree1[base_index]:
                         error_type  = faultly_declared('SHAP', 'Error')
-                        sgest_info  = 'The second variable of base shap must to be '
-                        sgest_info += Empha_color + node_dgree2[base_index]
-                        sgest_info += Error_color + '(first order), '
-                        sgest_info += 'since using penalty element.\n'
+                        sgest_info  = 'The second variable of base shap must to be ' \
+                                    + Empha_color + node_dgree2[base_index] \
+                                    + Error_color + '(first order), ' \
+                                    + 'since using penalty element.\n'
                         report_error(base_shap_line, error_type + sgest_info)
 
                     # sub shap is not coordinate with base or not coordinate with shap_form
                     if shap_nodn[:-1] != node_dgree1[base_index]:
                         error_type  = faultly_declared('SHAP', 'Error')
-                        sgest_info  = 'The second variable of penalty shap must to be '
-                        sgest_info += Empha_color + node_dgree1[base_index]
-                        sgest_info += Error_color + '(first order), '
-                        sgest_info += 'since using penalty element.\n'
+                        sgest_info  = 'The second variable of penalty shap must to be ' \
+                                    + Empha_color + node_dgree1[base_index] \
+                                    + Error_color + '(first order), ' \
+                                    + 'since using penalty element.\n'
                         report_error(line_num, error_type + sgest_info)
 
         if not shap_list[1].isnumeric() \
@@ -297,11 +297,11 @@ def check_shap(ges_info, xde_lists, list_addr):
 def check_code(ges_info, xde_lists, list_addr, c_declares):
 
     # the inner declaration
-    inner_declares  = {'tmax','dt','nstep','itnmax','time'}
-    inner_declares |= {'tolerance','dampalfa','dampbeta'}
-    inner_declares |= {'it','stop','itn','end'}
-    inner_declares |= {'imate','nmate','nelem','nvar','nnode'}
-    inner_declares |= {'ngaus','igaus','det','ndisp','nrefc','ncoor'}
+    inner_declares  = {'tmax','dt','nstep','itnmax','time'} \
+                    | {'tolerance','dampalfa','dampbeta'} \
+                    | {'it','stop','itn','end'} \
+                    | {'imate','nmate','nelem','nvar','nnode'} \
+                    | {'ngaus','igaus','det','ndisp','nrefc','ncoor'}
 
     # gather C declares and check code
     c_declares['all']    = inner_declares.copy()
@@ -629,11 +629,11 @@ def check_operator(code_list, line_num, xde_lists, list_addr, c_declares):
 
     # warning that operator's axis be not in accordance with 'coor' declaration
     if oprt_axis != ''.join(xde_lists['coor']):
-        sgest_info  = f"coordinate of operator {Empha_color}'{oprt_axis}' "
-        sgest_info += f"{Warnn_color}is not consistance with 'coor' declaration "
-        sgest_info += f"{Empha_color}'{' '.join(xde_lists['coor'])}' {Warnn_color}in line "
-        sgest_info += f"{Empha_color}{str(list_addr['coor'])}, {Warnn_color}"
-        sgest_info += "and please make sure that it is necessary to do so.\n"
+        sgest_info  = f"coordinate of operator {Empha_color}'{oprt_axis}' " \
+                    + f"{Warnn_color}is not consistance with 'coor' declaration " \
+                    + f"{Empha_color}'{' '.join(xde_lists['coor'])}' {Warnn_color}in line " \
+                    + f"{Empha_color}{str(list_addr['coor'])}, {Warnn_color}" \
+                    + "and please make sure that it is necessary to do so.\n"
         report_warn(line_num, unsuitable_form('', 'Warn') + sgest_info)
 
     if oprt_deed == 'n': pass
@@ -677,14 +677,17 @@ def check_operator(code_list, line_num, xde_lists, list_addr, c_declares):
         else:
             dif_set = set(oprt_disp_list).difference(set(xde_lists['disp']))
         if len(dif_set) != 0:
-            report_error(line_num, unsuitable_form('', 'Error') + f"'{' '.join(list(dif_set))}' must be declared in 'DISP'.\n")
+            report_error(line_num, unsuitable_form('', 'Error') \
+                + f"'{' '.join(list(dif_set))}' must be declared in 'DISP'.\n")
 
         if  ('fvect' in xde_lists and oprt_objt not in xde_lists['fvect']) \
         and ('fmatr' in xde_lists and oprt_objt not in xde_lists['fmatr']):
-            report_error(line_num, not_declared(oprt_objt, 'Error') + "it must be declared by 'FVECT' or 'FMATR'.\n")
+            report_error(line_num, not_declared(oprt_objt, 'Error') \
+                + "it must be declared by 'FVECT' or 'FMATR'.\n")
 
     else:
-        report_error(line_num, unsuitable_form('', 'Error') + "first variable of operator must be one of '[n, c, v, m, f]'.\n")
+        report_error(line_num, unsuitable_form('', 'Error') \
+            + "first variable of operator must be one of '[n, c, v, m, f]'.\n")
 # end check_operator()
 
 def check_func_asgn1(code_list, line_num, xde_lists):
@@ -827,9 +830,9 @@ def report(repr_type):
             if repr_type == 'Error':
                 error = True
 
-            output  = color[repr_type] + repr_type +': line number '
-            output += Empha_color + str(line_num) + ', '
-            output += color[repr_type] + func(line_num, addon_info)
+            output  = color[repr_type] + repr_type +': line number ' \
+                    + Empha_color + str(line_num) + ', ' \
+                    + color[repr_type] + func(line_num, addon_info)
             print(output)
         return __report
     return _report

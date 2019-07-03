@@ -245,7 +245,7 @@ def release_operator_code(code_strs, code_place, pfelacpath, xde_lists, code_use
                 if len(xde_lists['vect'][expres]) == len(expr_list)+1:
                     for ii in range(len(expr_list)):
                         code_use_dict[code_place] \
-                            .append('$cv '+ xde_lists['vect'][expres][ii+1] + '=' + expr_list[ii])
+                            .append(f"$cv {xde_lists['vect'][expres][ii+1]}={expr_list[ii]}")
 
             elif left_vara.count('_') == 2:
                 expres = left_vara.lstrip('[').rstrip(']').split('_')[0]
@@ -255,7 +255,7 @@ def release_operator_code(code_strs, code_place, pfelacpath, xde_lists, code_use
                     ii = 0
                     for lists in xde_lists['matrix'][expres][2:]:
                         for strs in lists:
-                            code_use_dict[code_place].append('$cv '+strs+'='+expr_list[ii]+'\n')
+                            code_use_dict[code_place].append(f'$cv {strs}={expr_list[ii]}\n')
                             ii += 1
 # end release_operator_code()
 
@@ -714,8 +714,7 @@ def write_weak(weak, code_use_dict, xde_lists, gesfile):
             nodn = regx.search(r'\d+',shaps,regx.I).group()
             for vara in xde_lists['shap'][shaps]:
                 for ii in range(int(nodn)):
-                    gesfile.write('+[{}]{}{}\n' \
-                        .format(xde_lists[weak][1], vara, ii+1))
+                    gesfile.write(f'+[{xde_lists[weak][1]}]{vara}{ii+1}\n')
 # end write_weak()
 
 def write_load(xde_lists, gesfile):
