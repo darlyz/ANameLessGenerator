@@ -359,7 +359,7 @@ def check_code(ges_info, xde_lists, list_addr, c_declares):
                 check_func_asgn2(code_list, line_num, xde_lists)
 
             elif lower_key == '@a':
-                pass
+                check_func_asgn3(code_strs, line_num, xde_lists)
 
             elif lower_key == '@r':
                 pass
@@ -624,7 +624,8 @@ def check_operator(code_list, line_num, xde_lists, list_addr, c_declares):
         need_len = len(oprt_dict[oprt_name][oprt_axis]['axis'])
         provided = len(oprt_axis_list)
         if provided != need_len: 
-            report_error(line_num, unsuitable_form('', 'Error') + f"need {need_len} axis but provided {provided}.\n")
+            report_error(line_num, unsuitable_form('', 'Error') \
+                + f"need {need_len} axis but provided {provided}.\n")
 
 
     # warning that operator's axis be not in accordance with 'coor' declaration
@@ -777,6 +778,31 @@ def check_func_asgn2(code_list, line_num, xde_lists):
         report_error(line_num, unsuitable_form('', 'Error') \
             + f'the size of {left_vara} is not consistent with the right indexs.\n')
 # end check_func_asgn2()
+
+def check_func_asgn3(code_strs, line_num, xde_lists):
+    left_vara, righ_expr = code_strs.split('=')
+    ftensor_list = regx.findall(r'\[[a-z][a-z0-9]*(_[a-z]+)+\]',righ_expr,regx.I)
+    tensor_list  = regx.faultly(r'[a-z][a-z0-9]*(_[a-z]+)+',righ_expr,regx.I)
+    
+    vector_list, matrix_list = set(), set()
+    for tensor in tensor_list:
+        if tensor.find('_') > 2:
+            report_error(line_num, unsuitable_form('hyper tensor.', 'Error') \
+                + 'It must be a vector or matrix.')
+        elif tensor.find('_') == 1:
+            vector_list.add(tensor.split('_')[0])
+        elif tensor.find('_') == 2:
+            matrix_list.add(tensor.split('_')[0])
+
+    fvector_list, fmatrix_list = set(), set()
+    for tensor in tensor_list:
+        if tensor.find('_') == 1:
+            fvector_list.add(tensor.split('_')[0])
+        elif tensor.find('_') == 2:
+            fmatrix_list.add(tensor.split('_')[0])
+
+
+# end check_func_asgn3()
 
 def check_matrix(xde_lists, list_addr, c_declares):
     for matrix in xde_lists['matrix'].keys():
