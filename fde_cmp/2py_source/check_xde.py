@@ -358,11 +358,8 @@ def check_code(ges_info, xde_lists, list_addr, c_declares):
             elif lower_key == '@s':
                 check_func_asgn2(code_list, line_num, xde_lists)
 
-            elif lower_key == '@a':
+            elif lower_key in ['@a', '@r']:
                 check_func_asgn3(code_strs, line_num, xde_lists)
-
-            elif lower_key == '@r':
-                pass
 # end check_code()
 
 def gather_declare(code_strs, line_num, assist_dict, c_declares):
@@ -784,24 +781,43 @@ def check_func_asgn3(code_strs, line_num, xde_lists):
     ftensor_list = regx.findall(r'\[[a-z][a-z0-9]*(_[a-z]+)+\]',righ_expr,regx.I)
     tensor_list  = regx.faultly(r'[a-z][a-z0-9]*(_[a-z]+)+',righ_expr,regx.I)
     
-    vector_list, matrix_list = set(), set()
+    tnsr_dict = {}
+    tnsr_dict['vect'], tnsr_dict['matr'] = set(), set()
     for tensor in tensor_list:
         if tensor.find('_') > 2:
             report_error(line_num, unsuitable_form('hyper tensor.', 'Error') \
                 + 'It must be a vector or matrix.')
         elif tensor.find('_') == 1:
-            vector_list.add(tensor.split('_')[0])
+            tnsr_dict['vect'].add(tensor.split('_')[0])
         elif tensor.find('_') == 2:
-            matrix_list.add(tensor.split('_')[0])
+            tnsr_dict['matr'].add(tensor.split('_')[0])
 
-    fvector_list, fmatrix_list = set(), set()
+    tnsr_dict['fvect'], tnsr_dict['fmatr'] = set(), set()
     for tensor in tensor_list:
         if tensor.find('_') == 1:
-            fvector_list.add(tensor.split('_')[0])
+            tnsr_dict['fvect'].add(tensor.split('_')[0])
         elif tensor.find('_') == 2:
-            fmatrix_list.add(tensor.split('_')[0])
+            tnsr_dict['fmatr'].add(tensor.split('_')[0])
 
+    tnsr_dict['vect'] = tnsr_dict['vect'].difference(tnsr_dict['fvect'])
+    tnsr_dict['matr'] = tnsr_dict['matr'].difference(tnsr_dict['fmatr'])
+    
+    if left_vara.find('_') > 2:
+        report_error(line_num, unsuitable_form('hyper tensor.', 'Error') \
+                + 'It must be a vector or matrix.')
+    elif left_vara.find('_') == 1:
+        tnsr_dict['fvect'].add(left_vara.strip().split('_')[0])
+    elif left_vara.find('_') == 2:
+        tnsr_dict['fmatr'].add(left_vara.strip().split('_')[0])
 
+    for char in ['','f']
+        for tnsr in ['vect','matr']:
+            for var in tnsr_dict[char+tnsr]:
+                if char == '' and tnsr == 'matr':
+                    tnsr += 'ix'
+                if var not in xde_lists[char+tnsr]:
+                    report_error(line_num, not_declared(var, 'Error') \
+                        + f"It mast be declared in '{char+tnsr}'.")
 # end check_func_asgn3()
 
 def check_matrix(xde_lists, list_addr, c_declares):
