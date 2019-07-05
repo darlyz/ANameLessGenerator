@@ -37,8 +37,7 @@ def pre_parse(ges_info, xde_lists, list_addr, xdefile):
                + r'\$C[CPV6]|\$I|@[LAWSR]'
 
     keywd_tag = {'bf_matrix'   : '', \
-                 'cmplx_tag'   : 0, \
-                 'matr_dclr'   : 0,
+                 'matr_dclr'   : 0, \
                  'paragraph'   : 'BFmate',\
     }
 
@@ -87,7 +86,7 @@ def pre_parse(ges_info, xde_lists, list_addr, xdefile):
 
             elif key_lower == 'vect':
                 push_tonser_declare('vect', line_i, line, xde_lists, list_addr)
-                if line.find('|') != -1: keywd_tag['cmplx_tag'] = 1
+                if line.find('|') != -1: xde_lists['cmplx_tag'] = 1
 
             elif key_lower in ['fmatr','fvect']:
                 push_tonser_declare(key_lower, line_i, line, xde_lists, list_addr)
@@ -98,7 +97,7 @@ def pre_parse(ges_info, xde_lists, list_addr, xdefile):
                     .replace('%2',ges_info['shap_nodn'])
                 push_code_line (line_i, line, keywd_tag, xde_lists, list_addr)
                 if code_regx.group().lower() == '$cp':
-                    keywd_tag['cmplx_tag'] = 1
+                    xde_lists['cmplx_tag'] = 1
 
             elif key_lower in ['common','array']:
                 line = line \
@@ -118,7 +117,7 @@ def pre_parse(ges_info, xde_lists, list_addr, xdefile):
 
             elif key_lower == 'dist':
                 if line.find('|') != -1:
-                    keywd_tag['cmplx_tag'] = 1
+                    xde_lists['cmplx_tag'] = 1
                 if keywd_tag['paragraph'] in ['mass','damp','stif']:
                     xde_lists[keywd_tag['paragraph']].append('dist')
                     xde_lists[keywd_tag['paragraph']].append(line.split('=')[1].strip())
@@ -126,7 +125,7 @@ def pre_parse(ges_info, xde_lists, list_addr, xdefile):
 
             elif key_lower == 'load':
                 if line.find('|') != -1:
-                    keywd_tag['cmplx_tag'] = 1
+                    xde_lists['cmplx_tag'] = 1
                 if not 'load' in xde_lists:
                     xde_lists['load'] = []
                     list_addr['load'] = []
@@ -175,7 +174,7 @@ def pre_parse(ges_info, xde_lists, list_addr, xdefile):
         else:
             # 1.2.2.1 find cmplx_tag tag
             if line.find('|') != -1:
-                keywd_tag['cmplx_tag'] = 1
+                xde_lists['cmplx_tag'] = 1
             key_words= keywd_tag['paragraph']
 
             # 1.2.2.2 find weak form and disp var deform in non-keyword-head line

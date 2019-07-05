@@ -461,12 +461,14 @@ def check_tensor_assign(code_strs, line_num, xde_lists, c_declares):
         for tnsr in set(tnsr_list):
             tnsr_name = tnsr.split('_')[0]
             if tnsr.count('_') == 1:
-                if  ('vect' in xde_lists and tnsr_name not in xde_lists['vect']) \
+                if ( 'vect' not in xde_lists \
+                    or ( 'vect' in xde_lists and tnsr_name not in xde_lists['vect'] ) ) \
                 and tnsr_name not in c_declares['array']['vect']:
                     report_error(line_num, not_declared(tnsr_name, 'Error') + \
                         "It must declared by 'VECT' or 'ARRAY'.")
             elif tnsr.count('_') == 2:
-                if  ('matrix' in xde_lists and tnsr_name not in xde_lists['matrix']) \
+                if ( 'matrix' not in xde_lists \
+                    or ( 'matrix' in xde_lists and tnsr_name not in xde_lists['matrix'] ) ) \
                 and tnsr_name not in c_declares['array']['matrix']:
                      report_error(line_num, not_declared(tnsr_name, 'Error') + \
                         "It must declared by 'MATRIX' or 'ARRAY'.")
@@ -496,13 +498,15 @@ def check_complex_assign(code_strs, line_num, xde_lists, list_addr, c_declares):
         for tnsr in set(tnsr_list):
 
             tnsr_name = tnsr.split('_')[0]
-            if tnsr_name in list_addr['vect']:
-                tnsr_line = list_addr['vect'][tnsr_name]
-            else: continue
 
             if tnsr.count('_') == 1:
 
-                if tnsr_name not in xde_lists['vect'] \
+                if 'vect' in list_addr and tnsr_name in list_addr['vect']:
+                    tnsr_line = list_addr['vect'][tnsr_name]
+                else: continue
+
+                if ( 'vect' not in xde_lists \
+                    or ( 'vect' in xde_lists and tnsr_name not in xde_lists['vect'] ) ) \
                 or tnsr_name in c_declares['array']['vect']:
                     report_error(line_num, not_declared(tnsr_name, 'Error') + \
                         "It must declared by 'VECT'.\n")
@@ -519,7 +523,8 @@ def check_complex_assign(code_strs, line_num, xde_lists, list_addr, c_declares):
                             report_error(line_num, error_type + '\n')
 
             elif tnsr.count('_') == 2:
-                if tnsr_name not in xde_lists['matrix'] \
+                if ( 'matrix' not in xde_lists \
+                    or ( 'matrix' in xde_lists and tnsr_name not in xde_lists['matrix'] ) ) \
                 or tnsr_name in c_declares['array']['matrix']:
                     report_error(line_num, not_declared(tnsr_name, 'Error') + \
                         "It must declared by 'matrix'.\n")
@@ -587,7 +592,8 @@ def check_operator(code_list, line_num, xde_lists, list_addr, c_declares):
                 vars_list.append(strs)
             elif strs.count('_') == 1:
                 vector = strs.split('_')[0]
-                if vector not in xde_lists['vect']:
+                if 'vect' not in xde_lists \
+                    or ( 'vect' in xde_lists and vector not in xde_lists['vect'] ):
                     report_error(line_num, not_declared(vector, 'Error') + \
                         "It must be declared by 'VECT'.\n")
                 else:
@@ -626,7 +632,7 @@ def check_operator(code_list, line_num, xde_lists, list_addr, c_declares):
 
 
     # warning that operator's axis be not in accordance with 'coor' declaration
-    if oprt_axis != ''.join(xde_lists['coor']):
+    if 'coor' in xde_lists and oprt_axis != ''.join(xde_lists['coor']):
         sgest_info  = f"coordinate of operator {Empha_color}'{oprt_axis}' " \
                     + f"{Warnn_color}is not consistance with 'coor' declaration " \
                     + f"{Empha_color}'{' '.join(xde_lists['coor'])}' {Warnn_color}in line " \
@@ -654,14 +660,14 @@ def check_operator(code_list, line_num, xde_lists, list_addr, c_declares):
         
         # 'v' means resault of operator assigned to vector (vect declared)
         elif oprt_deed == 'v':
-            if  oprt_objt not in xde_lists['vect'] \
+            if  'vect' in xde_lists and oprt_objt not in xde_lists['vect'] \
             and oprt_objt not in c_declares['array']['vect']:
                 report_error(line_num, not_declared(oprt_objt, 'Error') \
                     + "it must be declared by 'VECT' or 'ARRAY'.\n")
         
         # 'm' means resault of operator assigned to matrix (matrix declared)
         elif oprt_deed == 'm':
-            if  oprt_objt not in xde_lists['matrix'] \
+            if  'matrix' in xde_lists and oprt_objt not in xde_lists['matrix'] \
             and oprt_objt not in c_declares['array']['matrix']:
                 report_error(line_num, not_declared(oprt_objt, 'Error') \
                     + "it must be declared by 'MATRIX' or 'ARRAY'.\n")
@@ -778,44 +784,45 @@ def check_func_asgn2(code_list, line_num, xde_lists):
 
 def check_func_asgn3(code_strs, line_num, xde_lists):
     left_vara, righ_expr = code_strs.split('=')
-    ftensor_list = regx.findall(r'\[[a-z][a-z0-9]*(_[a-z]+)+\]',righ_expr,regx.I)
-    tensor_list  = regx.faultly(r'[a-z][a-z0-9]*(_[a-z]+)+',righ_expr,regx.I)
+    ftensor_list = regx.findall(r'\[[a-z][a-z0-9]+(?:_[a-z]+)+\]',righ_expr,regx.I)
+    tensor_list  = regx.findall(r'\^?[a-z][a-z0-9]+(?:_[a-z]+)+',righ_expr,regx.I)
     
     tnsr_dict = {}
     tnsr_dict['vect'], tnsr_dict['matr'] = set(), set()
     for tensor in tensor_list:
-        if tensor.find('_') > 2:
+        if tensor.count('_') > 2:
             report_error(line_num, unsuitable_form('hyper tensor.', 'Error') \
                 + 'It must be a vector or matrix.')
-        elif tensor.find('_') == 1:
+        elif tensor.count('_') == 1:
             tnsr_dict['vect'].add(tensor.split('_')[0])
-        elif tensor.find('_') == 2:
+        elif tensor.count('_') == 2:
             tnsr_dict['matr'].add(tensor.split('_')[0])
 
     tnsr_dict['fvect'], tnsr_dict['fmatr'] = set(), set()
-    for tensor in tensor_list:
-        if tensor.find('_') == 1:
-            tnsr_dict['fvect'].add(tensor.split('_')[0])
-        elif tensor.find('_') == 2:
-            tnsr_dict['fmatr'].add(tensor.split('_')[0])
+    for tensor in ftensor_list:
+        if tensor.count('_') == 1:
+            tnsr_dict['fvect'].add(tensor.split('_')[0].lstrip('['))
+        elif tensor.count('_') == 2:
+            tnsr_dict['fmatr'].add(tensor.split('_')[0].lstrip('['))
 
     tnsr_dict['vect'] = tnsr_dict['vect'].difference(tnsr_dict['fvect'])
     tnsr_dict['matr'] = tnsr_dict['matr'].difference(tnsr_dict['fmatr'])
     
-    if left_vara.find('_') > 2:
+    if left_vara.count('_') > 2:
         report_error(line_num, unsuitable_form('hyper tensor.', 'Error') \
                 + 'It must be a vector or matrix.')
-    elif left_vara.find('_') == 1:
+    elif left_vara.count('_') == 1:
         tnsr_dict['fvect'].add(left_vara.strip().split('_')[0])
-    elif left_vara.find('_') == 2:
+    elif left_vara.count('_') == 2:
         tnsr_dict['fmatr'].add(left_vara.strip().split('_')[0])
 
-    for char in ['','f']
+    for char in ['','f']:
         for tnsr in ['vect','matr']:
             for var in tnsr_dict[char+tnsr]:
                 if char == '' and tnsr == 'matr':
                     tnsr += 'ix'
-                if var not in xde_lists[char+tnsr]:
+                if char+tnsr not in xde_lists \
+                or (char+tnsr in xde_lists and var not in xde_lists[char+tnsr]):
                     report_error(line_num, not_declared(var, 'Error') \
                         + f"It mast be declared in '{char+tnsr}'.")
 # end check_func_asgn3()
