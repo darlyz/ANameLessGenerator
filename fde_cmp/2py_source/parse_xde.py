@@ -16,8 +16,16 @@ sec_check = 1
 
 def parse_xde(ges_info, xde_lists, list_addr, xdefile):
 
-    # preliminary parse
+    # 1 preliminary parse
     pre_parse(ges_info, xde_lists, list_addr, xdefile)
+
+    import json
+    file = open('../1ges_target/pre_pars.json',mode='w')
+    file.write(json.dumps(xde_lists,indent=4))
+    file.close()
+    file = open('../1ges_target/pre_addr.json',mode='w')
+    file.write(json.dumps(list_addr,indent=4))
+    file.close()
 
     # 2 checking
     from check_xde import check_xde

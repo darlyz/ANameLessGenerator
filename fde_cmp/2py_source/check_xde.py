@@ -112,12 +112,17 @@ def check_xde(ges_info, xde_lists, list_addr):
                 report_error(list_addr['fvect'][name], faultly_declared(name, 'Error') \
                     + f'sugest declare as \'FVECT {name} [len]\'.\n')
 
-    # check fvect
+    # check fmatr
     if 'fmatr' in xde_lists:
         for name, lists in xde_lists['fmatr'].items():
             if len(lists) != 2:
                 report_error(list_addr['fmatr'][name], faultly_declared(name, 'Error') \
                     + f'sugest declare as \'FMATR {name} [row] [clm]\'.\n')
+
+    # check stif, mass, damp
+    for weak in ['stif','mass','damp']:
+        if weak in xde_lists:
+            check_weak(xde_lists, list_addr, weak)
 
     print('Error=',error)
     return error
@@ -167,7 +172,7 @@ def check_shap(ges_info, xde_lists, list_addr):
                 if base_shap_dclr_times > 1 :                  
                     warn_type   = duplicate_declared('base shap', 'Warn')
                     sgest_info  = f'It has been declared at {Empha_color}{base_shap_line}.\n'
-                    report_warn(line_num,warn_type + sgest_info)
+                    report_warn(line_num, warn_type + sgest_info)
 
                 base_shap_form = shap_form
                 if shap_list[1] == '%2':
@@ -349,7 +354,7 @@ def check_code(ges_info, xde_lists, list_addr, c_declares):
                 check_complex_assign(code_strs, line_num, xde_lists, list_addr, c_declares)
 
             elif lower_key == '@l':
-                if check_operator(code_list, line_num, xde_lists, list_addr, c_declares):
+                if check_operator(code_strs, code_list, line_num, xde_lists, list_addr, c_declares):
                     continue
 
             elif lower_key == '@w':
@@ -548,35 +553,35 @@ def check_complex_assign(code_strs, line_num, xde_lists, list_addr, c_declares):
                                 report_error(line_num, error_type + '\n')
 # end check_complex_assign()
 
-def check_operator(code_list, line_num, xde_lists, list_addr, c_declares):
+def check_operator(code_strs, code_list, line_num, xde_lists, list_addr, c_declares):
 
     # first check length of '@l' code
     oprt_len = len(code_list)
     if oprt_len > 1:
         if code_list[1].lower() != 'n':
             if oprt_len == 2:
-                report_error(line_num, unsuitable_form('', 'Error') \
+                report_error(line_num, unsuitable_form(code_strs, 'Error') \
                     + 'not enough information for operator.\n')
                 return True
         else:
             if len(code_list) > 2:
-                report_warn(line_num, unsuitable_form('', 'Warn') \
+                report_warn(line_num, unsuitable_form(code_strs, 'Warn') \
                     + "useless information after 'n'.\n")
     else:
-        report_error(line_num, unsuitable_form('', 'Error') \
+        report_error(line_num, unsuitable_form(code_strs, 'Error') \
             + 'not enough information for operator.\n')
         return True
 
     # check the operator in 'pde.lib' if or not
     if code_list[0].find('.') == -1:
-        report_error(line_num, unsuitable_form('', 'Error') \
+        report_error(line_num, unsuitable_form(code_list[0], 'Error') \
             + "operator name form as 'name.axi', such as 'grad.xyz'.\n")
         return True
 
     elif code_list[0].lower() not in oprt_name_list:
         sgest_info  = Empha_color + code_list[0] \
                     + Error_color + " is not a default operator."
-        report_error(line_num, unsuitable_form('', 'Error') + sgest_info)
+        report_error(line_num, unsuitable_form(code_strs, 'Error') + sgest_info)
         return True
 
     # split operator name, axis, variables
@@ -587,7 +592,7 @@ def check_operator(code_list, line_num, xde_lists, list_addr, c_declares):
     # expand the vector in operator variables
     vars_list = []
     if oprt_deed != 'n' and oprt_len > 3:
-        for strs in code_list[3:len(code_list)]:
+        for strs in code_list[3:]:
             if   strs.find('_') == -1:
                 vars_list.append(strs)
             elif strs.count('_') == 1:
@@ -599,22 +604,25 @@ def check_operator(code_list, line_num, xde_lists, list_addr, c_declares):
                 else:
                     vars_list += xde_lists['vect'][vector]
             else:
-                report_error(line_num, unsuitable_form('', 'Error') + \
+                report_error(line_num, unsuitable_form(strs, 'Error') + \
                     "only vector or scalar can be operator's variable.\n")
 
     # replenish default variables
     elif oprt_deed != 'n' and oprt_len == 3:
+
+        # to deal with oprt_axis of [oz、so、s]
+
         if 'disp' in xde_lists and oprt_deed == 'f':
-            vars_list += list(oprt_axis) \
+            vars_list += xde_lists['coor'] \
                 + xde_lists['disp'][:len(oprt_dict[oprt_name][oprt_axis]['disp'])]
         elif 'coef' in xde_lists and oprt_deed in ['c','v','m']:
-            vars_list += list(oprt_axis) \
+            vars_list += xde_lists['coor'] \
                 + xde_lists['coef'][:len(oprt_dict[oprt_name][oprt_axis]['disp'])]
 
     # split axis and normal variables
     oprt_axis_list = []
     for strs in vars_list:
-        if strs in list('xyzros'):
+        if strs in list('xyzros') or strs in xde_lists['coor']:
             oprt_axis_list.append(strs)
         else: break
 
@@ -627,7 +635,7 @@ def check_operator(code_list, line_num, xde_lists, list_addr, c_declares):
         need_len = len(oprt_dict[oprt_name][oprt_axis]['axis'])
         provided = len(oprt_axis_list)
         if provided != need_len: 
-            report_error(line_num, unsuitable_form('', 'Error') \
+            report_error(line_num, unsuitable_form(code_strs, 'Error') \
                 + f"need {need_len} axis but provided {provided}.\n")
 
 
@@ -638,7 +646,7 @@ def check_operator(code_list, line_num, xde_lists, list_addr, c_declares):
                     + f"{Empha_color}'{' '.join(xde_lists['coor'])}' {Warnn_color}in line " \
                     + f"{Empha_color}{str(list_addr['coor'])}, {Warnn_color}" \
                     + "and please make sure that it is necessary to do so.\n"
-        report_warn(line_num, unsuitable_form('', 'Warn') + sgest_info)
+        report_warn(line_num, unsuitable_form(oprt_name+'.'+oprt_axis, 'Warn') + sgest_info)
 
     if oprt_deed == 'n': pass
     elif oprt_deed in ['c','v','m']: 
@@ -649,7 +657,7 @@ def check_operator(code_list, line_num, xde_lists, list_addr, c_declares):
         else:
             dif_set = set(oprt_disp_list).difference(set(xde_lists['coef']))
         if len(dif_set) != 0:
-            report_error(line_num, unsuitable_form('', 'Error') \
+            report_error(line_num, unsuitable_form(code_strs, 'Error') \
                 + f"'{' '.join(list(dif_set))}' must be declared in 'COEF'.\n")
         
         # 'c' means resault of operator assigned to scalar (c code declared)
@@ -681,7 +689,7 @@ def check_operator(code_list, line_num, xde_lists, list_addr, c_declares):
         else:
             dif_set = set(oprt_disp_list).difference(set(xde_lists['disp']))
         if len(dif_set) != 0:
-            report_error(line_num, unsuitable_form('', 'Error') \
+            report_error(line_num, unsuitable_form(code_strs, 'Error') \
                 + f"'{' '.join(list(dif_set))}' must be declared in 'DISP'.\n")
 
         if  ('fvect' in xde_lists and oprt_objt not in xde_lists['fvect']) \
@@ -690,7 +698,7 @@ def check_operator(code_list, line_num, xde_lists, list_addr, c_declares):
                 + "it must be declared by 'FVECT' or 'FMATR'.\n")
 
     else:
-        report_error(line_num, unsuitable_form('', 'Error') \
+        report_error(line_num, unsuitable_form(code_strs, 'Error') \
             + "first variable of operator must be one of '[n, c, v, m, f]'.\n")
 # end check_operator()
 
@@ -722,7 +730,7 @@ def check_func_asgn1(code_list, line_num, xde_lists):
         tnsr_idxs = dflt_idxs
     dif_set = set(tnsr_idxs).difference(set(dflt_idxs))
     if len(dif_set) != 0:
-        report_error(line_num, unsuitable_form('', 'Error') \
+        report_error(line_num, unsuitable_form(righ_tnsr, 'Error') \
             + f"the indexs '{' '.join(dif_set)}' of '{righ_tnsr}' is out of range.\n")
 
     if   'vect'   in xde_lists and left_vara in xde_lists['vect']:
@@ -737,7 +745,7 @@ def check_func_asgn1(code_list, line_num, xde_lists):
                           *(xde_lists['matrix'][left_vara].count(' ')+1)
 
     if left_size != len(tnsr_idxs):
-        report_error(line_num, unsuitable_form('', 'Error') \
+        report_error(line_num, unsuitable_form(left_vara, 'Error') \
             + f"the size of '{left_vara}' is not consistent with the right indexs.\n")
 # end check_func_asgn1()
 
@@ -769,7 +777,7 @@ def check_func_asgn2(code_list, line_num, xde_lists):
         tnsr_idxs = dflt_idxs
     dif_set = set(tnsr_idxs).difference(set(dflt_idxs))
     if len(dif_set) != 0:
-        report_error(line_num, unsuitable_form('', 'Error') \
+        report_error(line_num, unsuitable_form(righ_tnsr, 'Error') \
             + f"the indexs '{' '.join(dif_set)}' of '{righ_tnsr}' is out of range.\n")
 
     if   'fvect' in xde_lists and left_vara in xde_lists['fvect']:
@@ -778,7 +786,7 @@ def check_func_asgn2(code_list, line_num, xde_lists):
         left_size = int(xde_lists['fmatr'][left_vara][0]) \
                   * int(xde_lists['fmatr'][left_vara][1])
     if left_size != len(tnsr_idxs):
-        report_error(line_num, unsuitable_form('', 'Error') \
+        report_error(line_num, unsuitable_form(left_vara, 'Error') \
             + f'the size of {left_vara} is not consistent with the right indexs.\n')
 # end check_func_asgn2()
 
@@ -791,7 +799,7 @@ def check_func_asgn3(code_strs, line_num, xde_lists):
     tnsr_dict['vect'], tnsr_dict['matr'] = set(), set()
     for tensor in tensor_list:
         if tensor.count('_') > 2:
-            report_error(line_num, unsuitable_form('hyper tensor.', 'Error') \
+            report_error(line_num, unsuitable_form(tensor, 'Error') \
                 + 'It must be a vector or matrix.')
         elif tensor.count('_') == 1:
             tnsr_dict['vect'].add(tensor.split('_')[0])
@@ -809,7 +817,7 @@ def check_func_asgn3(code_strs, line_num, xde_lists):
     tnsr_dict['matr'] = tnsr_dict['matr'].difference(tnsr_dict['fmatr'])
     
     if left_vara.count('_') > 2:
-        report_error(line_num, unsuitable_form('hyper tensor.', 'Error') \
+        report_error(line_num, unsuitable_form(left_vara, 'Error') \
                 + 'It must be a vector or matrix.')
     elif left_vara.count('_') == 1:
         tnsr_dict['fvect'].add(left_vara.strip().split('_')[0])
@@ -871,6 +879,32 @@ def check_matrix(xde_lists, list_addr, c_declares):
                 + 'lenth of every row is not equal.\n')
 # end check_matrix()
 
+from expr import split_bracket_expr
+def check_weak(xde_lists, list_addr, weak):
+    if   xde_lists[weak][0].lower() == 'null':
+        return
+    elif xde_lists[weak][0].lower() == 'dist':
+        for weak_strs, weak_addr in zip(xde_lists[weak][1:], list_addr[weak]):
+            for weak_item in split_bracket_expr(weak_strs):
+                weak_form1 = regx.findall(r'\[?\w+\;?\w+\]', weak_item, regx.I)
+                weak_form2 = regx.findall(r'\[\w+\;?\w+\]?', weak_item, regx.I)
+                weak_form = set(weak_form1) | set(weak_form2)
+
+                if len(weak_form) != 1:
+                    report_error(weak_addr, unsuitable_form(weak_item, 'Error') \
+                        + "one and only one '[*;*]' form in a lowest priority expression.\n")
+                else:
+                    miss_opr = [weak_opr for weak_opr in ['[',';',']'] if weak_item.find(weak_opr) == -1]
+                    if len(miss_opr) != 0:
+                        report_error(weak_addr, unsuitable_form(weak_item, 'Error') \
+                            + f"It miss {Empha_color}'{' '.join(miss_opr)}'.\n")
+
+    elif xde_lists[weak][0] == '%1':
+        pass
+
+
+# end check_weak()
+
 def report(repr_type):
     def _report(func):
         def __report(line_num, addon_info):
@@ -904,4 +938,6 @@ def duplicate_declared(key_word, report_type):
     return f"{Empha_color}'{key_word}' {color[report_type]}is a duplicated declaration. "
 
 def unsuitable_form(form_info, report_type):
-    return f"{Empha_color}'{form_info}' {color[report_type]}is not a suitable form. "
+    if report_type == 'Error': temp_str = 'is'
+    else :temp_str = 'may be'
+    return f"{Empha_color}'{form_info}' {color[report_type]}{temp_str} not a suitable form. "

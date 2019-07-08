@@ -185,28 +185,44 @@ def release_operator_code(code_strs, code_place, pfelacpath, xde_lists, code_use
         left_vara, righ_expr = oprt_expr.split('=')[:2]
         oprt_name, oprt_vars = righ_expr.split('(')[:2]
         oprt_name, oprt_axis = oprt_name.split('.')
-        oprt_vars = oprt_vars.rstrip(')').split(',')
+        oprt_vars = oprt_vars.replace(' ','')
+        if oprt_vars == ')':
+            oprt_vars = []
+        else:
+            oprt_vars = oprt_vars.rstrip(')').split(',')
 
         # expand vector variable list [x_i,a_i...] --> [x,y,z,a1,a2,...]
-        temp_vars = []
-        for vara in oprt_vars:
-            if vara.count('_') == 0:
-                temp_vars.append(vara)
-            elif vara.count('_') == 1:
-                vect_name = vara.split('_')[0]
-                temp_vars += xde_lists['vect'][vect_name][1:]
-            elif vara.count('_') == 2:
-                matr_name = vara.split('_')[0]
-                for matr_row in xde_lists['matrix'][matr_name][2:]:
-                    temp_vars += matr_row
-        oprt_vars = temp_vars.copy()
+        if len(oprt_vars) != 0:
+            temp_vars = []
+            for vara in oprt_vars:
+                if vara.count('_') == 0:
+                    temp_vars.append(vara)
+                elif vara.count('_') == 1:
+                    vect_name = vara.split('_')[0]
+                    temp_vars += xde_lists['vect'][vect_name][1:]
+                elif vara.count('_') == 2:
+                    matr_name = vara.split('_')[0]
+                    for matr_row in xde_lists['matrix'][matr_name][2:]:
+                        temp_vars += matr_row
+            oprt_vars = temp_vars.copy()
+
+        # replenish default variables
+        else:
+            # to deal with oprt_axis of [oz、so、s]
+            if   'disp' in xde_lists and left_vara[0] == '[' and left_vara[-1] == ']':
+                oprt_vars += xde_lists['coor'] \
+                    + xde_lists['disp'][:len(operator_data[oprt_name][oprt_axis]['disp'])]
+            elif 'coef' in xde_lists and left_vara[0] != '[' and left_vara[-1] != ']':
+                oprt_vars += xde_lists['coor'] \
+                    + xde_lists['coef'][:len(operator_data[oprt_name][oprt_axis]['disp'])]
 
         oprt_strs = operator_data[oprt_name][oprt_axis]['expr']
+        oprt_dfvr = operator_data[oprt_name][oprt_axis]['vars']
 
         # replace default variable by operator variable
-        if len(oprt_vars) == len(temp_vars):
-            for oprt_var, temp_var in zip(oprt_vars, temp_vars):
-                oprt_strs = oprt_strs.replace(temp_var,oprt_var)
+        if len(oprt_vars) == len(oprt_dfvr):
+            for oprt_var, dflt_var in zip(oprt_vars, oprt_dfvr):
+                oprt_strs = oprt_strs.replace(dflt_var,oprt_var)
 
         # assign to a temporary list type of 'fvect' or 'fmatr' 
         # used for derivative of 'disp' variables in Func_Asgn step
@@ -692,8 +708,8 @@ def write_weak(weak, code_use_dict, xde_lists, gesfile):
     if xde_lists[weak][0] == 'dist':
         left_vara = xde_lists[weak][0]
         righ_expr = ''
-        for ii in range(1,len(xde_lists[weak])):
-            righ_expr += xde_lists[weak][ii]
+        for weak_strs in xde_lists[weak][1:]:
+            righ_expr += weak_strs
         expr_list = idx_summation(left_vara,righ_expr,xde_lists)
         expr_list = split_bracket_expr(expr_list[0])
         for strs in expr_list:
