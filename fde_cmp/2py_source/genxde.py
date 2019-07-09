@@ -35,62 +35,6 @@ def prepare(gesname, coortype, ges_info):
     get_gaussian_data()
     get_shapfunc_data()
 
-# ...$python genfde.py filename elemtype axis
-def main(argvs=None):
-    if argvs is None:
-        argvs = argv
-
-    # xde help system
-    if argvs[1] in ['-h', '--h', '-H', '--H', '-help', '--help']:
-        if len(argvs) == 2 or len(argvs) > 3 :
-            print('type as: python genxde.py xdename gesname coortype')
-        else:
-            from xde_help import xde_help
-            xde_help(argvs[2])
-        return
-
-    elif len(argvs) != 4:
-        print('type as: python genxde.py xdename gesname coortype')
-        return
-    # help system to be improve
-
-    # start parsing
-    start = time()
-
-    xdename, gesname, coortype = argvs[1], argvs[2], argvs[3]
-
-    # xde elements and their line number
-    xde_lists, list_addr, ges_info = {}, {}, {}
-
-    prepare(gesname, coortype, ges_info)
-
-    # parse xde
-    from parse_xde import parse_xde
-    xdefile = open('../0xde_source/'+xdename, mode='r')
-    error = parse_xde(ges_info, xde_lists, list_addr, xdefile)
-    xdefile.close()
-    if error: return
-
-    # generate ges by xde element
-    from xde2ges import xde2ges
-    gesfile = open('../1ges_target/'+gesname+'.ges1', mode='w')
-    error = xde2ges(ges_info, xde_lists, list_addr, gesfile)
-    gesfile.close()
-    if error: return
-
-    # export xde element
-    import json
-    file = open('../1ges_target/'+gesname+'.json',mode='w')
-    file.write(json.dumps(xde_lists,indent=4))
-    file.close()
-
-    end   = time()
-    print ('parsing time: {}s'.format(end-start))
-
-if __name__ == "__main__":
-    exit(main())
-
-# 
 def genxde(xdename, gesname, coortype):
 
     # start parsing
@@ -123,3 +67,27 @@ def genxde(xdename, gesname, coortype):
 
     end   = time()
     print ('parsing time: {}s'.format(end-start))
+
+# ...$python genfde.py filename elemtype axis
+def main(argvs=None):
+    if argvs is None:
+        argvs = argv
+
+    # xde help system
+    if argvs[1] in ['-h', '--h', '-H', '--H', '-help', '--help']:
+        if len(argvs) == 2 or len(argvs) > 3 :
+            print('type as: python genxde.py xdename gesname coortype')
+        else:
+            from xde_help import xde_help
+            xde_help(argvs[2])
+        return
+
+    elif len(argvs) != 4:
+        print('type as: python genxde.py xdename gesname coortype')
+        return
+    # help system to be improve
+    
+    genxde(argvs[1], argvs[2], argvs[3])
+
+if __name__ == "__main__":
+    exit(main())
