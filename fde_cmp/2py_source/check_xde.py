@@ -26,6 +26,8 @@ oprt_dict = operator_data
 from felac_data import shapfunc_data
 shap_name_list = [ shap_name for shap_name in shapfunc_data['sub'].keys()]
 
+from expr import split_bracket_expr
+
 def check_xde(ges_info, xde_lists, list_addr):
 
     # check disp
@@ -123,6 +125,10 @@ def check_xde(ges_info, xde_lists, list_addr):
     for weak in ['stif','mass','damp']:
         if weak in xde_lists:
             check_weak(xde_lists, list_addr, weak)
+
+    # check load
+    if 'load' in xde_lists:
+        check_load(xde_lists, list_addr)
 
     print('Error=',error)
     return error
@@ -879,32 +885,74 @@ def check_matrix(xde_lists, list_addr, c_declares):
                 + 'lenth of every row is not equal.\n')
 # end check_matrix()
 
-from expr import split_bracket_expr
 def check_weak(xde_lists, list_addr, weak):
+    
     if   xde_lists[weak][0].lower() == 'null':
         return
     elif xde_lists[weak][0].lower() == 'dist':
-        for weak_strs, weak_addr in zip(xde_lists[weak][1:], list_addr[weak]):
+        for weak_strs, line_num in zip(xde_lists[weak][1:], list_addr[weak]):
             for weak_item in split_bracket_expr(weak_strs):
-                weak_form1 = regx.findall(r'\[?\w+\;?\w+\]', weak_item, regx.I)
-                weak_form2 = regx.findall(r'\[\w+\;?\w+\]?', weak_item, regx.I)
-                weak_form = set(weak_form1) | set(weak_form2)
+                weak_form = set(regx.findall(r'\[?\w+\;?\w+\]|\[\w+\;?\w+\]?', weak_item, regx.I))
 
                 if len(weak_form) != 1:
-                    report_error(weak_addr, unsuitable_form(weak_item, 'Error') \
+                    report_error(line_num, unsuitable_form(weak_item, 'Error') \
                         + "one and only one '[*;*]' form in a lowest priority expression.\n")
                 else:
                     miss_opr = [weak_opr for weak_opr in ['[',';',']'] if weak_item.find(weak_opr) == -1]
                     if len(miss_opr) != 0:
-                        report_error(weak_addr, unsuitable_form(weak_item, 'Error') \
+                        report_error(line_num, unsuitable_form(weak_item, 'Error') \
                             + f"It miss {Empha_color}'{' '.join(miss_opr)}'.\n")
 
+                weak_func_set = set(map(lambda x: x.strip(';').lstrip('[').rstrip(']'), \
+                                        regx.findall(r'\[\w+|\w+\;|\;\w+|\w+\]', weak_item, regx.I)))
+
+                check_weak_items(weak_func_set, weak_item, line_num, xde_lists)
+
     elif xde_lists[weak][0] == '%1':
-        pass
+        if weak == 'stif':
+            report_error(list_addr[weak][0], unsuitable_form(' '.join(xde_lists[weak]), 'Error') \
+                + "'STIF' must be declared as paragraph, it is distributed.\n")
 
+        coeff_len = len(xde_lists[weak]) - 1
 
+        if 'disp' in xde_lists and coeff_len > 1 and coeff_len < len(xde_lists['disp']):
+            no_coeff_var = xde_lists['disp'][coeff_len:]
+            no_mass_list = ['0' for i in range(len(no_coeff_var))]
+
+            error_type = unsuitable_form(' '.join(xde_lists[weak]), 'Error')
+            sgest_info = f"Not enough '{weak}' coefficient for 'disp' declaration at {Empha_color}{list_addr['disp']}. " \
+                       + f"{Error_color}If '{' '.join(no_coeff_var)}' have no 'mass', it's better declared as " \
+                       + f"{Empha_color}'{weak} {' '.join(xde_lists[weak] + no_mass_list)}'.\n"
+            report_error(list_addr[weak][0], error_type + sgest_info)
+
+    else:
+        report_error(list_addr[weak][0], faultly_declared(weak, 'Error') \
+            + f"Wrong key word {Empha_color}'{xde_lists[weak][0][:8]}...'\n")
 # end check_weak()
 
+def check_load(xde_lists, list_addr):
+    if not xde_lists['load'][0].isnumeric():
+        for weak_strs, line_num in zip(xde_lists['load'], list_addr['load']):
+            for weak_item in split_bracket_expr(weak_strs):
+                weak_form = regx.findall(r'\[\w+\]?|\[?\w+\]', weak_item, regx.I)
+
+                if len(set(weak_form)) != 1:
+                    report_error(line_num, unsuitable_form(weak_item, 'Error') \
+                        + "one and only one '[*]' form in a lowest priority expression.\n")
+                else:
+                    miss_opr = [weak_opr for weak_opr in ['[',']'] if weak_item.find(weak_opr) == -1]
+                    if len(miss_opr) != 0:
+                        report_error(line_num, unsuitable_form(weak_item, 'Error') \
+                            + f"It miss {Empha_color}'{' '.join(miss_opr)}'.\n")
+
+                weak_func_set = set(map(lambda x: x.lstrip('[').rstrip(']'), weak_form))
+                
+                check_weak_items(weak_func_set, weak_item, line_num, xde_lists)
+# end check_load()
+
+# --------------------------------------------------------------------------------------------------
+# ------------------------------------ report in terminal ------------------------------------------
+# --------------------------------------------------------------------------------------------------
 def report(repr_type):
     def _report(func):
         def __report(line_num, addon_info):
@@ -941,3 +989,32 @@ def unsuitable_form(form_info, report_type):
     if report_type == 'Error': temp_str = 'is'
     else :temp_str = 'may be'
     return f"{Empha_color}'{form_info}' {color[report_type]}{temp_str} not a suitable form. "
+
+# --------------------------------------------------------------------------------------------------
+# -------------------------------------- tiny functions --------------------------------------------
+# --------------------------------------------------------------------------------------------------
+def check_weak_item(weak_func, weak_item, line_num, xde_lists):
+    if ('disp' in xde_lists and weak_func in xde_lists['disp']) \
+    or ('func' in xde_lists and weak_func in xde_lists['func']): pass
+    else:
+        report_error(line_num, unsuitable_form(weak_item, 'Error') \
+            + f"{Empha_color}{weak_func} {Error_color}must be declared in 'disp' or 'func' line.\n")
+# end check_weak_item()
+
+def check_weak_items(weak_func_set, weak_item, line_num, xde_lists):
+    for weak_func in weak_func_set:
+        if weak_func.count('_') == 0:
+            check_weak_item(weak_func, weak_item, line_num, xde_lists)
+
+        elif weak_func.count('_') == 1:
+            if 'vect' in xde_lists:
+                for weak in xde_lists['vect'][weak_func.split('_')[0]]:
+                    check_weak_item(weak, weak_item, line_num, xde_lists)
+
+        elif weak_func.count('_') == 2:
+            if 'matrix' in xde_lists:
+                for weak_vect in xde_lists['matrix'][weak_func.split('_')[0]]:
+                    if weak_vect.isnumeric() : continue
+                    for weak in weak_vect.split():
+                        check_weak_item(weak, weak_item, line_num, xde_lists)
+# end check_weak_items()

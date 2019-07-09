@@ -18,15 +18,7 @@ def parse_xde(ges_info, xde_lists, list_addr, xdefile):
 
     # 1 preliminary parse
     pre_parse(ges_info, xde_lists, list_addr, xdefile)
-
-    import json
-    file = open('../1ges_target/pre_pars.json',mode='w')
-    file.write(json.dumps(xde_lists,indent=4))
-    file.close()
-    file = open('../1ges_target/pre_addr.json',mode='w')
-    file.write(json.dumps(list_addr,indent=4))
-    file.close()
-
+    
     # 2 checking
     from check_xde import check_xde
     error = check_xde(ges_info, xde_lists, list_addr)
@@ -189,20 +181,17 @@ def pre_parse(ges_info, xde_lists, list_addr, xdefile):
             if  key_words in ['mass','damp','stif','load'] \
             and key_words in xde_lists:
 
-                if line.find('[')!= -1 and line.find(']')!= -1:
-                    xde_lists[key_words].append(line)
-                    list_addr[key_words].append(line_i)
-
-                elif line.rstrip().lower() == 'null':
+                if line.rstrip().lower() == 'null':
                     xde_lists[key_words].append(line.rstrip())
+                    list_addr[key_words].append(line_i)
+                else:
+                    xde_lists[key_words].append(line)
                     list_addr[key_words].append(line_i)
 
             elif  key_words == 'func':
 
-                if line.find('[')!= -1 and line.find(']')!= -1:
-
-                    xde_lists['code'][key_words].append(line)
-                    list_addr['code'][key_words].append(line_i)
+                xde_lists['code'][key_words].append(line)
+                list_addr['code'][key_words].append(line_i)
 
             elif key_words == 'matrix' :
                 xde_lists['matrix'][matrix_name].append(line)
@@ -215,6 +204,9 @@ def pre_parse(ges_info, xde_lists, list_addr, xdefile):
         import json
         file = open('../1ges_target/'+'pre_check.json',mode='w')
         file.write(json.dumps(xde_lists,indent=4))
+        file.close()
+        file = open('../1ges_target/'+'pre_addr.json',mode='w')
+        file.write(json.dumps(list_addr,indent=4))
         file.close()
 # end pre_parse()
 
@@ -232,10 +224,9 @@ def push_key_declare (strs, line_num, line, xde_lists, list_addr):
 def push_tonser_declare (strs, line_num, line, xde_lists, list_addr):
     if strs not in xde_lists: 
         xde_lists[strs], list_addr[strs] = {}, {}
+    line = regx.sub(r'\s*=\s*',' ',line)
     wordlist = line.split()
     list_addr[strs][wordlist[1]] = line_num
-    if wordlist[2] == '=':
-        wordlist.remove('=')
     xde_lists[strs][wordlist[1]] = wordlist[2:]
 
 # common code line : @x, $Cx
