@@ -6,9 +6,9 @@
  All rights reserved
 '''
 
-keywords  = ['ARRAY','COEF','COOR','COMMON','DAMP','DEFI','DISP','DIST','END']
-keywords += ['FUNC','FVECT','FMATR','GAUS','LOAD','MATE','MASS','MATRIX','SHAP','STIF','VECT']
-keywords += ['USER','$CC','$C6','$CV','$CP','$I','@L','@A','@W','@S','@R']
+keywords  = ['ARRAY','COEF','COOR','COMMON','DAMP','DEFI','DISP','DIST','END'] \
+          + ['FUNC','FVECT','FMATR','GAUS','LOAD','MATE','MASS','MATRIX','SHAP','STIF','VECT'] \
+          + ['USER','$CC','$C6','$CV','$CP','$I','@L','@A','@W','@S','@R']
     
 import re as regx
 def xde_help(input_key):

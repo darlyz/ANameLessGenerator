@@ -349,7 +349,7 @@ def complex_add_bracket(complex_list):
 # ------------------------------------------------------------------------------
 # -----------------------------tensor expr class--------------------------------
 # ------------------------------------------------------------------------------
-class tnsr_expr(expr): # need to release
+class tnsr_expr(expr): # need to develop
     tnsr_list = []
 
 # [a1,a2,..] opr [b1,b2,...] --> [a1 opr b1, a2 opr b2, ...]
