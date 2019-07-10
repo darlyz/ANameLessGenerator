@@ -7,6 +7,33 @@
 '''
 from sys import argv,exit
 from time import time
+import re as regx
+
+def prepare(gesname, coortype, ges_info):
+    ges_shap_type = regx.search(r'[ltqwc][1-9]+',gesname,regx.I).group()
+    ges_gaus_type = regx.search(r'g[1-9]+',gesname,regx.I)
+    if ges_gaus_type != None:
+        ges_gaus_type = ges_gaus_type.group()
+    else: ges_gaus_type = ges_shap_type
+
+    ges_shap_nodn = regx.search(r'[1-9]+',ges_shap_type,regx.I).group()
+    ges_shap_form = ges_shap_type[0]
+
+    dim = regx.search(r'[1-9]+',coortype,regx.I).group()
+    axi = coortype.split('d')[1]
+    ges_info['name'] = gesname
+    ges_info['shap_nodn'] = ges_shap_nodn
+    ges_info['shap_form'] = ges_shap_form
+    ges_info['gaus_type'] = ges_gaus_type
+    ges_info['dim'] = dim
+    ges_info['axi'] = axi
+
+    from felac_data import get_operator_data, \
+                           get_gaussian_data, \
+                           get_shapfunc_data
+    get_operator_data()
+    get_gaussian_data()
+    get_shapfunc_data()
 
 # ...$python genfde.py filename elemtype
 def main(argvs=None):
@@ -22,55 +49,27 @@ def main(argvs=None):
 
     start = time()
 
-    keyws_reg  = 'DISP|COEF|COOR|SHAP|GAUS|MATE|MASS|DAMP|STIF|'
-    keyws_reg += 'FUNC|VECT|MATRIX|FVECT|FMATR|ARRAY|DIST|LOAD|END|'
-    keyws_reg += '\$C[CPV]|@[LAWSR]'
+    xdename, gesname, coortype = argvs[1], argvs[2], argvs[3]
 
-    keywd_tag = {'disp':0, 'coor':0, 'shap':0 , 'gaus':0, 'stif':0, 'load':0, \
-                 'mate':0, 'mass':0, 'damp':0 \
-    }
-    list_addr = {}
-    xde_lists = {}
+    # xde elements and their line number
+    xde_lists, list_addr, ges_info = {}, {}, {}
+
+    prepare(gesname, coortype, ges_info)
 
 
     from parse_xde import parse_xde
-    xdefile = open('../0xde_source/'+argvs[1]+'.fde', mode='r')
-    parse_xde(argvs[2],argvs[3],xde_lists,list_addr,xdefile)
+    xdefile = open('../0xde_source/'+xdename, mode='r')
+    error = parse_xde(ges_info, xde_lists, list_addr, xdefile)
     xdefile.close()
+    if error: return
+
+    from xde2md import xde2md
+    mdfile = open('../1ges_target/'+argvs[1]+'.md', mode='w')
+    xde2md(gesname, coortype, xde_lists, list_addr, mdfile)
+    mdfile.close()
 
     end   = time()
     print ('parsing time: {}s'.format(end-start))
 
-    from xde2md import xde2md
-    mdfile = open('../1ges_target/'+argvs[1]+'.md', mode='w')
-    xde2md(argvs[2],argvs[3],keywd_tag,xde_lists,list_addr,keyws_reg,mdfile)
-    mdfile.close()
-
 if __name__ == "__main__":
     exit(main())
-
-# xde_list and list_addr:=
-#{
-#    "code": {
-#        "BFmate": [],
-#        "AFmate": [],
-#        "func": [],
-#        "stif": [],
-#        "mass": [],
-#        "damp": []
-#    },
-#    "disp": [],
-#    "coef": [],
-#    "vect": {},
-#    "coor": [],
-#    "func": [],
-#    "fmatr": {},
-#    "shap": {},
-#    "gaus": "",
-#    "mate": [],
-#    "mass": [],
-#    "damp": [],
-#    "matrix": {},
-#    "stif": [],
-#    "load": [],
-#}

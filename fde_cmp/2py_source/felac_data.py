@@ -13,9 +13,12 @@ import os
 operator_data = {}
 gaussian_data = {}
 shapfunc_data = {}
+oprt_name_list = []
+shap_name_list = []
 
 pfelacpath = os.environ['pfelacpath']
 
+call_count = 0
 
 def get_operator_data():
 
@@ -54,6 +57,12 @@ def get_operator_data():
             operator_data[opr_name][opr_axis]['expr'] += strings
 
     file_opr.close()
+
+    oprt_name_list.clear()
+    for strs in [opr_name+'.'+opr_axis \
+                    for opr_name in operator_data.keys() \
+                        for opr_axis in operator_data[opr_name].keys()] :
+        oprt_name_list.append(strs)
 # end get_operator_info()
 
 def print_operator_data():
@@ -153,6 +162,10 @@ def get_shapfunc_data():
             shapfunc_data[shap_attr][shap_name]['expr'] += strings
     
     file_shap.close()
+
+    shap_name_list.clear()
+    for strs in [ shap_name for shap_name in shapfunc_data['sub'].keys()]:
+        shap_name_list.append(strs)
 # end get_shapfunc_data()
 
 def print_shapfunc_data():
@@ -169,6 +182,10 @@ def print_shapfunc_data():
                 print(' '*(len(attr_str)+len(name_str)+2),strs)
 # end print_shapfunc_data()
 
-#get_operator_data()
-#get_gaussian_data()
-#get_shapfunc_data()
+def get_felac_data():
+    get_operator_data()
+    get_gaussian_data()
+    get_shapfunc_data()
+
+    global call_count
+    call_count += 1

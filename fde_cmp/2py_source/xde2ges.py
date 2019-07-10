@@ -26,6 +26,8 @@ def xde2ges(ges_info, xde_lists, list_addr, gesfile):
             code_use_dict[code_key] = []
             release_code(xde_lists, code_key, pfelacpath, code_use_dict)
 
+    gesfile.write(ges_info['name']+'\ndefi\n')
+
     # 1 write disp and var declare
     if 'disp' in xde_lists:
         write_disp_var(ges_info, xde_lists, gesfile)

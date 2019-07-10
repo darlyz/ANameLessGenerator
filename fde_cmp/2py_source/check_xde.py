@@ -17,14 +17,10 @@ import os
 
 error = False
 
-from felac_data import operator_data
-oprt_name_list = [opr_name+'.'+opr_axis \
-                    for opr_name in operator_data.keys() \
-                        for opr_axis in operator_data[opr_name].keys()]
-oprt_dict = operator_data
-
-from felac_data import shapfunc_data
-shap_name_list = [ shap_name for shap_name in shapfunc_data['sub'].keys()]
+from felac_data import operator_data, \
+                       shapfunc_data, \
+                       oprt_name_list, \
+                       shap_name_list
 
 from expr import split_bracket_expr
 
@@ -620,10 +616,10 @@ def check_operator(code_strs, code_list, line_num, xde_lists, list_addr, c_decla
 
         if 'disp' in xde_lists and oprt_deed == 'f':
             vars_list += xde_lists['coor'] \
-                + xde_lists['disp'][:len(oprt_dict[oprt_name][oprt_axis]['disp'])]
+                + xde_lists['disp'][:len(operator_data[oprt_name][oprt_axis]['disp'])]
         elif 'coef' in xde_lists and oprt_deed in ['c','v','m']:
             vars_list += xde_lists['coor'] \
-                + xde_lists['coef'][:len(oprt_dict[oprt_name][oprt_axis]['disp'])]
+                + xde_lists['coef'][:len(operator_data[oprt_name][oprt_axis]['disp'])]
 
     # split axis and normal variables
     oprt_axis_list = []
@@ -638,7 +634,7 @@ def check_operator(code_strs, code_list, line_num, xde_lists, list_addr, c_decla
     
     if oprt_deed != 'n':
         # compare provided axis counting with which in 'pde.lib'
-        need_len = len(oprt_dict[oprt_name][oprt_axis]['axis'])
+        need_len = len(operator_data[oprt_name][oprt_axis]['axis'])
         provided = len(oprt_axis_list)
         if provided != need_len: 
             report_error(line_num, unsuitable_form(code_strs, 'Error') \

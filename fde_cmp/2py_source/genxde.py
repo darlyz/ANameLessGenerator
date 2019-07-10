@@ -22,18 +22,12 @@ def prepare(gesname, coortype, ges_info):
 
     dim = regx.search(r'[1-9]+', coortype, regx.I).group()
     axi = coortype.split('d')[1]
+    ges_info['name'] = gesname
     ges_info['shap_nodn'] = ges_shap_nodn
     ges_info['shap_form'] = ges_shap_form
     ges_info['gaus_type'] = ges_gaus_type
     ges_info['dim'] = dim
     ges_info['axi'] = axi
-
-    from felac_data import get_operator_data, \
-                           get_gaussian_data, \
-                           get_shapfunc_data
-    get_operator_data()
-    get_gaussian_data()
-    get_shapfunc_data()
 
 def genxde(xdename, gesname, coortype):
 
@@ -86,7 +80,10 @@ def main(argvs=None):
         print('type as: python genxde.py xdename gesname coortype')
         return
     # help system to be improve
-    
+
+    from felac_data import get_felac_data
+    get_felac_data()
+
     genxde(argvs[1], argvs[2], argvs[3])
 
 if __name__ == "__main__":
