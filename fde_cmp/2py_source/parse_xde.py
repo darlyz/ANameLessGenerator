@@ -12,7 +12,7 @@ Warnn_color = Fore.CYAN
 Empha_color = Fore.GREEN
 import re as regx
 pre_check = 1
-sec_check = 1
+sec_check = 0
 
 def parse_xde(ges_info, xde_lists, list_addr, xdefile):
 
@@ -81,6 +81,9 @@ def pre_parse(ges_info, xde_lists, list_addr, xdefile):
                 push_key_declare(key_lower, line_i, line, xde_lists, list_addr)
 
             elif key_lower == 'mate':
+                if keywd_tag['paragraph'] != 'BFmate':
+                    print(f"{Error_color}Error NSN02, : if other paragraph is writed before definition, " \
+                        + "key word 'DEFI' should not be ommited before 'MATE' line and C insertion for 'MATE'.\n")
                 push_key_declare('mate', line_i, line, xde_lists, list_addr)
                 keywd_tag['paragraph'] = 'AFmate'
 
@@ -163,11 +166,13 @@ def pre_parse(ges_info, xde_lists, list_addr, xdefile):
                     keywd_tag['bf_matrix'] = keywd_tag['paragraph']
                 keywd_tag['paragraph'] = 'matrix'
 
-            elif key_lower == 'userc':
+            elif key_lower == 'defi':
+                keywd_tag['paragraph'] = 'BFmate'
+
+            elif key_lower == 'end':
                 pass
 
-            # not a necessary key word using this generator
-            elif key_lower in ['defi','end']:
+            elif key_lower == 'userc':
                 pass
 
         # 1.2.2 find the non-keyword-head line in 'func' 'stif' 'mass' and 'damp' paragraph
@@ -198,7 +203,7 @@ def pre_parse(ges_info, xde_lists, list_addr, xdefile):
                 list_addr['matrix'][matrix_name].append(line_i)
 
             else:
-                print(f'{Warnn_color}redundant information or wrong declare, line {line_i}: ' + line)
+                print(f'{Warnn_color}Warn NSN03: redundant information or wrong declare, line {line_i}: ' + line)
 
     if pre_check == 1:
         import json
@@ -213,7 +218,7 @@ def pre_parse(ges_info, xde_lists, list_addr, xdefile):
 # key declare type1: DISP, COEF, COOR, GAUS, MATE
 def push_key_declare (strs, line_num, line, xde_lists, list_addr):
     if strs in xde_lists:
-        print(f'{Warnn_color}Warn: line {Empha_color}{line_num}, {strs} {Warnn_color}' \
+        print(f'{Warnn_color}Warn NSN04: line {Empha_color}{line_num}, {strs} {Warnn_color}' \
              +f'has been declared at line {Empha_color}{list_addr[strs]}\n')
     else:
         line = line.replace(',',' ').replace(';',' ')
@@ -246,12 +251,12 @@ def push_code_line (line_num, line, keywd_tag, xde_lists, list_addr):
         xde_lists['code'][key_words].append(line)
         list_addr['code'][key_words].append(line_num)
     if code_find == 0:
-        print(f'{Error_color}Error: line {line_num}, wrong position inserted.\n')
+        print(f'{Error_color}Error NSN05: line {line_num}, wrong position inserted.\n')
 
 # stif, mass, damp declare
 def push_weak_declare (strs, line_num, line, keywd_tag, xde_lists, list_addr):
     if strs in xde_lists:
-        print(f'{Error_color}Error: line {Empha_color}{line_num}, {strs} {Error_color}' \
+        print(f'{Error_color}Error NSN06: line {Empha_color}{line_num}, {strs} {Error_color}' \
             + f'has been declared at line {Empha_color}{list_addr[strs][0]}.\n')
     else:
         list_addr[strs], xde_lists[strs] = [], []
