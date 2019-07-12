@@ -46,6 +46,9 @@ def genxde(xdename, gesname, coortype):
     xdefile.close()
     if error: return
 
+    if 'cmplx_tag' in xde_lists:
+        print('!!!harmonic')
+
     # generate ges by xde element
     from xde2ges import xde2ges
     gesfile = open('../1ges_target/'+gesname+'.ges1', mode='w')

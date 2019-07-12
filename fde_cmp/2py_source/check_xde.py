@@ -179,7 +179,7 @@ def check_shap(ges_info, xde_lists, list_addr):
                         error_type  = faultly_declared('shap', 'Error')
                         sgest_info  = "the second variable of shap declaration" \
                                     + f" is suggested to be one of {snodn}.\n"
-                        report_error(line_num, error_type + sgest_info)
+                        report_error('SFD14', line_num, error_type + sgest_info)
 
             # advance shap declare
             elif len(shap_list) >= 3:
