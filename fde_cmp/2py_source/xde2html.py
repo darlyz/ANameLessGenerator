@@ -142,7 +142,7 @@ def xde2html(ges_info, xde_lists, list_addr, file):
             file.write('<p>\n')
             if xde_lists[strs][0] == 'lump':
                 file.write('\tLumped {} Matrix:\n'.format(strs))
-                file.write('$$')
+                file.write('\\[\n')
                 write_line = ''
                 for var in xde_lists['disp']:
                     write_line += ' \\int_{\Omega} '
@@ -156,7 +156,7 @@ def xde2html(ges_info, xde_lists, list_addr, file):
                     write_line += ' +'
                 write_line = write_line.rstrip('+')
                 file.write(write_line)
-                file.write('$$\n')
+                file.write('\n\\]\n')
             elif xde_lists[strs][0] == 'dist':
                 dist_weak(strs, xde_lists, file)
             file.write('</p>\n')
@@ -177,7 +177,7 @@ def xde2html(ges_info, xde_lists, list_addr, file):
     file.write("</html>\n")
         
 def dist_weak(weaktype, xde_lists, file):
-    file.write('$$')
+    file.write('\\[\n')
     write_line = ''
     expr_list = []
     for ii in range(1,len(xde_lists[weaktype])):
@@ -241,4 +241,4 @@ def dist_weak(weaktype, xde_lists, file):
 
     write_line = write_line.rstrip('+')
     file.write(write_line)
-    file.write('$$\n')
+    file.write('\n\\]\n')

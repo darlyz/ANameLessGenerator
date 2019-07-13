@@ -28,26 +28,15 @@ def prepare(gesname, coortype, ges_info):
     ges_info['dim'] = dim
     ges_info['axi'] = axi
 
-    from felac_data import get_operator_data, \
-                           get_gaussian_data, \
-                           get_shapfunc_data
-    get_operator_data()
-    get_gaussian_data()
-    get_shapfunc_data()
-
 # ...$python genfde.py filename elemtype
 def main(argvs=None):
     if argvs is None:
         argvs = argv
 
-    if argvs[1] == '-h' \
-    or argvs[1] == '--h' \
-    or argvs[1] == '-H' \
-    or argvs[1] == '--H':
-        print('type as: python genxde.py delxyz aec27g3 3dxyz')
-        return
-
     start = time()
+
+    from felac_data import get_felac_data
+    get_felac_data()
 
     xdename, gesname, coortype = argvs[1], argvs[2], argvs[3]
 
