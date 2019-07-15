@@ -1,6 +1,6 @@
 '''
  Copyright: Copyright (c) 2019
- Created: 2019-4-26
+ Created: 2019-7-12
  Author: Zhang_Licheng
  Title: parse xde file to html file
  All rights reserved
@@ -59,15 +59,28 @@ def xde2html(ges_info, xde_lists, list_addr, file):
     if 'mate' in xde_lists:
         file.write('<blockquote>\n')
         file.write(f'<h3>Default Material, \'Mate\':</h3>\n')
-        file.write(f'<table border="1">\n')
-        file.write('\t<tr>\n')
-        file.write('\t\t<td>var</td>\n')
-        file.write('\t\t<td>val</td>\n')
-        file.write('\t</tr>\n')
-        for var, val in xde_lists['mate']['default'].items():
+        file.write(f'<table border="1" cellpadding="10" cellspacing="0">\n')
+        table_style = 'cross'
+        if table_style == 'vertical':
             file.write('\t<tr>\n')
-            file.write(f'\t\t<td>{var}</td>\n')
-            file.write(f'\t\t<td>{val}</td>\n')
+            file.write('\t\t<td>var</td>\n')
+            file.write('\t\t<td>val</td>\n')
+            file.write('\t</tr>\n')
+            for var, val in xde_lists['mate']['default'].items():
+                file.write('\t<tr>\n')
+                file.write(f'\t\t<td>{var}</td>\n')
+                file.write(f'\t\t<td>{val}</td>\n')
+                file.write('\t</tr>\n')
+        elif table_style == 'cross':
+            file.write('\t<tr>\n')
+            file.write('\t\t<td>var</td>\n')
+            for var in xde_lists['mate']['default'].keys():
+                file.write(f'\t\t<td>{var}</td>\n')
+            file.write('\t</tr>\n')
+            file.write('\t<tr>\n')
+            file.write('\t\t<td>val</td>\n')
+            for val in xde_lists['mate']['default'].values():
+                file.write(f'\t\t<td>{val}</td>\n')
             file.write('\t</tr>\n')
         file.write('</table>\n')
         file.write('</blockquote>\n')

@@ -33,7 +33,7 @@ keyfunc['STIF']   = ''
 keyfunc['VECT']   = "Declare a vector form as 'VECT a a1 a2 a3' or 'VECT a=a1 a2 a3' means 'a=(a1,a2,a3)'."
 keyfunc['USER']   = ''
 keyfunc['$CC']    = "Use '$cc' as '$cc double aa;', insert a line of C code."
-keyfunc['$C6']    = "Use '$c6' as '$c6 double aa;', insert a line of C code."
+keyfunc['$C6']    = ''
 keyfunc['$CV']    = "Use '$cv' as '$cv a_i = c_i_j*d_j' or '$cv a = {u/x}', to make tensor calculation or make derivative of couple varaible."
 keyfunc['$CP']    = ''
 keyfunc['$I']     = ''
@@ -42,8 +42,6 @@ keyfunc['@A']     = ''
 keyfunc['@W']     = ''
 keyfunc['@S']     = ''
 keyfunc['@R']     = ''
-
-line_len, key_len = 80, 6
     
 import re as regx
 def xde_help(input_key):
@@ -51,27 +49,29 @@ def xde_help(input_key):
     # gather the similar keys in keywords
     gather_key, key_find = [], 0
 
-    if input_key[0] == '$':
-        input_key = f'\\{input_key}'
+    if input_key[0] == '$': input_key = '\\'+input_key
 
     for xde_key in keywords:
         
-        if regx.match(input_key, xde_key, regx.I) != None:
-            if input_key[0] == '\\':
-                finded_key = input_key[1:]
-            else: finded_key = input_key
+        regx_ex = regx.match(input_key, xde_key, regx.I)
+        if regx_ex != None:
+            regx_ex = regx_ex.group()
 
-            if finded_key.upper() == xde_key:
+            if input_key[0] == '\\': 
+                input_key = input_key[1:len(input_key)]
+
+            if input_key.upper() == xde_key:
                 key_find = 1
             else: gather_key.append(xde_key)
 
     # if hit the xde_key, show the corresponding help information
     # else show all the similar keys
     if key_find == 1:
-        auto_line_break_print(line_len, key_len, finded_key.upper(), keyfunc[finded_key.upper()])
+        if xde_key.upper() in keywords:
+            print(keyfunc[xde_key.upper()])
     elif input_key.lower() == 'all':
         for keys in keyfunc:
-            auto_line_break_print(line_len, key_len, keys, keyfunc[keys])
+            auto_line_break_print(maxl)
     else:
         if len(gather_key) != 0:
             print("do you find '{}'?".format("','".join(gather_key)))
@@ -101,25 +101,25 @@ def split_sentense(chars):
         words_list[i] = strr.replace('\n', ' ')
     return words_list
 
-def auto_line_break_print(line_len, key_len, keys, sentense):
+def auto_line_break_print(maxl):
     output = keys + ' '*(6-len(keys)) + ' : '
     output_list = []
-    help_info_list = split_sentense(sentense)
+    help_info_list = split_sentense(keyfunc[keys])
 
     while True:
-        temp_str = ' '*(key_len+2)
+        temp_str = ' '*8
         for i, strr in enumerate(help_info_list):
             temp_str += f' {strr}'
-            if len(temp_str) > line_len:
+            if len(temp_str) > maxl:
                 temp_str = temp_str.replace(f' {strr}','')
                 help_info_list = help_info_list[i:]
                 output_list.append(temp_str)
                 break
 
-        if len(temp_str) == len(' '*(key_len+3)+' '.join(help_info_list)):
+        if len(temp_str) == len(' '*9+' '.join(help_info_list)):
             output_list.append(temp_str+'\n')
             break
 
     for i, strr in enumerate(output_list):
-        if i == 0: print(strr.replace(' '*(key_len+3), output))
+        if i == 0: print(strr.replace(' '*9, output))
         else:print(strr)

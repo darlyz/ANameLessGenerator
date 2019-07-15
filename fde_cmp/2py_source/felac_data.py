@@ -189,3 +189,23 @@ def get_felac_data():
 
     global call_count
     call_count += 1
+
+def prepare_to_genxde(gesname, coortype, ges_info):
+    ges_shap_type = re.search(r'[ltqwc][1-9][0-9]*',gesname,re.I).group()
+    ges_gaus_type = re.search(r'g[1-9][0-9]*',gesname,re.I)
+    if ges_gaus_type != None:
+        ges_gaus_type = ges_gaus_type.group()
+    else: ges_gaus_type = ges_shap_type
+
+    ges_shap_nodn = re.search(r'[1-9][0-9]*',ges_shap_type,re.I).group()
+    ges_shap_form = ges_shap_type[0]
+
+    dim = re.search(r'[1-9]+', coortype, re.I).group()
+    axi = coortype.split('d')[1]
+    ges_info['name'] = gesname
+    ges_info['shap_nodn'] = ges_shap_nodn
+    ges_info['shap_form'] = ges_shap_form
+    ges_info['gaus_type'] = ges_gaus_type
+    ges_info['dim'] = dim
+    ges_info['axi'] = axi
+# end prepare_to_genxde()
