@@ -461,6 +461,7 @@ def release_funcasgn_code(code_strs, code_place, xde_lists, code_use_dict):
 # end release_funcasgn_code()
 
 def write_disp_var(ges_info, xde_lists, gesfile):
+
     # 1.1 write disp declare
     gesfile.write('disp ')
     for strs in xde_lists['disp']:
@@ -682,20 +683,42 @@ def write_func(code_use_dict, xde_lists, gesfile):
                 if strs.find('(') != -1:
                     strs = strs.rstrip('\n')
                     
+                    # save derivative in driv_list[] and replace by rplc_list[]
                     driv_list = set(regx.findall(r'\[[a-z][a-z0-9]*/[xyzros]\]', strs, regx.I))
                     rplc_list = ['driv'+str(i) for i in range(len(driv_list))]
                     for rplc, driv in zip(rplc_list, driv_list):
                         strs = strs.replace(driv, rplc)
                     
+                    # expand the bracket
                     expr_objt = expr(strs.split('=')[1])
                     expr_strs = expr_objt.bracket_expand(expr_objt.expr_head)
                     
+                    # replace rplc_list[] back from driv_list[]
                     for rplc, driv in zip(rplc_list, driv_list):
                         expr_strs = expr_strs.replace(rplc, driv)
                     strs = strs.split('=')[0] + '=' + expr_strs+'\n\n'
-                    
-                    gesfile.write(strs)
-                else: gesfile.write(strs)
+
+                if strs[-2:] != '\n\n': strs += '\n'
+                
+                if 'cmplx_tag' in xde_lists and xde_lists['cmplx_tag'] == 1:
+                    left_vara, righ_expr = strs.rstrip('\n').split('=')
+                    cmplx_var = []
+                    cmplx_var.append(left_vara.strip())
+                    vara_list = regx.findall(r'\[\w+/?\w*\]', righ_expr, regx.I)
+                    for var in vara_list:
+                        if var.find('/') != -1:
+                            cmplx_var.append(var.lstrip('[').rstrip(']').split('/')[0].strip())
+                        else:
+                            cmplx_var.append(var.lstrip('[').rstrip(']').strip())
+                    real_expr, imag_expr = strs, strs
+                    for var in cmplx_var:
+                        if var in xde_lists['cmplx_disp'] + xde_lists['cmplx_func']:
+                            real_expr = real_expr.replace(var,var+'r')
+                            imag_expr = imag_expr.replace(var,var+'i')
+
+                    strs = real_expr + imag_expr
+
+                gesfile.write(strs)
 # end write_func()
 
 def write_weak(weak, code_use_dict, xde_lists, gesfile):
@@ -714,11 +737,31 @@ def write_weak(weak, code_use_dict, xde_lists, gesfile):
             righ_expr += weak_strs
         expr_list = idx_summation(left_vara,righ_expr,xde_lists)
         expr_list = split_bracket_expr(expr_list[0])
-        for strs in expr_list:
-            if strs == 'dist=':
-                gesfile.write(strs)
-            else:
-                gesfile.write(strs+'\n')
+        gesfile.write(expr_list[0])
+        for strs in expr_list[1:]:
+            if 'cmplx_tag' in xde_lists and xde_lists['cmplx_tag'] == 1:
+                weak_item = regx.search(r'\[\w+\;\w+\]', strs, regx.I)
+                cplx_item = regx.search(r'\(?\|[+-]?\w+\;[+-]?\w+\|\)?', strs, regx.I)
+                if weak_item != None: weak_item = weak_item.group()
+                if cplx_item != None: cplx_item = cplx_item.group()
+
+                weak_left_var, weak_righ_var = weak_item.lstrip('[').rstrip(']').split(';')
+                cplx_real_var, cplx_imag_var = cplx_item.lstrip('(').rstrip(')').strip('|').split(';')
+
+                weak_left_list = [weak_left_var+'r', weak_left_var+'i', weak_left_var+'r', weak_left_var+'i']
+                weak_righ_list = [weak_righ_var+'r', weak_righ_var+'i', weak_righ_var+'i', weak_righ_var+'r']
+                cplx_list      = [cplx_real_var,     cplx_real_var,     cplx_imag_var,     cplx_imag_var]
+                if   cplx_list[2][0] == '+' : cplx_list[2] = cplx_list[2].replace('+','-')
+                elif cplx_list[2][0] == '-' : cplx_list[2] = cplx_list[2].replace('-','+')
+                else :  cplx_list[2]  = '-' + cplx_list[2]
+
+                for i in range(4):
+                    if regx.match(r'[+-]?0(?:\.0*)?|[+-]?\.0+', cplx_list[i] ,regx.I) != None \
+                    and cplx_list[i][-1] == '0' : continue
+                    gesfile.write(strs.replace(weak_item, f'[{weak_left_list[i]};{weak_righ_list[i]}]') \
+                                    .replace(cplx_item, f'({cplx_list[i]})')+'\n')
+                
+            else: gesfile.write(strs+'\n')
 
     elif xde_lists[weak][0] == 'lump':
         if len(xde_lists[weak]) == 1:
@@ -741,9 +784,25 @@ def write_load(xde_lists, gesfile):
     righ_expr = ''.join(xde_lists['load'])
     expr_list = idx_summation(left_vara,righ_expr,xde_lists)
     expr_list = split_bracket_expr(expr_list[0])
-    for strs in expr_list:
-        if strs == 'load=':
-            gesfile.write(strs)
-        else:
-            gesfile.write(strs+'\n')
+    gesfile.write(expr_list[0])
+    for strs in expr_list[1:]:
+        if 'cmplx_tag' in xde_lists and xde_lists['cmplx_tag'] == 1:
+            weak_item = regx.search(r'\[\w+\]', strs, regx.I)
+            cplx_item = regx.search(r'\(?\|[+-]?\w+\;[+-]?\w+\|\)?', strs, regx.I)
+            if weak_item != None: weak_item = weak_item.group()
+            if cplx_item != None: cplx_item = cplx_item.group()
+
+            weak_var = weak_item.lstrip('[').rstrip(']')
+            cplx_real_var, cplx_imag_var = cplx_item.lstrip('(').rstrip(')').strip('|').split(';')
+
+            weak_list = [weak_var+'r',  weak_var+'i']
+            cplx_list = [cplx_real_var, cplx_imag_var]
+
+            for i in range(2):
+                if regx.match(r'[+-]?0(?:\.0*)?|[+-]?\.0+', cplx_list[i] ,regx.I) != None \
+                and cplx_list[i][-1] == '0' : continue
+                gesfile.write(strs.replace(weak_item, f'[{weak_list[i]}]') \
+                                    .replace(cplx_item, f'({cplx_list[i]})')+'\n')
+
+        else: gesfile.write(strs+'\n')
 # end write_load() 

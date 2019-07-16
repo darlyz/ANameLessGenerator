@@ -320,6 +320,13 @@ def check_code(ges_info, xde_lists, list_addr, c_declares):
         if strs in xde_lists:
             c_declares['all'] |= set(xde_lists[strs])
 
+    if 'cmplx_tag' in xde_lists and xde_lists['cmplx_tag'] == 1:
+        for strs in ['disp', 'func']:
+            if strs in xde_lists:
+                for var in xde_lists[strs]:
+                    c_declares['all'].add(var+'r')
+                    c_declares['all'].add(var+'i')
+
     assist = {}
     for addr in xde_lists["code"].keys():
 
@@ -405,6 +412,7 @@ def gather_declare(code_strs, line_num, assist_dict, c_declares):
             sub_strs = regx.sub(c_dclr_key, '', sub_strs).lstrip()
 
             for var in sub_strs.split(','):
+                var = var.strip()
                 if var.find('=') != -1:
                     var = regx.sub(r'=.*', '', var)
 
@@ -569,7 +577,7 @@ def check_operator(code_strs, code_list, line_num, xde_lists, list_addr, c_decla
 
     elif code_list[0].lower() not in oprt_name_list:
         sgest_info  = Empha_color + code_list[0] \
-                    + Error_color + " is not a default operator."
+                    + Error_color + " is not a default operator.\n"
         report_error('OUF05', line_num, unsuitable_form(code_strs, 'Error') + sgest_info)
         return True
 
@@ -857,8 +865,9 @@ def check_weak(xde_lists, list_addr, weak):
                         report_error('WUF02', line_num, unsuitable_form(weak_item, 'Error') \
                             + f"It miss {Empha_color}'{' '.join(miss_opr)}'.\n")
 
-                weak_func_set = set(map(lambda x: x.strip(';').lstrip('[').rstrip(']'), \
-                                        regx.findall(r'\[\w+|\w+\;|\;\w+|\w+\]', weak_item, regx.I)))
+                weak_func_set = set()
+                for wset in weak_form:
+                    weak_func_set |=  set(map(lambda x:x.lstrip('[').rstrip(']') ,wset.split(';')))
 
                 check_weak_items(weak_func_set, weak_item, line_num, xde_lists)
 

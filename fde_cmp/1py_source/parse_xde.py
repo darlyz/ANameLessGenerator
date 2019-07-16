@@ -11,8 +11,9 @@ Error_color = Fore.MAGENTA
 Warnn_color = Fore.CYAN
 Empha_color = Fore.GREEN
 import re as regx
-pre_check = 0
-sec_check = 0
+pre_check = 1
+sec_check = 1
+ifo_folder = '../4other_gen_file/'
 
 def parse_xde(ges_info, xde_lists, list_addr, xdefile):
 
@@ -207,10 +208,10 @@ def pre_parse(ges_info, xde_lists, list_addr, xdefile):
 
     if pre_check == 1:
         import json
-        file = open('../1ges_target/'+'pre_check.json',mode='w')
+        file = open(ifo_folder+'pre_check.json',mode='w')
         file.write(json.dumps(xde_lists,indent=4))
         file.close()
-        file = open('../1ges_target/'+'pre_addr.json',mode='w')
+        file = open(ifo_folder+'pre_addr.json',mode='w')
         file.write(json.dumps(list_addr,indent=4))
         file.close()
 # end pre_parse()
@@ -268,6 +269,23 @@ def push_weak_declare (strs, line_num, line, keywd_tag, xde_lists, list_addr):
             keywd_tag['paragraph'] = strs
 
 def sec_parse(ges_info, xde_lists, list_addr):
+
+    # 3.0 parse disp and func for complex
+    if 'cmplx_tag' in xde_lists and xde_lists['cmplx_tag'] == 1:
+        if 'disp' in xde_lists:
+            xde_lists['cmplx_disp'] = xde_lists['disp'].copy()
+            xde_lists['disp'].clear()
+            for strs in xde_lists['cmplx_disp']:
+                xde_lists['disp'].append(strs+'r')
+                xde_lists['disp'].append(strs+'i')
+
+        if 'func' in xde_lists:
+            xde_lists['cmplx_func'] = xde_lists['func'].copy()
+            xde_lists['func'].clear()
+            for strs in xde_lists['cmplx_func']:
+                xde_lists['func'].append(strs+'r')
+                xde_lists['func'].append(strs+'i')
+
     # 3.1 parsing shap
     if 'shap' in xde_lists:
         parse_shap(ges_info, xde_lists)
@@ -337,7 +355,7 @@ def sec_parse(ges_info, xde_lists, list_addr):
 
     if sec_check == 1:
         import json
-        file = open('../1ges_target/'+'sec_check.json',mode='w')
+        file = open(ifo_folder+'sec_check.json',mode='w')
         file.write(json.dumps(xde_lists,indent=4))
         file.close()
 # end sec_parse()
