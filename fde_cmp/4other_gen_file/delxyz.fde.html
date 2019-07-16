@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Preview</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<script type="text/javascript" src="D:/ECTEC/PFELAC2.2new/MathJax-master/MathJax.js?config=TeX-AMS-MML_HTMLorMML.js"></script>
+</head>
+<body>
+<blockquote>
+<h3>Unknown Variable, 'Disp':</h3>
+<p>
+u, v, w, 
+</p>
+</blockquote>
+<blockquote>
+<h3>Coordinate Type, 'Coor': 3dxyz</h3>
+<p>
+x, y, z, 
+</p>
+</blockquote>
+<blockquote>
+<h3>Default Material, 'Mate':</h3>
+<table border="1" cellpadding="10" cellspacing="0">
+	<tr>
+		<td>var</td>
+		<td>pe</td>
+		<td>pv</td>
+		<td>fx</td>
+		<td>fy</td>
+		<td>fz</td>
+		<td>rou</td>
+		<td>alpha</td>
+	</tr>
+	<tr>
+		<td>val</td>
+		<td>1.0e10</td>
+		<td>0.3</td>
+		<td>0.0</td>
+		<td>0.0</td>
+		<td>0.0</td>
+		<td>3000.0</td>
+		<td>0.6</td>
+	</tr>
+</table>
+</blockquote>
+<blockquote>
+<h3>Element Type, 'shap':</h3>
+<p>
+	Type 1: c8, First Order Hexahedral Element<br>
+	&nbsp &nbsp &nbsp &nbsp &nbsp &nbsp Applicable to: u, v, w, 
+</p>
+</blockquote>
+<blockquote>
+<h3>Element Integration Type, g2:</h3>
+<p>
+Gaussian integral grade 2
+</p>
+</blockquote>
+<blockquote>
+<h3>mass items (Second Order Time Derivative), 'mass':</h3>
+<p>
+	Lumped mass Matrix:
+\[
+ \int_{\Omega} rou\cdot \frac{\partial^2 u}{\partial t^2}\delta u + \int_{\Omega} rou\cdot \frac{\partial^2 v}{\partial t^2}\delta v + \int_{\Omega} rou\cdot \frac{\partial^2 w}{\partial t^2}\delta w 
+\]
+</p>
+</blockquote>
+<blockquote>
+<h3>damp items (First Order Time Derivative), 'damp':</h3>
+<p>
+	Lumped damp Matrix:
+\[
+ \int_{\Omega} rou\cdot alpha\cdot \frac{\partial u}{\partial t}\delta u + \int_{\Omega} rou\cdot alpha\cdot \frac{\partial v}{\partial t}\delta v + \int_{\Omega} rou\cdot alpha\cdot \frac{\partial w}{\partial t}\delta w 
+\]
+</p>
+</blockquote>
+<blockquote>
+<h3>Stiffness items, 'stif':</h3>
+<p>
+	 Distribute Stiffness Matrix:
+\[
+ \int_{\Omega} sm_{ij}\cdot fact\cdot ev_{i}\delta ev_{j}+ \int_{\Omega} shear\cdot fact\cdot ep_{i}\delta ep_{i}
+\]
+</p>
+</blockquote>
+</body>
+</html>

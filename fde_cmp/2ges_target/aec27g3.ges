@@ -1,0 +1,429 @@
+aec27g3
+defi
+disp u,v,w,
+var u1 v1 w1 u2 v2 w2 u3 v3 w3 u4
+var v4 w4 u5 v5 w5 u6 v6 w6 u7 v7
+var w7 u8 v8 w8 u9 v9 w9 u10 v10 w10
+var u11 v11 w11 u12 v12 w12 u13 v13 w13 u14
+var v14 w14 u15 v15 w15 u16 v16 w16 u17 v17
+var w17 u18 v18 w18 u19 v19 w19 u20 v20 w20
+var u21 v21 w21 u22 v22 w22 u23 v23 w23 u24
+var v24 w24 u25 v25 w25 u26 v26 w26 u27 v27
+var w27
+refc rx,ry,rz,
+coor x,y,z,
+func = exx,eyy,ezz,eyz,exz,exy,
+dord 1,1,1,
+node 27
+$cc double pe,pv,fx,fy,fz,rou,alpha;
+mate pe pv fx fy fz rou alpha 1.0e10 0.3 0.0 0.0 0.0 3000.0 0.6
+
+shap
+u=
+u1 = rx*(rx-1.)/2*ry*(ry-1.)/2*rz*(rz-1.)/2
+u9 = (1.-rx*rx)*ry*(ry-1.)/2*rz*(rz-1.)/2
+u2 = rx*(1.+rx)/2*ry*(ry-1.)/2*rz*(rz-1.)/2
+u12 = rx*(rx-1.)/2*(1.-ry*ry)*rz*(rz-1.)/2
+u21 = (1.-rx*rx)*(1.-ry*ry)*rz*(rz-1.)/2
+u10 = rx*(1.+rx)/2*(1.-ry*ry)*rz*(rz-1.)/2
+u4 = rx*(rx-1.)/2*ry*(1.+ry)/2*rz*(rz-1.)/2
+u11 = (1.-rx*rx)*ry*(1.+ry)/2*rz*(rz-1.)/2
+u3 = rx*(1.+rx)/2*ry*(1.+ry)/2*rz*(rz-1.)/2
+u13 = rx*(rx-1.)/2*ry*(ry-1.)/2*(1.-rz*rz)
+u22 = (1.-rx*rx)*ry*(ry-1.)/2*(1.-rz*rz)
+u14 = rx*(1.+rx)/2*ry*(ry-1.)/2*(1.-rz*rz)
+u25 = rx*(rx-1.)/2*(1.-ry*ry)*(1.-rz*rz)
+u27 = (1.-rx*rx)*(1.-ry*ry)*(1.-rz*rz)
+u23 = rx*(1.+rx)/2*(1.-ry*ry)*(1.-rz*rz)
+u16 = rx*(rx-1.)/2*ry*(1.+ry)/2*(1.-rz*rz)
+u24 = (1.-rx*rx)*ry*(1.+ry)/2*(1.-rz*rz)
+u15 = rx*(1.+rx)/2*ry*(1.+ry)/2*(1.-rz*rz)
+u5 = rx*(rx-1.)/2*ry*(ry-1.)/2*rz*(1.+rz)/2
+u17 = (1.-rx*rx)*ry*(ry-1.)/2*rz*(1.+rz)/2
+u6 = rx*(1.+rx)/2*ry*(ry-1.)/2*rz*(1.+rz)/2
+u20 = rx*(rx-1.)/2*(1.-ry*ry)*rz*(1.+rz)/2
+u26 = (1.-rx*rx)*(1.-ry*ry)*rz*(1.+rz)/2
+u18 = rx*(1.+rx)/2*(1.-ry*ry)*rz*(1.+rz)/2
+u8 = rx*(rx-1.)/2*ry*(1.+ry)/2*rz*(1.+rz)/2
+u19 = (1.-rx*rx)*ry*(1.+ry)/2*rz*(1.+rz)/2
+u7 = rx*(1.+rx)/2*ry*(1.+ry)/2*rz*(1.+rz)/2
+
+v=
+v1 = rx*(rx-1.)/2*ry*(ry-1.)/2*rz*(rz-1.)/2
+v9 = (1.-rx*rx)*ry*(ry-1.)/2*rz*(rz-1.)/2
+v2 = rx*(1.+rx)/2*ry*(ry-1.)/2*rz*(rz-1.)/2
+v12 = rx*(rx-1.)/2*(1.-ry*ry)*rz*(rz-1.)/2
+v21 = (1.-rx*rx)*(1.-ry*ry)*rz*(rz-1.)/2
+v10 = rx*(1.+rx)/2*(1.-ry*ry)*rz*(rz-1.)/2
+v4 = rx*(rx-1.)/2*ry*(1.+ry)/2*rz*(rz-1.)/2
+v11 = (1.-rx*rx)*ry*(1.+ry)/2*rz*(rz-1.)/2
+v3 = rx*(1.+rx)/2*ry*(1.+ry)/2*rz*(rz-1.)/2
+v13 = rx*(rx-1.)/2*ry*(ry-1.)/2*(1.-rz*rz)
+v22 = (1.-rx*rx)*ry*(ry-1.)/2*(1.-rz*rz)
+v14 = rx*(1.+rx)/2*ry*(ry-1.)/2*(1.-rz*rz)
+v25 = rx*(rx-1.)/2*(1.-ry*ry)*(1.-rz*rz)
+v27 = (1.-rx*rx)*(1.-ry*ry)*(1.-rz*rz)
+v23 = rx*(1.+rx)/2*(1.-ry*ry)*(1.-rz*rz)
+v16 = rx*(rx-1.)/2*ry*(1.+ry)/2*(1.-rz*rz)
+v24 = (1.-rx*rx)*ry*(1.+ry)/2*(1.-rz*rz)
+v15 = rx*(1.+rx)/2*ry*(1.+ry)/2*(1.-rz*rz)
+v5 = rx*(rx-1.)/2*ry*(ry-1.)/2*rz*(1.+rz)/2
+v17 = (1.-rx*rx)*ry*(ry-1.)/2*rz*(1.+rz)/2
+v6 = rx*(1.+rx)/2*ry*(ry-1.)/2*rz*(1.+rz)/2
+v20 = rx*(rx-1.)/2*(1.-ry*ry)*rz*(1.+rz)/2
+v26 = (1.-rx*rx)*(1.-ry*ry)*rz*(1.+rz)/2
+v18 = rx*(1.+rx)/2*(1.-ry*ry)*rz*(1.+rz)/2
+v8 = rx*(rx-1.)/2*ry*(1.+ry)/2*rz*(1.+rz)/2
+v19 = (1.-rx*rx)*ry*(1.+ry)/2*rz*(1.+rz)/2
+v7 = rx*(1.+rx)/2*ry*(1.+ry)/2*rz*(1.+rz)/2
+
+w=
+w1 = rx*(rx-1.)/2*ry*(ry-1.)/2*rz*(rz-1.)/2
+w9 = (1.-rx*rx)*ry*(ry-1.)/2*rz*(rz-1.)/2
+w2 = rx*(1.+rx)/2*ry*(ry-1.)/2*rz*(rz-1.)/2
+w12 = rx*(rx-1.)/2*(1.-ry*ry)*rz*(rz-1.)/2
+w21 = (1.-rx*rx)*(1.-ry*ry)*rz*(rz-1.)/2
+w10 = rx*(1.+rx)/2*(1.-ry*ry)*rz*(rz-1.)/2
+w4 = rx*(rx-1.)/2*ry*(1.+ry)/2*rz*(rz-1.)/2
+w11 = (1.-rx*rx)*ry*(1.+ry)/2*rz*(rz-1.)/2
+w3 = rx*(1.+rx)/2*ry*(1.+ry)/2*rz*(rz-1.)/2
+w13 = rx*(rx-1.)/2*ry*(ry-1.)/2*(1.-rz*rz)
+w22 = (1.-rx*rx)*ry*(ry-1.)/2*(1.-rz*rz)
+w14 = rx*(1.+rx)/2*ry*(ry-1.)/2*(1.-rz*rz)
+w25 = rx*(rx-1.)/2*(1.-ry*ry)*(1.-rz*rz)
+w27 = (1.-rx*rx)*(1.-ry*ry)*(1.-rz*rz)
+w23 = rx*(1.+rx)/2*(1.-ry*ry)*(1.-rz*rz)
+w16 = rx*(rx-1.)/2*ry*(1.+ry)/2*(1.-rz*rz)
+w24 = (1.-rx*rx)*ry*(1.+ry)/2*(1.-rz*rz)
+w15 = rx*(1.+rx)/2*ry*(1.+ry)/2*(1.-rz*rz)
+w5 = rx*(rx-1.)/2*ry*(ry-1.)/2*rz*(1.+rz)/2
+w17 = (1.-rx*rx)*ry*(ry-1.)/2*rz*(1.+rz)/2
+w6 = rx*(1.+rx)/2*ry*(ry-1.)/2*rz*(1.+rz)/2
+w20 = rx*(rx-1.)/2*(1.-ry*ry)*rz*(1.+rz)/2
+w26 = (1.-rx*rx)*(1.-ry*ry)*rz*(1.+rz)/2
+w18 = rx*(1.+rx)/2*(1.-ry*ry)*rz*(1.+rz)/2
+w8 = rx*(rx-1.)/2*ry*(1.+ry)/2*rz*(1.+rz)/2
+w19 = (1.-rx*rx)*ry*(1.+ry)/2*rz*(1.+rz)/2
+w7 = rx*(1.+rx)/2*ry*(1.+ry)/2*rz*(1.+rz)/2
+
+tran
+x=
+x(1) = rx*(rx-1.)/2*ry*(ry-1.)/2*rz*(rz-1.)/2
+x(9) = (1.-rx*rx)*ry*(ry-1.)/2*rz*(rz-1.)/2
+x(2) = rx*(1.+rx)/2*ry*(ry-1.)/2*rz*(rz-1.)/2
+x(12) = rx*(rx-1.)/2*(1.-ry*ry)*rz*(rz-1.)/2
+x(21) = (1.-rx*rx)*(1.-ry*ry)*rz*(rz-1.)/2
+x(10) = rx*(1.+rx)/2*(1.-ry*ry)*rz*(rz-1.)/2
+x(4) = rx*(rx-1.)/2*ry*(1.+ry)/2*rz*(rz-1.)/2
+x(11) = (1.-rx*rx)*ry*(1.+ry)/2*rz*(rz-1.)/2
+x(3) = rx*(1.+rx)/2*ry*(1.+ry)/2*rz*(rz-1.)/2
+x(13) = rx*(rx-1.)/2*ry*(ry-1.)/2*(1.-rz*rz)
+x(22) = (1.-rx*rx)*ry*(ry-1.)/2*(1.-rz*rz)
+x(14) = rx*(1.+rx)/2*ry*(ry-1.)/2*(1.-rz*rz)
+x(25) = rx*(rx-1.)/2*(1.-ry*ry)*(1.-rz*rz)
+x(27) = (1.-rx*rx)*(1.-ry*ry)*(1.-rz*rz)
+x(23) = rx*(1.+rx)/2*(1.-ry*ry)*(1.-rz*rz)
+x(16) = rx*(rx-1.)/2*ry*(1.+ry)/2*(1.-rz*rz)
+x(24) = (1.-rx*rx)*ry*(1.+ry)/2*(1.-rz*rz)
+x(15) = rx*(1.+rx)/2*ry*(1.+ry)/2*(1.-rz*rz)
+x(5) = rx*(rx-1.)/2*ry*(ry-1.)/2*rz*(1.+rz)/2
+x(17) = (1.-rx*rx)*ry*(ry-1.)/2*rz*(1.+rz)/2
+x(6) = rx*(1.+rx)/2*ry*(ry-1.)/2*rz*(1.+rz)/2
+x(20) = rx*(rx-1.)/2*(1.-ry*ry)*rz*(1.+rz)/2
+x(26) = (1.-rx*rx)*(1.-ry*ry)*rz*(1.+rz)/2
+x(18) = rx*(1.+rx)/2*(1.-ry*ry)*rz*(1.+rz)/2
+x(8) = rx*(rx-1.)/2*ry*(1.+ry)/2*rz*(1.+rz)/2
+x(19) = (1.-rx*rx)*ry*(1.+ry)/2*rz*(1.+rz)/2
+x(7) = rx*(1.+rx)/2*ry*(1.+ry)/2*rz*(1.+rz)/2
+
+y=
+y(1) = rx*(rx-1.)/2*ry*(ry-1.)/2*rz*(rz-1.)/2
+y(9) = (1.-rx*rx)*ry*(ry-1.)/2*rz*(rz-1.)/2
+y(2) = rx*(1.+rx)/2*ry*(ry-1.)/2*rz*(rz-1.)/2
+y(12) = rx*(rx-1.)/2*(1.-ry*ry)*rz*(rz-1.)/2
+y(21) = (1.-rx*rx)*(1.-ry*ry)*rz*(rz-1.)/2
+y(10) = rx*(1.+rx)/2*(1.-ry*ry)*rz*(rz-1.)/2
+y(4) = rx*(rx-1.)/2*ry*(1.+ry)/2*rz*(rz-1.)/2
+y(11) = (1.-rx*rx)*ry*(1.+ry)/2*rz*(rz-1.)/2
+y(3) = rx*(1.+rx)/2*ry*(1.+ry)/2*rz*(rz-1.)/2
+y(13) = rx*(rx-1.)/2*ry*(ry-1.)/2*(1.-rz*rz)
+y(22) = (1.-rx*rx)*ry*(ry-1.)/2*(1.-rz*rz)
+y(14) = rx*(1.+rx)/2*ry*(ry-1.)/2*(1.-rz*rz)
+y(25) = rx*(rx-1.)/2*(1.-ry*ry)*(1.-rz*rz)
+y(27) = (1.-rx*rx)*(1.-ry*ry)*(1.-rz*rz)
+y(23) = rx*(1.+rx)/2*(1.-ry*ry)*(1.-rz*rz)
+y(16) = rx*(rx-1.)/2*ry*(1.+ry)/2*(1.-rz*rz)
+y(24) = (1.-rx*rx)*ry*(1.+ry)/2*(1.-rz*rz)
+y(15) = rx*(1.+rx)/2*ry*(1.+ry)/2*(1.-rz*rz)
+y(5) = rx*(rx-1.)/2*ry*(ry-1.)/2*rz*(1.+rz)/2
+y(17) = (1.-rx*rx)*ry*(ry-1.)/2*rz*(1.+rz)/2
+y(6) = rx*(1.+rx)/2*ry*(ry-1.)/2*rz*(1.+rz)/2
+y(20) = rx*(rx-1.)/2*(1.-ry*ry)*rz*(1.+rz)/2
+y(26) = (1.-rx*rx)*(1.-ry*ry)*rz*(1.+rz)/2
+y(18) = rx*(1.+rx)/2*(1.-ry*ry)*rz*(1.+rz)/2
+y(8) = rx*(rx-1.)/2*ry*(1.+ry)/2*rz*(1.+rz)/2
+y(19) = (1.-rx*rx)*ry*(1.+ry)/2*rz*(1.+rz)/2
+y(7) = rx*(1.+rx)/2*ry*(1.+ry)/2*rz*(1.+rz)/2
+
+z=
+z(1) = rx*(rx-1.)/2*ry*(ry-1.)/2*rz*(rz-1.)/2
+z(9) = (1.-rx*rx)*ry*(ry-1.)/2*rz*(rz-1.)/2
+z(2) = rx*(1.+rx)/2*ry*(ry-1.)/2*rz*(rz-1.)/2
+z(12) = rx*(rx-1.)/2*(1.-ry*ry)*rz*(rz-1.)/2
+z(21) = (1.-rx*rx)*(1.-ry*ry)*rz*(rz-1.)/2
+z(10) = rx*(1.+rx)/2*(1.-ry*ry)*rz*(rz-1.)/2
+z(4) = rx*(rx-1.)/2*ry*(1.+ry)/2*rz*(rz-1.)/2
+z(11) = (1.-rx*rx)*ry*(1.+ry)/2*rz*(rz-1.)/2
+z(3) = rx*(1.+rx)/2*ry*(1.+ry)/2*rz*(rz-1.)/2
+z(13) = rx*(rx-1.)/2*ry*(ry-1.)/2*(1.-rz*rz)
+z(22) = (1.-rx*rx)*ry*(ry-1.)/2*(1.-rz*rz)
+z(14) = rx*(1.+rx)/2*ry*(ry-1.)/2*(1.-rz*rz)
+z(25) = rx*(rx-1.)/2*(1.-ry*ry)*(1.-rz*rz)
+z(27) = (1.-rx*rx)*(1.-ry*ry)*(1.-rz*rz)
+z(23) = rx*(1.+rx)/2*(1.-ry*ry)*(1.-rz*rz)
+z(16) = rx*(rx-1.)/2*ry*(1.+ry)/2*(1.-rz*rz)
+z(24) = (1.-rx*rx)*ry*(1.+ry)/2*(1.-rz*rz)
+z(15) = rx*(1.+rx)/2*ry*(1.+ry)/2*(1.-rz*rz)
+z(5) = rx*(rx-1.)/2*ry*(ry-1.)/2*rz*(1.+rz)/2
+z(17) = (1.-rx*rx)*ry*(ry-1.)/2*rz*(1.+rz)/2
+z(6) = rx*(1.+rx)/2*ry*(ry-1.)/2*rz*(1.+rz)/2
+z(20) = rx*(rx-1.)/2*(1.-ry*ry)*rz*(1.+rz)/2
+z(26) = (1.-rx*rx)*(1.-ry*ry)*rz*(1.+rz)/2
+z(18) = rx*(1.+rx)/2*(1.-ry*ry)*rz*(1.+rz)/2
+z(8) = rx*(rx-1.)/2*ry*(1.+ry)/2*rz*(1.+rz)/2
+z(19) = (1.-rx*rx)*ry*(1.+ry)/2*rz*(1.+rz)/2
+z(7) = rx*(1.+rx)/2*ry*(1.+ry)/2*rz*(1.+rz)/2
+
+gaus = 27
+ 0.774596669241482  0.774596669241482  0.774596669241482 0.1714677640603571
+ 0.774596669241482  0.774596669241482  0.000000000000000 0.2743484224965708
+ 0.774596669241482  0.774596669241482 -0.774596669241482 0.1714677640603571
+ 0.774596669241482  0.000000000000000  0.774596669241482 0.2743484224965708
+ 0.774596669241482  0.000000000000000  0.000000000000000 0.4389574759945125
+ 0.774596669241482  0.000000000000000 -0.774596669241482 0.2743484224965708
+ 0.774596669241482 -0.774596669241482  0.774596669241482 0.1714677640603571
+ 0.774596669241482 -0.774596669241482  0.000000000000000 0.2743484224965708
+ 0.774596669241482 -0.774596669241482 -0.774596669241482 0.1714677640603571
+ 0.000000000000000  0.774596669241482  0.774596669241482 0.2743484224965708
+ 0.000000000000000  0.774596669241482  0.000000000000000 0.4389574759945125
+ 0.000000000000000  0.774596669241482 -0.774596669241482 0.2743484224965708
+ 0.000000000000000  0.000000000000000  0.774596669241482 0.43895747599451246
+ 0.000000000000000  0.000000000000000  0.000000000000000 0.7023319615912186
+ 0.000000000000000  0.000000000000000 -0.774596669241482 0.43895747599451246
+ 0.000000000000000 -0.774596669241482  0.774596669241482 0.2743484224965708
+ 0.000000000000000 -0.774596669241482  0.000000000000000 0.4389574759945125
+ 0.000000000000000 -0.774596669241482 -0.774596669241482 0.2743484224965708
+-0.774596669241482  0.774596669241482  0.774596669241482 0.1714677640603571
+-0.774596669241482  0.774596669241482  0.000000000000000 0.2743484224965708
+-0.774596669241482  0.774596669241482 -0.774596669241482 0.1714677640603571
+-0.774596669241482  0.000000000000000  0.774596669241482 0.2743484224965708
+-0.774596669241482  0.000000000000000  0.000000000000000 0.4389574759945125
+-0.774596669241482  0.000000000000000 -0.774596669241482 0.2743484224965708
+-0.774596669241482 -0.774596669241482  0.774596669241482 0.1714677640603571
+-0.774596669241482 -0.774596669241482  0.000000000000000 0.2743484224965708
+-0.774596669241482 -0.774596669241482 -0.774596669241482 0.1714677640603571
+
+func
+$CC vol = 1.0;
+$cc fact = pe/(1.0+pv)/(1.0-pv*2.0)*vol;
+$cc shear = (0.5-pv);
+exx=+[u/x]
+
+eyy=+[v/y]
+
+ezz=+[w/z]
+
+eyz=+[v/z]+[w/y]
+
+exz=+[u/z]+[w/x]
+
+exy=+[u/y]+[v/x]
+
+
+stif
+dist=+[exx;exx]*(1.-pv)*fact
++[exx;eyy]*pv*fact
++[exx;ezz]*pv*fact
++[eyy;exx]*pv*fact
++[eyy;eyy]*(1.-pv)*fact
++[eyy;ezz]*pv*fact
++[ezz;exx]*pv*fact
++[ezz;eyy]*pv*fact
++[ezz;ezz]*(1.-pv)*fact
++[eyz;eyz]*shear*fact
++[exz;exz]*shear*fact
++[exy;exy]*shear*fact
+
+mass
+lump =
++[rou]u1
++[rou]u2
++[rou]u3
++[rou]u4
++[rou]u5
++[rou]u6
++[rou]u7
++[rou]u8
++[rou]u9
++[rou]u10
++[rou]u11
++[rou]u12
++[rou]u13
++[rou]u14
++[rou]u15
++[rou]u16
++[rou]u17
++[rou]u18
++[rou]u19
++[rou]u20
++[rou]u21
++[rou]u22
++[rou]u23
++[rou]u24
++[rou]u25
++[rou]u26
++[rou]u27
++[rou]v1
++[rou]v2
++[rou]v3
++[rou]v4
++[rou]v5
++[rou]v6
++[rou]v7
++[rou]v8
++[rou]v9
++[rou]v10
++[rou]v11
++[rou]v12
++[rou]v13
++[rou]v14
++[rou]v15
++[rou]v16
++[rou]v17
++[rou]v18
++[rou]v19
++[rou]v20
++[rou]v21
++[rou]v22
++[rou]v23
++[rou]v24
++[rou]v25
++[rou]v26
++[rou]v27
++[rou]w1
++[rou]w2
++[rou]w3
++[rou]w4
++[rou]w5
++[rou]w6
++[rou]w7
++[rou]w8
++[rou]w9
++[rou]w10
++[rou]w11
++[rou]w12
++[rou]w13
++[rou]w14
++[rou]w15
++[rou]w16
++[rou]w17
++[rou]w18
++[rou]w19
++[rou]w20
++[rou]w21
++[rou]w22
++[rou]w23
++[rou]w24
++[rou]w25
++[rou]w26
++[rou]w27
+
+damp
+lump =
++[rou*alpha]u1
++[rou*alpha]u2
++[rou*alpha]u3
++[rou*alpha]u4
++[rou*alpha]u5
++[rou*alpha]u6
++[rou*alpha]u7
++[rou*alpha]u8
++[rou*alpha]u9
++[rou*alpha]u10
++[rou*alpha]u11
++[rou*alpha]u12
++[rou*alpha]u13
++[rou*alpha]u14
++[rou*alpha]u15
++[rou*alpha]u16
++[rou*alpha]u17
++[rou*alpha]u18
++[rou*alpha]u19
++[rou*alpha]u20
++[rou*alpha]u21
++[rou*alpha]u22
++[rou*alpha]u23
++[rou*alpha]u24
++[rou*alpha]u25
++[rou*alpha]u26
++[rou*alpha]u27
++[rou*alpha]v1
++[rou*alpha]v2
++[rou*alpha]v3
++[rou*alpha]v4
++[rou*alpha]v5
++[rou*alpha]v6
++[rou*alpha]v7
++[rou*alpha]v8
++[rou*alpha]v9
++[rou*alpha]v10
++[rou*alpha]v11
++[rou*alpha]v12
++[rou*alpha]v13
++[rou*alpha]v14
++[rou*alpha]v15
++[rou*alpha]v16
++[rou*alpha]v17
++[rou*alpha]v18
++[rou*alpha]v19
++[rou*alpha]v20
++[rou*alpha]v21
++[rou*alpha]v22
++[rou*alpha]v23
++[rou*alpha]v24
++[rou*alpha]v25
++[rou*alpha]v26
++[rou*alpha]v27
++[rou*alpha]w1
++[rou*alpha]w2
++[rou*alpha]w3
++[rou*alpha]w4
++[rou*alpha]w5
++[rou*alpha]w6
++[rou*alpha]w7
++[rou*alpha]w8
++[rou*alpha]w9
++[rou*alpha]w10
++[rou*alpha]w11
++[rou*alpha]w12
++[rou*alpha]w13
++[rou*alpha]w14
++[rou*alpha]w15
++[rou*alpha]w16
++[rou*alpha]w17
++[rou*alpha]w18
++[rou*alpha]w19
++[rou*alpha]w20
++[rou*alpha]w21
++[rou*alpha]w22
++[rou*alpha]w23
++[rou*alpha]w24
++[rou*alpha]w25
++[rou*alpha]w26
++[rou*alpha]w27
+
+load=+[u]*fx
++[v]*fy
++[w]*fz
+
+end

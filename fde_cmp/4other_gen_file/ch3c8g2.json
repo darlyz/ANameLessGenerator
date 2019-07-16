@@ -1,0 +1,459 @@
+{
+    "code": {
+        "BFmate": [
+            "COMMON double *inelmc8;",
+            "Insr_Code: double pe,pv,fx,fy,fz,rou,alpha,t0,time1,a,b,prag,dln,shearqrev,factqrev;",
+            "Insr_Code: double vi,qnn,shearwave;",
+            "Insr_Code: int kq,ntime,ialpha;",
+            "Insr_Code: extern double getyield(double *,double *,double *,double,double *,",
+            "Insr_Code: int,double (*f)(),int);",
+            "Insr_Code: extern double prager(double *,double *);",
+            "Insr_Code: double dev[4],dep[4],^e[3][3],^d[3][3],^qrev[3][3],^dwave[3][3],^dsv1[3][3];",
+            "Insr_Code: double ddf[8],ddg[8],ds[8],str[8],p[5];",
+            "Insr_Code: static int init=0;",
+            "Insr_Code: int m;",
+            "$I",
+            "Insr_Code: m = ngaus*7;",
+            "Insr_Code: if (init==0) {",
+            "Insr_Code: inelmc8 = (double *) calloc(nelem*m+1,sizeof(double));",
+            "Insr_Code: for (i=1; i<=nelem*m; ++i) inelmc8[i]=0.0;",
+            "Insr_Code: init = 1; }",
+            "Oprt_Asgn: singular.xyz"
+        ],
+        "AFmate": [
+            "Insr_Code: t0 = 0.0;",
+            "Insr_Code: ntime=(tmax-t0)/dt;",
+            "Insr_Code: time1=time_now/ntime;",
+            "Insr_Code: kq=qnn+0.5;",
+            "Insr_Code: p[3]=pv;"
+        ],
+        "func": [
+            "Insr_Code: fact=pe/(1.0+pv)/(1.0-2.0*pv);",
+            "Insr_Code: shear=(0.5-pv)*fact;",
+            "Tnsr_Asgn: ^d_i_j=+sm_i_j*fact",
+            "Insr_Code: factqrev=1/vi;",
+            "Insr_Code: shearqrev=factqrev;",
+            "Tnsr_Asgn: ^qrev_i_j=qrevm_i_j*factqrev",
+            "Insr_Code: det=invm(3,d,e);",
+            "Tnsr_Asgn: ^d_i_j = ^e_i_j",
+            "Tnsr_Asgn: ^dwave_i_j=+^d_i_j+^qrev_i_j*dt",
+            "Insr_Code: shearwave=1/shear+shearqrev*dt;",
+            "Insr_Code: det=invm(3,dwave,d);",
+            "Insr_Code: shearwave=1/shearwave;",
+            "Insr_Code: shear=shearwave;",
+            "Oprt_Asgn: vol.xyz",
+            "Insr_Code: j = (num-1)*ngaus*7+(igaus-1)*7;",
+            "Insr_Code: for (i=1; i<=7; ++i) str[i]=inelmc8[j+i];",
+            "Oprt_Asgn: ^e_i_j=gradv.xyz(x,y,z,un,vn,wn)",
+            "Tnsr_Asgn: dev_i=^e_i_i",
+            "Insr_Code: dep[1] = ^e[2][3]+^e[3][2];",
+            "Insr_Code: dep[2] = ^e[1][3]+^e[3][1];",
+            "Insr_Code: dep[3] = ^e[1][2]+^e[2][1];",
+            "Tnsr_Asgn: dsv_i=+^d_i_j*dev_j",
+            "Tnsr_Asgn: dsp_i=shear*dep_i",
+            "Insr_Code: ialpha=1;",
+            "Insr_Code: a=getyield(p,str,d,shear,ddf,kq,prager,ialpha);",
+            "Insr_Code: prag=prager(p,str);",
+            "Insr_Code: dln=ddf[1]*dev[1]+ddf[2]*dev[2]+ddf[3]*dev[3]",
+            "Insr_Code: +ddf[4]*dep[1]+ddf[5]*dep[2]+ddf[6]*dep[3]+prag;",
+            "Tnsr_Asgn: str_i=str_i+ds_i",
+            "Insr_Code: if (dln>0.0) {",
+            "Insr_Code: b=1.0/a;",
+            "Tnsr_Asgn: dsv_i=+b*ddgv_i*ddfv_j*dev_j",
+            "Tnsr_Asgn: dsp_i=+b*ddgp_i*ddfp_i*dep_i",
+            "Tnsr_Asgn: strv_i=+strv_i-dsv_i-ddgv_i*prag*b",
+            "Tnsr_Asgn: strp_i=+strp_i-dsp_i-ddgp_i*prag*b",
+            "Insr_Code: } else {",
+            "Insr_Code: b=0.0;",
+            "Insr_Code: }",
+            "Tnsr_Asgn: ^dsv1_i_k=+^d_i_j*^qrev_j_k",
+            "Tnsr_Asgn: dsv_i=+^dsv1_i_k*strv_k*dt",
+            "Tnsr_Asgn: dsp_i=+shear*shearqrev*strp_i*dt",
+            "Tnsr_Asgn: str_i=+str_i+ds_i",
+            "Insr_Code: ialpha=1;",
+            "Insr_Code: a=getyield(p,str,d,shear,ddf,kq,prager,ialpha);",
+            "Insr_Code: prag=prager(p,str);",
+            "Oprt_Asgn: [fe_i_j]=gradv.xyz()",
+            "Func_Asgn: ev_i=fe[1,5,9]",
+            "Func_Asgn: [fev_i]=fe[1,5,9]",
+            "Func_Asgn: [fe_i_j]=+[fe_i_j]+[fe_j_i]",
+            "Func_Asgn: ep_i=fe[6,3,2]",
+            "Func_Asgn: [fep_i]=fe[6,3,2]",
+            "Func_Asgn: [fp_1]=+[fev_i]*ddfv_i+[fep_j]*ddfp_j*1.0",
+            "Func_Asgn: [gp_1]=+[fev_i]*ddgv_i+[fep_j]*ddgp_j",
+            "Func_Asgn: plast_i=fp[]",
+            "Func_Asgn: plastg_i=gp[]"
+        ]
+    },
+    "disp": [
+        "u",
+        "v",
+        "w"
+    ],
+    "coor": [
+        "x",
+        "y",
+        "z"
+    ],
+    "coef": [
+        "un",
+        "vn",
+        "wn"
+    ],
+    "func": [
+        "exx",
+        "eyy",
+        "ezz",
+        "eyz",
+        "exz",
+        "exy",
+        "plast",
+        "plastg"
+    ],
+    "vect": {
+        "evp": [
+            "6",
+            "exx",
+            "eyy",
+            "ezz",
+            "eyz",
+            "exz",
+            "exy"
+        ],
+        "ev": [
+            "3",
+            "exx",
+            "eyy",
+            "ezz"
+        ],
+        "ep": [
+            "3",
+            "eyz",
+            "exz",
+            "exy"
+        ],
+        "plast": [
+            "1",
+            "plast"
+        ],
+        "plastg": [
+            "1",
+            "plastg"
+        ],
+        "ddfv": [
+            "3",
+            "ddf[1]",
+            "ddf[2]",
+            "ddf[3]"
+        ],
+        "ddfp": [
+            "3",
+            "ddf[4]",
+            "ddf[5]",
+            "ddf[6]"
+        ],
+        "ddgv": [
+            "3",
+            "ddg[1]",
+            "ddg[2]",
+            "ddg[3]"
+        ],
+        "ddgp": [
+            "3",
+            "ddg[4]",
+            "ddg[5]",
+            "ddg[6]"
+        ],
+        "str": [
+            "6",
+            "str[1]",
+            "str[2]",
+            "str[3]",
+            "str[4]",
+            "str[5]",
+            "str[6]"
+        ],
+        "strv": [
+            "3",
+            "str[1]",
+            "str[2]",
+            "str[3]"
+        ],
+        "strp": [
+            "3",
+            "str[4]",
+            "str[5]",
+            "str[6]"
+        ],
+        "ds": [
+            "6",
+            "ds[1]",
+            "ds[2]",
+            "ds[3]",
+            "ds[4]",
+            "ds[5]",
+            "ds[6]"
+        ],
+        "dsv": [
+            "3",
+            "ds[1]",
+            "ds[2]",
+            "ds[3]"
+        ],
+        "dsp": [
+            "3",
+            "ds[4]",
+            "ds[5]",
+            "ds[6]"
+        ],
+        "u": [
+            "3",
+            "u",
+            "v",
+            "w"
+        ],
+        "f": [
+            "3",
+            "fx",
+            "fy",
+            "fz"
+        ],
+        "dev": [
+            "3",
+            "dev[1]",
+            "dev[2]",
+            "dev[3]"
+        ],
+        "dep": [
+            "3",
+            "dep[1]",
+            "dep[2]",
+            "dep[3]"
+        ]
+    },
+    "mass": [
+        "lump",
+        "1.0"
+    ],
+    "shap": {
+        "c8": [
+            "u",
+            "v",
+            "w"
+        ]
+    },
+    "gaus": "g2",
+    "mate": {
+        "default": {
+            "pe": "1.0e010",
+            "pv": "0.3",
+            "vi": "1.0e020",
+            "fx": "0.0",
+            "fy": "0.0",
+            "fz": "0.0",
+            "p[1]": "0.2",
+            "p[2]": "1000.0",
+            "p[4]": "0.0",
+            "qnn": "3.0",
+            "rou": "3000.0",
+            "alpha": "0.6"
+        }
+    },
+    "matrix": {
+        "sm": [
+            "3",
+            "3",
+            [
+                "(1.-pv)",
+                "pv",
+                "pv"
+            ],
+            [
+                "pv",
+                "(1.-pv)",
+                "pv"
+            ],
+            [
+                "pv",
+                "pv",
+                "(1.-pv)"
+            ]
+        ],
+        "qrevm": [
+            "3",
+            "3",
+            [
+                "1./3.0",
+                "-1./6.0",
+                "-1./6.0"
+            ],
+            [
+                "-1./6.0",
+                "1./3.0",
+                "-1./6.0"
+            ],
+            [
+                "-1./6.0",
+                "-1./6.0",
+                "1./3.0"
+            ]
+        ],
+        "^e": [
+            "3",
+            "3",
+            [
+                "^e[1][1]",
+                "^e[1][2]",
+                "^e[1][3]"
+            ],
+            [
+                "^e[2][1]",
+                "^e[2][2]",
+                "^e[2][3]"
+            ],
+            [
+                "^e[3][1]",
+                "^e[3][2]",
+                "^e[3][3]"
+            ]
+        ],
+        "^d": [
+            "3",
+            "3",
+            [
+                "^d[1][1]",
+                "^d[1][2]",
+                "^d[1][3]"
+            ],
+            [
+                "^d[2][1]",
+                "^d[2][2]",
+                "^d[2][3]"
+            ],
+            [
+                "^d[3][1]",
+                "^d[3][2]",
+                "^d[3][3]"
+            ]
+        ],
+        "^qrev": [
+            "3",
+            "3",
+            [
+                "^qrev[1][1]",
+                "^qrev[1][2]",
+                "^qrev[1][3]"
+            ],
+            [
+                "^qrev[2][1]",
+                "^qrev[2][2]",
+                "^qrev[2][3]"
+            ],
+            [
+                "^qrev[3][1]",
+                "^qrev[3][2]",
+                "^qrev[3][3]"
+            ]
+        ],
+        "^dwave": [
+            "3",
+            "3",
+            [
+                "^dwave[1][1]",
+                "^dwave[1][2]",
+                "^dwave[1][3]"
+            ],
+            [
+                "^dwave[2][1]",
+                "^dwave[2][2]",
+                "^dwave[2][3]"
+            ],
+            [
+                "^dwave[3][1]",
+                "^dwave[3][2]",
+                "^dwave[3][3]"
+            ]
+        ],
+        "^dsv1": [
+            "3",
+            "3",
+            [
+                "^dsv1[1][1]",
+                "^dsv1[1][2]",
+                "^dsv1[1][3]"
+            ],
+            [
+                "^dsv1[2][1]",
+                "^dsv1[2][2]",
+                "^dsv1[2][3]"
+            ],
+            [
+                "^dsv1[3][1]",
+                "^dsv1[3][2]",
+                "^dsv1[3][3]"
+            ]
+        ]
+    },
+    "fmatr": {
+        "fe": [
+            "3",
+            "3",
+            [
+                "([u/x]+[u/x])",
+                "([u/y]+[v/x])",
+                "([u/z]+[w/x])"
+            ],
+            [
+                "([v/x]+[u/y])",
+                "([v/y]+[v/y])",
+                "([v/z]+[w/y])"
+            ],
+            [
+                "([w/x]+[u/z])",
+                "([w/y]+[v/z])",
+                "([w/z]+[w/z])"
+            ]
+        ]
+    },
+    "fvect": {
+        "fev": [
+            "3",
+            "+[u/x]",
+            "+[v/y]",
+            "+[w/z]"
+        ],
+        "fep": [
+            "3",
+            "+[v/z]+[w/y]",
+            "+[u/z]+[w/x]",
+            "+[u/y]+[v/x]"
+        ],
+        "fp": [
+            "1",
+            "+[u/x]*ddf[1]+[v/y]*ddf[2]+[w/z]*ddf[3]+([v/z]+[w/y])*ddf[4]*1.0+([u/z]+[w/x])*ddf[5]*1.0+([u/y]+[v/x])*ddf[6]*1.0"
+        ],
+        "gp": [
+            "1",
+            "+[u/x]*ddg[1]+[v/y]*ddg[2]+[w/z]*ddg[3]+([v/z]+[w/y])*ddg[4]+([u/z]+[w/x])*ddg[5]+([u/y]+[v/x])*ddg[6]"
+        ]
+    },
+    "stif": [
+        "dist",
+        "+[ev_i;ev_j]*^d_i_j*vol+[ep_i;ep_i]*shear*vol-[plast;plastg]*b*vol"
+    ],
+    "load": [
+        "+[u_i]*f_i*time1*vol-[evp_i]*str_i*vol+[plastg]*b*prag*vol",
+        "+[ev_i]*^d_i_j*^qrev_j_k*strv_k*dt+[ep_i]*shear*shearqrev*strp_i*dt",
+        "-[plastg]*b*ddfv_i*^qrev_i_j*strv_j*dt",
+        "-[plastg]*b*ddfp_i*shearqrev*strp_i*dt"
+    ],
+    "coef_shap": {
+        "c8": [
+            "un",
+            "vn",
+            "wn"
+        ]
+    },
+    "singular": "",
+    "vol": "$CC vol = 1.0;\n"
+}
