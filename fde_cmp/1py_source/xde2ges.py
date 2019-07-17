@@ -35,41 +35,51 @@ def xde2ges(ges_info, xde_lists, list_addr, gesfile):
     # 2 write refc, coor and coef declare
     if 'coor' in xde_lists:
         gesfile.write('\nrefc ')
-        for strs in xde_lists['coor']: gesfile.write('r'+strs+',')
+        for strs in xde_lists['coor']: 
+            gesfile.write('r'+strs+',')
+
         gesfile.write('\ncoor ')
-        for strs in xde_lists['coor']: gesfile.write(strs+',')
+        for strs in xde_lists['coor']: 
+            gesfile.write(strs+',')
 
     if 'coef' in xde_lists:
         gesfile.write('\ncoef ')
-        for strs in xde_lists['coef']: gesfile.write(strs+',')
+        for strs in xde_lists['coef']: 
+            gesfile.write(strs+',')
 
     # 3 write func declare
     if 'func' in xde_lists:
         gesfile.write('\nfunc = ')
-        for strs in xde_lists['func']: gesfile.write(strs+',')
+        for strs in xde_lists['func']: 
+            gesfile.write(strs+',')
 
     # 4 write dord and node declare
     if 'disp' in xde_lists:
         gesfile.write('\ndord ')
-        for strs in xde_lists['disp']: gesfile.write('1'+',')
+        for strs in xde_lists['disp']: 
+            gesfile.write('1'+',')
+
         gesfile.write('\nnode '+str(ges_info['shap_nodn'])+'\n')
 
     # 5 write code before mate declaration
     if 'BFmate' in code_use_dict:
-        for strs in code_use_dict['BFmate']: gesfile.write(strs)
+        for strs in code_use_dict['BFmate']: 
+            gesfile.write(strs)
 
     # 6 write mate line
     if 'mate' in xde_lists:
         gesfile.write('mate')
         for var in xde_lists['mate']['default'].keys():
             gesfile.write(' '+var)
+            
         for var in xde_lists['mate']['default'].keys():
             gesfile.write(' '+xde_lists['mate']['default'][var])
         gesfile.write('\n')
 
     # 7 write code after mate declaration
     if 'AFmate' in code_use_dict:
-        for strs in code_use_dict['AFmate']: gesfile.write(strs)
+        for strs in code_use_dict['AFmate']: 
+            gesfile.write(strs)
 
     # 8 write 'singular' operator declaration
     if 'singular' in xde_lists:
@@ -88,7 +98,8 @@ def xde2ges(ges_info, xde_lists, list_addr, gesfile):
         write_gaus(pfelacpath, ges_info, xde_lists, gesfile)
 
     # 10 write func paragraph
-    if 'func' in code_use_dict or 'vol'  in xde_lists :
+    if 'func' in code_use_dict \
+    or 'vol'  in xde_lists :
         write_func(code_use_dict, xde_lists, gesfile)
 
     # 11 write stif, mass, damp paragraph
@@ -140,15 +151,20 @@ def release_code(xde_lists, code_place, pfelacpath, code_use_dict):
 # end release_code()
 
 def release_tensor_code(code_strs, code_place, xde_lists, code_use_dict):
+
     vect_expr = code_strs.replace('Tnsr_Asgn: ','')
+
     left_vara, righ_expr = vect_expr.split('=')[:2]
     left_vara, righ_expr = left_vara.strip(), righ_expr.strip().strip(';')
+
     expr_list = idx_summation(left_vara, righ_expr, xde_lists)
+
     for expres in expr_list:
         code_use_dict[code_place].append('$cc '+expres+';\n')
 # end release_tensor_code()
 
 def release_complex_code(code_strs, code_place, xde_lists, code_use_dict):
+
     cplx_expr = code_strs.replace('Cplx_Asgn: ','')
     left_vara, righ_expr = cplx_expr.split('=')[:2]
     left_vara, righ_expr = left_vara.strip(), righ_expr.strip().strip(';')
@@ -156,15 +172,21 @@ def release_complex_code(code_strs, code_place, xde_lists, code_use_dict):
     # if complex expres is a tensor expres, make summation first
     if left_vara.find('_') != -1 \
     or righ_expr.find('_') != -1 :
+
         expr_list = idx_summation(left_vara, righ_expr, xde_lists)
+
         for expres in expr_list:
+
             cplx_list = expres.split('=')
             cplx_objt = cmplx_expr(cplx_list[1])
+
             for ri,cmplexpr in zip(['r','i'], cplx_objt.complex_list):
                 code_use_dict[code_place] \
                     .append(f'$cc {cplx_list[0]}{ri}={cmplexpr};\n')
+
     else:
         cplx_objt = cmplx_expr(righ_expr)
+
         for ri,cmplexpr in zip(['r','i'], cplx_objt.complex_list):
             code_use_dict[code_place] \
                 .append(f'$cc {left_vara}{ri}={cmplexpr};\n')
@@ -278,6 +300,7 @@ def release_operator_code(code_strs, code_place, pfelacpath, xde_lists, code_use
 # end release_operator_code()
 
 def release_funcasgn_code(code_strs, code_place, xde_lists, code_use_dict):
+
     tnsr_expr = code_strs.replace('Func_Asgn: ','')
     left_vara, righ_expr = tnsr_expr.split('=')[:2]
     left_vara, righ_expr = left_vara.strip(), righ_expr.strip()
@@ -292,12 +315,15 @@ def release_funcasgn_code(code_strs, code_place, xde_lists, code_use_dict):
 
             # read right variable index list
             righ_vara = righ_expr.split('[')[0]
+
             if righ_expr[-1] == ']' and righ_expr[-2] == '[':
                 
-                if   'fvect' in xde_lists and righ_vara in xde_lists['fvect']:
+                if   'fvect' in xde_lists \
+                and righ_vara in xde_lists['fvect']:
                     righ_idxs = list(range(int(xde_lists['fvect'][righ_vara][0])))
                 
-                elif 'fmatr' in xde_lists and righ_vara in xde_lists['fmatr']:
+                elif 'fmatr' in xde_lists \
+                and righ_vara in xde_lists['fmatr']:
                     righ_idxs = list(range(int(xde_lists['fvect'][righ_vara][0]) \
                                           *int(xde_lists['fvect'][righ_vara][1])))
                 
@@ -308,19 +334,24 @@ def release_funcasgn_code(code_strs, code_place, xde_lists, code_use_dict):
             if left_vara.count('_') == 0:
                 expres = left_vara + '='
 
-                if   'fvect' in xde_lists and righ_vara in xde_lists['fvect']:
+                if   'fvect' in xde_lists \
+                and righ_vara in xde_lists['fvect']:
                     for idx in righ_idxs:
                         expres += xde_lists['fvect'][righ_vara][int(idx)]
                 
-                elif 'fmatr' in xde_lists and righ_vara in xde_lists['fmatr']:
+                elif 'fmatr' in xde_lists \
+                and righ_vara in xde_lists['fmatr']:
+
                     row, clm = list(map(int,xde_lists['fmatr'][righ_vara][:2]))
                     fmatr = xde_lists['fmatr'][righ_vara][2:]
+
                     for idx in righ_idxs:
                         expres += fmatr[math.ceil(int(idx)/clm)-1][int(idx)%clm-1]
                 
                 code_use_dict[code_place].append(expres+'\n\n')
             
             elif left_vara.count('_') == 1: 
+
                 left_name = left_vara.split('_')[0]
                 expr_list = []
                 temp_list = xde_lists['vect'][left_name][1:].copy()
@@ -329,17 +360,22 @@ def release_funcasgn_code(code_strs, code_place, xde_lists, code_use_dict):
 
                     if   'fvect' in xde_lists and righ_vara in xde_lists['fvect']:
                         for vara, idx in zip(temp_list, righ_idxs):
-                            expr_list.append(vara+'='+xde_lists['fvect'][righ_vara][int(idx)]+'\n\n')
+                            expr_list.append( vara + '=' + \
+                                xde_lists['fvect'][righ_vara][int(idx)] + '\n\n')
                     
                     elif 'fmatr' in xde_lists and righ_vara in xde_lists['fmatr']:
+
                         row,clm = list(map(int,xde_lists['fmatr'][righ_vara][:2]))
                         fmatr   = xde_lists['fmatr'][righ_vara][2:]
+
                         for vara,idx in zip(temp_list,righ_idxs):
-                            expr_list.append(vara+'='+fmatr[math.ceil(int(idx)/clm)-1][int(idx)%clm-1]+'\n\n')
+                            expr_list.append(vara + '=' + \
+                                fmatr[math.ceil(int(idx)/clm)-1][int(idx)%clm-1] + '\n\n')
                 
                 code_use_dict[code_place] += expr_list
 
             elif left_vara.count('_') == 2:
+
                 left_name = left_vara.split('_')[0]
                 expr_list = []
                 matr_len = int(xde_lists['matrix'][left_name][0]) \
@@ -348,28 +384,36 @@ def release_funcasgn_code(code_strs, code_place, xde_lists, code_use_dict):
                 temp_list = xde_lists['matrix'][left_name][2:].copy()
 
                 if matr_len == len(righ_idxs):
-                    if 'fvect' in xde_lists and righ_vara in xde_lists['fvect']:
+
+                    if 'fvect' in xde_lists \
+                        and righ_vara in xde_lists['fvect']:
+
                         idx = 0
                         for lists in temp_list:
                             for vara in lists:
                                 idx+=1
-                                expr_list.append(vara+'='+xde_lists['fvect'][righ_vara][idx]+'\n\n')
+                                expr_list.append( vara + '=' + \
+                                    xde_lists['fvect'][righ_vara][idx] + '\n\n')
 
                 elif 'fmatr' in xde_lists and righ_vara in xde_lists['fmatr']:
+
                     row,clm = list(map(int,xde_lists['fmatr'][righ_vara][:2]))
                     fmatr = xde_lists['fmatr'][righ_vara][2:]
+
                     i = 0
                     for matr_row in temp_list:
                         for matr_vara in matr_row:
                             idx = righ_idxs[i]
-                            expr_list.append(matr_vara+'='+fmatr[math.ceil(int(idx)/clm)-1][int(idx)%clm-1]+'\n\n')
+                            expr_list.append( matr_vara + '=' + \
+                                fmatr[math.ceil(int(idx)/clm)-1][int(idx)%clm-1] + '\n\n')
                             i += 1
 
                 code_use_dict[code_place] += expr_list
 
     # assign the temporary list type of 'fvect' or 'fmatr'
     # to the list type of 'fvect' or 'fmatr'
-    elif left_vara[0]  == '[' and  left_vara[-1] == ']' :
+    elif left_vara[0]  == '[' \
+    and  left_vara[-1] == ']' :
 
         left_vara = left_vara.lstrip('[').rstrip(']')
 
@@ -379,29 +423,38 @@ def release_funcasgn_code(code_strs, code_place, xde_lists, code_use_dict):
 
             # read right variable index list
             righ_vara = righ_expr.split('[')[0]
-            if righ_expr[-1] == ']' and righ_expr[-2] == '[':
 
-                if 'fvect' in xde_lists and righ_vara in xde_lists['fvect']:
+            if righ_expr[-1] == ']' \
+            and righ_expr[-2] == '[':
+
+                if 'fvect' in xde_lists \
+                and righ_vara in xde_lists['fvect']:
                     righ_idxs = list(range(int(xde_lists['fvect'][righ_vara][0])))
 
-                elif 'fmatr' in xde_lists and righ_vara in xde_lists['fmatr']:
+                elif 'fmatr' in xde_lists \
+                and righ_vara in xde_lists['fmatr']:
                     righ_idxs = list(range(int(xde_lists['fvect'][righ_vara][0]) \
                                           *int(xde_lists['fvect'][righ_vara][1])))
 
                 righ_idxs = [x + 1 for x in righ_idxs]
+
             else:
                 righ_idxs = righ_expr.split('[')[1].rstrip(']').split(',')
 
             if left_vara.count('_') == 0:       
                 expres = left_vara + '='
 
-                if   'fvect' in xde_lists and righ_vara in xde_lists['fvect']:
+                if   'fvect' in xde_lists \
+                and righ_vara in xde_lists['fvect']:
                     for idx in righ_idxs:
                         expres += xde_lists['fvect'][righ_vara][int(idx)]
 
-                elif 'fmatr' in xde_lists and righ_vara in xde_lists['fmatr']:
+                elif 'fmatr' in xde_lists \
+                and righ_vara in xde_lists['fmatr']:
+
                     row, clm = list(map(int,xde_lists['fmatr'][righ_vara][:2]))
                     fmatr = xde_lists['fmatr'][righ_vara][2:]
+
                     for idx in righ_idxs:
                         expres += fmatr[math.ceil(int(idx)/clm)-1][int(idx)%clm-1]
 
@@ -413,18 +466,23 @@ def release_funcasgn_code(code_strs, code_place, xde_lists, code_use_dict):
 
                 if vect_len == len(righ_idxs) + 1:
 
-                    if   'fvect' in xde_lists and righ_vara in xde_lists['fvect']:
+                    if   'fvect' in xde_lists \
+                    and righ_vara in xde_lists['fvect']:
+
                         for idx,ii in zip(righ_idxs,range(vect_len)):
                             xde_lists['fvect'][left_name][ii+1] = \
                             xde_lists['fvect'][righ_vara][int(idx)]
 
-                    elif 'fmatr' in xde_lists and righ_vara in xde_lists['fmatr']:
+                    elif 'fmatr' in xde_lists \
+                    and righ_vara in xde_lists['fmatr']:
+
                         row, clm = list(map(int,xde_lists['fmatr'][righ_vara][:2]))
                         for idx,ii in zip(righ_idxs,range(vect_len)):
                             xde_lists['fvect'][left_name][ii+1] = \
                             xde_lists['fmatr'][righ_vara][math.ceil(int(idx)/clm)+1][int(idx)%clm-1]
             
             elif left_vara.count('_') == 2:
+
                 left_name = left_vara.split('_')[0]
                 expr_list = []
                 matr_len = int(xde_lists['fmatr'][left_name][0]) \
@@ -432,31 +490,40 @@ def release_funcasgn_code(code_strs, code_place, xde_lists, code_use_dict):
                 lrow, lclm = list(map(int,xde_lists['fmatr'][left_name][:2]))
 
                 if matr_len == len(righ_idxs):
-                    if   'fvect' in xde_lists and righ_vara in xde_lists['fvect']:
+                    if   'fvect' in xde_lists \
+                    and righ_vara in xde_lists['fvect']:
+
                         for ii,idx in zip(range(matr_len),righ_idxs):
                             xde_lists['fmatr'][left_name][math.ceil(ii/lclm)+1][ii%lclm-1] = \
                                 xde_lists['fvect'][righ_vara][int(idx)]
 
-                    elif 'fmatr' in xde_lists and righ_vara in xde_lists['fmatr']:
+                    elif 'fmatr' in xde_lists \
+                    and righ_vara in xde_lists['fmatr']:
+
                         row, clm = list(map(int,xde_lists['fmatr'][righ_vara][:2]))
                         for ii,idx in zip(range(matr_len),righ_idxs):
                             xde_lists['fmatr'][left_name][math.ceil(ii/lclm)+1][ii%lclm-1] = \
                                 xde_lists['fmatr'][righ_vara][math.ceil(int(idx)/clm)+1][int(idx)%clm-1]
+
         else:
             righ_expr = righ_expr.replace('[','').replace(']','')
 
             expr_list = idx_summation(left_vara,righ_expr,xde_lists)
 
             if left_vara.count('_') == 1:
+
                 left_vara = left_vara.split('_')[0]
                 row = int(xde_lists['fvect'][left_vara][0])
+
                 for ii in range(row):
                     xde_lists['fvect'][left_vara][ii+1] = \
                         expr_list[ii].split('=')[1].replace('++','+').replace('-+','-')
 
             elif left_vara.count('_') == 2:
+
                 left_vara = left_vara.split('_')[0]
                 row,clm = list(map(int,xde_lists['fmatr'][left_vara][:2]))
+
                 for ii in range(row):
                     for jj in range(clm):
                         xde_lists['fmatr'][left_vara][ii+2][jj] = \
@@ -474,10 +541,13 @@ def write_disp_var(ges_info, xde_lists, gesfile):
     # 1.2 parsing var
     var_dict = {}
     pan_vars = set()
+
     for shap in xde_lists['shap'].keys():
+
         if shap[-1] == 'c':
             pan_vars |= set(xde_lists['shap'][shap])
             continue
+
         nodn = int(regx.search(r'[1-9]+', shap, regx.I).group())
         
         for var in xde_lists['shap'][shap]:
@@ -486,21 +556,27 @@ def write_disp_var(ges_info, xde_lists, gesfile):
     # 1.3 write var declare
     gesfile.write('var')
     disp_vars = xde_lists['disp'].copy()
+
     i = 0
     for pan_var in pan_vars:
         disp_vars.remove(pan_var)
+
     for nodi in range(int(ges_info['shap_nodn'])):
+
         for strs in disp_vars:
             if nodi >= len(var_dict[strs]):
                 continue
+
             gesfile.write(' '+var_dict[strs][nodi])
             i += 1
+ 
             if i == 10:
                 gesfile.write('\nvar')
                 i = 0
 # end write_disp_var()
 
 def write_shap_tran(pfelacpath, ges_info, xde_lists, gesfile):
+
     gesfile.write('\nshap\n')
     geslib_coor = ['x','y','z']
     base_shap_strs = ''
@@ -524,10 +600,13 @@ def write_shap_tran(pfelacpath, ges_info, xde_lists, gesfile):
 
         # 9.1.3 replace shap func's disp by xde's disp and write
         for shap_var in xde_lists['shap'][shap]:
+
             if shap[-1].lower() == 'c':
                 temp_strs = shap_strs.replace('u',xde_lists['shap'][shap][shap_var])
+
             else:
                 temp_strs = shap_strs.replace('u',shap_var)
+
             gesfile.write(shap_var+'=\n')
             gesfile.write(temp_strs)
             gesfile.write('\n')
@@ -554,14 +633,17 @@ def write_shap_tran(pfelacpath, ges_info, xde_lists, gesfile):
     # 9.2.3 replace shap func's disp by by xde's coor and write
     for coor_str in xde_lists['coor']:
         gesfile.write(coor_str + '=\n')
+
         for tran_expr in tran_expr_list:
             gesfile.write(tran_expr.replace('u', coor_str) + '\n')
         gesfile.write('\n')
 # end write_shap_tran()
 
 def write_coefshap(pfelacpath, ges_info, xde_lists, gesfile):
+
     gesfile.write('coef\n')
     geslib_coor = ['x','y','z']
+
     for shap in xde_lists['coef_shap'].keys():
 
         shap_func = 'd' + ges_info['dim'] + shap
@@ -572,6 +654,7 @@ def write_coefshap(pfelacpath, ges_info, xde_lists, gesfile):
         coef_expr_list = []
 
         for shap_expr in shap_expr_list:
+
             shap_var, shap_exp  = shap_expr.split('=')[:2]
             shap_num  = regx.search(r'[0-9]+', shap_var, regx.I).group()
             shap_var  = shap_var.replace(shap_num, '('+shap_num+')')
@@ -600,11 +683,15 @@ def write_gaus(pfelacpath, ges_info, xde_lists, gesfile):
         # 9.1.1 line square or cube shap
         if ges_info['shap_form'].lower() in ['l','q','c']:
 
-            gaus_axis, gaus_weit = [], []
+            gaus_axis = []
+            gaus_weit = []
+
             for line in gaussian_data['line'][gaus_degree].rstrip().split('\n'):
                 gaus_strs = line.split()
+
                 if  gaus_strs[0][0] not in ['-' ,'+'] :
                     gaus_strs[0] = ' '+gaus_strs[0]
+
                 gaus_axis.append(gaus_strs[0])
                 gaus_weit.append(gaus_strs[1])
 
@@ -643,8 +730,10 @@ def write_gaus(pfelacpath, ges_info, xde_lists, gesfile):
             # 9.1.2.1 tackle the gaussian degree
             if gaus_degree == '6':
                 gaus_degree = '5'
+
             elif int(gaus_degree) > 12 and int(gaus_degree) < 17:
                 gaus_degree = '12'
+
             elif int(gaus_degree) > 17:
                 gaus_degree = '17'
 
@@ -656,8 +745,10 @@ def write_gaus(pfelacpath, ges_info, xde_lists, gesfile):
             # 9.1.3.1 tackle the gaussian degree
             if gaus_degree == '4':
                 gaus_degree = '3'
+
             elif gaus_degree == '6':
                 gaus_degree = '5'
+
             elif int(gaus_degree) > 7:
                 gaus_degree = '7'
 
@@ -672,7 +763,9 @@ def write_gaus(pfelacpath, ges_info, xde_lists, gesfile):
 # end write_gaus()
 
 def write_func(code_use_dict, xde_lists, gesfile):
+
     gesfile.write('\nfunc\n')
+
     if 'vol'  in xde_lists :
         gesfile.write(xde_lists['vol'])
 
@@ -689,6 +782,7 @@ def write_func(code_use_dict, xde_lists, gesfile):
                     # save derivative in driv_list[] and replace by rplc_list[]
                     driv_list = set(regx.findall(r'\[[a-z][a-z0-9]*/[xyzros]\]', strs, regx.I))
                     rplc_list = ['driv'+str(i) for i in range(len(driv_list))]
+
                     for rplc, driv in zip(rplc_list, driv_list):
                         strs = strs.replace(driv, rplc)
                     
@@ -699,21 +793,29 @@ def write_func(code_use_dict, xde_lists, gesfile):
                     # replace rplc_list[] back from driv_list[]
                     for rplc, driv in zip(rplc_list, driv_list):
                         expr_strs = expr_strs.replace(rplc, driv)
+
                     strs = strs.split('=')[0] + '=' + expr_strs+'\n\n'
 
-                if strs[-2:] != '\n\n': strs += '\n'
+                if strs[-2:] != '\n\n': 
+                    strs += '\n'
                 
                 if 'cmplx_tag' in xde_lists and xde_lists['cmplx_tag'] == 1:
+
                     left_vara, righ_expr = strs.rstrip('\n').split('=')
                     cmplx_var = []
                     cmplx_var.append(left_vara.strip())
                     vara_list = regx.findall(r'\[\w+/?\w*\]', righ_expr, regx.I)
+
                     for var in vara_list:
+
                         if var.find('/') != -1:
                             cmplx_var.append(var.lstrip('[').rstrip(']').split('/')[0].strip())
+
                         else:
                             cmplx_var.append(var.lstrip('[').rstrip(']').strip())
+
                     real_expr, imag_expr = strs, strs
+
                     for var in cmplx_var:
                         if var in xde_lists['cmplx_disp'] + xde_lists['cmplx_func']:
                             real_expr = real_expr.replace(var,var+'r')
@@ -725,28 +827,40 @@ def write_func(code_use_dict, xde_lists, gesfile):
 # end write_func()
 
 def write_weak(weak, code_use_dict, xde_lists, gesfile):
+
     if xde_lists[weak][0].lower() != 'null' or weak in code_use_dict:
         gesfile.write('\n{}\n'.format(weak))
-    else: return
+
+    else: 
+        return
 
     if weak in code_use_dict:
         for strs in code_use_dict[weak]:
             gesfile.write(strs)
 
     if xde_lists[weak][0] == 'dist':
+
         left_vara = xde_lists[weak][0]
         righ_expr = ''
+
         for weak_strs in xde_lists[weak][1:]:
             righ_expr += weak_strs
+
         expr_list = idx_summation(left_vara,righ_expr,xde_lists)
         expr_list = split_bracket_expr(expr_list[0])
         gesfile.write(expr_list[0])
+
         for strs in expr_list[1:]:
+
             if 'cmplx_tag' in xde_lists and xde_lists['cmplx_tag'] == 1:
+
                 weak_item = regx.search(r'\[\w+\;\w+\]', strs, regx.I)
                 cplx_item = regx.search(r'\(?\|[+-]?\w+\;[+-]?\w+\|\)?', strs, regx.I)
-                if weak_item != None: weak_item = weak_item.group()
-                if cplx_item != None: cplx_item = cplx_item.group()
+
+                if weak_item != None: 
+                    weak_item = weak_item.group()
+                if cplx_item != None: 
+                    cplx_item = cplx_item.group()
 
                 weak_left_var, weak_righ_var = weak_item.lstrip('[').rstrip(']').split(';')
                 cplx_real_var, cplx_imag_var = cplx_item.lstrip('(').rstrip(')').strip('|').split(';')
@@ -754,19 +868,28 @@ def write_weak(weak, code_use_dict, xde_lists, gesfile):
                 weak_left_list = [weak_left_var+'r', weak_left_var+'i', weak_left_var+'r', weak_left_var+'i']
                 weak_righ_list = [weak_righ_var+'r', weak_righ_var+'i', weak_righ_var+'i', weak_righ_var+'r']
                 cplx_list      = [cplx_real_var,     cplx_real_var,     cplx_imag_var,     cplx_imag_var]
-                if   cplx_list[2][0] == '+' : cplx_list[2] = cplx_list[2].replace('+','-')
-                elif cplx_list[2][0] == '-' : cplx_list[2] = cplx_list[2].replace('-','+')
-                else :  cplx_list[2]  = '-' + cplx_list[2]
+
+                if   cplx_list[2][0] == '+' : 
+                    cplx_list[2] = cplx_list[2].replace('+','-')
+
+                elif cplx_list[2][0] == '-' : 
+                    cplx_list[2] = cplx_list[2].replace('-','+')
+
+                else :  
+                    cplx_list[2]  = '-' + cplx_list[2]
 
                 for i in range(4):
                     if regx.match(r'[+-]?0(?:\.0*)?|[+-]?\.0+', cplx_list[i] ,regx.I) != None \
-                    and cplx_list[i][-1] == '0' : continue
+                    and cplx_list[i][-1] == '0' : 
+                        continue
+
                     gesfile.write(strs.replace(weak_item, f'[{weak_left_list[i]};{weak_righ_list[i]}]') \
-                                    .replace(cplx_item, f'({cplx_list[i]})')+'\n')
+                                      .replace(cplx_item, f'({cplx_list[i]})')+'\n')
                 
             else: gesfile.write(strs+'\n')
 
     elif xde_lists[weak][0] == 'lump':
+
         if len(xde_lists[weak]) == 1:
             xde_lists[weak].append('1.0')
 
@@ -776,24 +899,33 @@ def write_weak(weak, code_use_dict, xde_lists, gesfile):
         gesfile.write('lump =\n')
         for shaps in xde_lists['shap']:
             nodn = regx.search(r'\d+',shaps,regx.I).group()
+
             for vara in xde_lists['shap'][shaps]:
                 for ii in range(int(nodn)):
                     gesfile.write(f'+[{xde_lists[weak][1]}]{vara}{ii+1}\n')
 # end write_weak()
 
 def write_load(xde_lists, gesfile):
+
     gesfile.write('\n')
     left_vara = 'load'
     righ_expr = ''.join(xde_lists['load'])
     expr_list = idx_summation(left_vara,righ_expr,xde_lists)
     expr_list = split_bracket_expr(expr_list[0])
     gesfile.write(expr_list[0])
+
     for strs in expr_list[1:]:
+
         if 'cmplx_tag' in xde_lists and xde_lists['cmplx_tag'] == 1:
+
             weak_item = regx.search(r'\[\w+\]', strs, regx.I)
             cplx_item = regx.search(r'\(?\|[+-]?\w+\;[+-]?\w+\|\)?', strs, regx.I)
-            if weak_item != None: weak_item = weak_item.group()
-            if cplx_item != None: cplx_item = cplx_item.group()
+
+            if weak_item != None: 
+                weak_item = weak_item.group()
+
+            if cplx_item != None: 
+                cplx_item = cplx_item.group()
 
             weak_var = weak_item.lstrip('[').rstrip(']')
             cplx_real_var, cplx_imag_var = cplx_item.lstrip('(').rstrip(')').strip('|').split(';')
@@ -802,10 +934,13 @@ def write_load(xde_lists, gesfile):
             cplx_list = [cplx_real_var, cplx_imag_var]
 
             for i in range(2):
+
                 if regx.match(r'[+-]?0(?:\.0*)?|[+-]?\.0+', cplx_list[i] ,regx.I) != None \
-                and cplx_list[i][-1] == '0' : continue
+                and cplx_list[i][-1] == '0' :
+                    continue
+
                 gesfile.write(strs.replace(weak_item, f'[{weak_list[i]}]') \
-                                    .replace(cplx_item, f'({cplx_list[i]})')+'\n')
+                                  .replace(cplx_item, f'({cplx_list[i]})')+'\n')
 
         else: gesfile.write(strs+'\n')
 # end write_load() 

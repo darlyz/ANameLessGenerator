@@ -10,12 +10,20 @@ import re as regx
 # --------------------------------base expr class-------------------------------
 # ------------------------------------------------------------------------------
 class expr:
-    expr_strs, expr_list, expr_dict, expr_head = '', [], {}, ''
+
+    expr_strs = ''
+    expr_list = []
+    expr_dict = {}
+    expr_head = ''
+
     def __init__(self,strs, opr_oder_list=[['*','/'],['+','-']]):
+
         self.expr_strs = strs
         opr_list = [x for y in opr_oder_list for x in y] + ['(',')']
         self.expr_list = expr_strs2list(self.expr_strs, opr_list)
-        self.expr_ordr = parsing_with_bracket_opr(self.expr_list.copy(), self.expr_dict, opr_oder_list, 0)
+        self.expr_ordr = parsing_with_bracket_opr(self.expr_list.copy(), \
+                                                  self.expr_dict, \
+                                                  opr_oder_list, 0)
         self.expr_head = 'expr_'+str(self.expr_ordr)
 
     def bracket_expand(self, expr_head):
@@ -24,7 +32,8 @@ class expr:
             if self.expr_dict[expr_head][strs].find('expr') != -1:
 
                 expr_sub = self.expr_dict[expr_head][strs]
-                self.expr_dict[expr_head][strs] = self.bracket_expand(expr_sub)
+                self.expr_dict[expr_head][strs] \
+                    = self.bracket_expand(expr_sub)
 
         left = self.expr_dict[expr_head]['left']
         righ = self.expr_dict[expr_head]['righ']
@@ -38,31 +47,50 @@ class expr:
         if opr == '*':
             for left_str in left_list:
                 for righ_str in righ_list:
+
                     left_opr, righ_opr = left_str[0], righ_str[0]
-                    left_val, righ_val = left_str.lstrip(left_opr), righ_str.lstrip(righ_opr)
-                    if   left_opr == righ_opr: strs_opr = '+'
-                    elif left_opr != righ_opr: strs_opr = '-'
+                    left_val = left_str.lstrip(left_opr)
+                    righ_val = righ_str.lstrip(righ_opr)
+
+                    if   left_opr == righ_opr: 
+                        strs_opr = '+'
+                    elif left_opr != righ_opr: 
+                        strs_opr = '-'
+
                     expr_strs += strs_opr + left_val + '*' + righ_val
+
         elif opr == '/':
             for left_str in left_list:
-                if len(righ_list) != 1 or righ[0] == '-':
+
+                if len(righ_list) != 1 \
+                or righ[0] == '-':
                     righ = '(' + righ + ')'
+
                 expr_strs += left_str + '/' + righ
+
         elif opr == '-':
             expr_strs += left
             for righ_str in righ_list:
+
                 righ_opr = righ_str[0]
                 righ_val = righ_str.lstrip(righ_opr)
-                if   righ_opr == '-': strs_opr = '+'
-                elif righ_opr == '+': strs_opr = '-'
+
+                if   righ_opr == '-': 
+                    strs_opr = '+'
+                elif righ_opr == '+': 
+                    strs_opr = '-'
+
                 expr_strs += strs_opr + righ_val
+                
         elif opr == '+':
-            expr_strs += left + (righ if righ[0] in ['-','+'] else '+'+righ)
+            expr_strs += left
+            expr_strs += (righ if righ[0] in ['-','+'] else '+'+righ)
 
         return expr_strs
 
 # -a+b*c --> ['-a','+b*c']
 def split_unequal_grade_expr(expr_strs):
+
     opr_list = regx.findall(r'\+|\-',expr_strs)
     val_list = regx.split(r'\+|\-',expr_strs)
 
@@ -83,25 +111,33 @@ def expr_strs2list (expr_strs,opr_list=['+','-','*','/','(',')']):
     # +a --> a; -a --> neg_a; (a) --> a
     if expr_strs[0] == '+':
         expr_strs = expr_strs.lstrip('+')
+
     elif expr_strs[0] == '-':
         expr_strs = 'neg_'+expr_strs.lstrip('-')
+
     expr_strs = expr_strs.replace('(+','(').replace('(-','(neg_')
     single_val = regx.findall(r'\([a-z]\w*\)', expr_strs, regx.I)
+
     for val in single_val:
         expr_strs = expr_strs.replace(val, val.lstrip('(').rstrip(')'))
 
     # split
-    val_start, val_end, expr_list = 0, 0, []
+    val_start = 0
+    val_end   = 0
+    expr_list = []
     for ii,char in enumerate(expr_strs) :
         if char in opr_list:
+
             if val_start != val_end:
                 expr_list.append(expr_strs[val_start:val_end].replace('neg_','-'))
+
             expr_list.append(char)
             val_start = ii + 1
+
         val_end = ii+1
         
     if val_start != len(expr_strs):
-        expr_list.append(expr_strs[val_start:len(expr_strs)])
+        expr_list.append(expr_strs[val_start:])
 
     return expr_list
 # end expr2list()
@@ -148,8 +184,13 @@ def parsing_unequal_grade_opr(expr_list,expr_dict,opr_lists,expr_order):
     low_oprs = set([opr for opr_list in opr_lists for opr in opr_list])
 
     for opr_list in opr_lists[:-1]:
+
         low_oprs = low_oprs.difference(set(opr_list))
-        upper_expr_lists, upper_expr_locat, upper_start, upper_end, upper_find = [], [], 0, 0, 0
+        upper_expr_lists = []
+        upper_expr_locat = []
+        upper_start = 0
+        upper_end   = 0
+        upper_find  = 0
 
         # draw the upper grade operator expression
         for list_i, strs in enumerate(expr_list):
@@ -159,15 +200,20 @@ def parsing_unequal_grade_opr(expr_list,expr_dict,opr_lists,expr_order):
                     upper_find = 1
                     upper_start = list_i
 
-            elif strs in low_oprs or list_i + 1 == len(expr_list):
+            elif strs in low_oprs \
+            or list_i + 1 == len(expr_list):
+
                 if upper_find == 1:
                     upper_find = 0
+
                     if list_i + 1 == len(expr_list):
                         upper_end = list_i + 1
+
                     elif strs in low_oprs:
                         upper_end = list_i
 
-            if upper_start != 0 and upper_end != 0:
+            if  upper_start != 0 \
+            and upper_end != 0:
                 upper_expr_lists.append(expr_list[upper_start-1:upper_end])
                 upper_expr_locat.append(list(range(upper_start-1,upper_end)))
                 upper_start, upper_end = 0, 0
@@ -180,9 +226,12 @@ def parsing_unequal_grade_opr(expr_list,expr_dict,opr_lists,expr_order):
 
             # replacing
             upper_locat = upper_expr_locat[list_i]
+
             for locat_i, upper in enumerate(upper_locat):
+
                 if locat_i == 0:
                     expr_list[upper] = 'expr_'+str(expr_i)
+
                 else:
                     expr_list[upper] = ''
 
@@ -210,8 +259,10 @@ def parsing_with_bracket_opr(expr_list,expr_dict,opr_lists,expr_order):
     bracket_tag = 0
     max_bracket_level = 0
     for strs in expr_list:
-        if   strs == '(': bracket_tag += 1
-        elif strs == ')': bracket_tag -= 1
+        if   strs == '(': 
+            bracket_tag += 1
+        elif strs == ')': 
+            bracket_tag -= 1
 
         if  max_bracket_level < bracket_tag:
             max_bracket_level = bracket_tag
@@ -220,7 +271,8 @@ def parsing_with_bracket_opr(expr_list,expr_dict,opr_lists,expr_order):
 
         # locate the bracket
         bracket_tag = 0
-        left_bracket_locat, righ_bracket_locat = [], []
+        left_bracket_locat = []
+        righ_bracket_locat = []
         for list_i, strs in enumerate(expr_list):
 
             if   strs == '(':
@@ -236,7 +288,7 @@ def parsing_with_bracket_opr(expr_list,expr_dict,opr_lists,expr_order):
         # draw expression in bracket, parsing and replace them
         bracket_i = 0
         for left_locat, righ_locat in zip(left_bracket_locat, righ_bracket_locat):
-            bracket_expr = expr_list[left_locat+1:righ_locat]
+            bracket_expr = expr_list[left_locat+1: righ_locat]
 
             # parsing bracket expression
             expr_i = parsing_unequal_grade_opr(bracket_expr, expr_dict, opr_lists, expr_i)
@@ -259,19 +311,26 @@ def parsing_with_bracket_opr(expr_list,expr_dict,opr_lists,expr_order):
 # ----------------------------complex expr class--------------------------------
 # ------------------------------------------------------------------------------
 class cmplx_expr(expr):
+
     complex_list = []
+
     def __init__(self,strs,opr_oder_list=[['*','/'],['+','-']]):
+
         expr.__init__(self,strs,opr_oder_list=[['*','/'],['+','-']])
+
         self.trans_complex_expr_list()
         self.complex_list = self.complex_expand(self.expr_head)
 
     # transform 'a' to ['ar','ai'] in expr_dict
     def trans_complex_expr_list(self):
+
         for keys in self.expr_dict.keys():
             for side in ['left','righ']:
+
                 if  isinstance(self.expr_dict[keys][side],str) == 1 \
                 and self.expr_dict[keys][side].find('expr') == -1 \
                 and self.expr_dict[keys][side] != '0':
+
                     var = self.expr_dict[keys][side]
                     self.expr_dict[keys][side] = [var+'r',var+'i']
     # end trans_complex_expr_list()
@@ -290,12 +349,13 @@ class cmplx_expr(expr):
 
                 if  self.expr_dict[expr_head]['opr'] in ['*','/'] \
                 and self.expr_dict[expr_sub ]['opr'] in ['+','-','*'] :
-                    self.expr_dict[expr_head][strs] = complex_add_bracket(self.expr_dict[expr_head][strs])
+                    self.expr_dict[expr_head][strs] \
+                        = complex_add_bracket(self.expr_dict[expr_head][strs])
 
         left = self.expr_dict[expr_head]['left']
         righ = self.expr_dict[expr_head]['righ']
 
-        if self.expr_dict[expr_head]['opr'] == '+' :
+        if   self.expr_dict[expr_head]['opr'] == '+' :
             return complex_add(left,righ)
         elif self.expr_dict[expr_head]['opr'] == '-' :
             return complex_sub(left,righ)
@@ -308,41 +368,70 @@ class cmplx_expr(expr):
     # end def complex_expand()
 
 def complex_add(left,righ):
-    if left == '0' and righ != '0':
+
+    if left == '0' \
+    and righ != '0':
         return righ
-    elif righ == '0' and left != '0':
+
+    elif righ == '0' \
+    and left != '0':
         return left
-    elif righ != '0' and left != '0':
+
+    elif righ != '0' \
+    and left != '0':
         return [left[0]+'+'+righ[0], left[1]+'+'+righ[1]]
-    else: return '0'
+
+    else: 
+        return '0'
 
 def complex_sub(left,righ):
-    if left == '0' and righ != '0':
+
+    if left == '0' \
+    and righ != '0':
         return ['-'+righ[0],'-'+righ[1]]
-    elif righ == '0' and left != '0':
+
+    elif righ == '0' \
+    and left != '0':
         return left
-    elif righ != '0' and left != '0':
+
+    elif righ != '0' \
+    and left != '0':
         return [left[0]+'-'+righ[0], left[1]+'-'+righ[1]]
-    else: return '0'
+
+    else: 
+        return '0'
 
 def complex_multiply(left,righ):
-    if righ != '0' and left != '0':
+
+    if righ != '0' \
+    and left != '0':
         return [left[0]+'*'+righ[0]+'-'+left[1]+'*'+righ[1], \
                 left[0]+'*'+righ[1]+'+'+left[1]+'*'+righ[0]]
-    else: return '0'
+
+    else: 
+        return '0'
 
 def complex_division(left,righ):
-    if righ != '0' and left != '0':
-        return ['(' +left[0]+'*'+righ[0]+'+'+left[1]+'*'+righ[1]+')/('+righ[0]+'*'+righ[0]+'+'+righ[1]+'*'+righ[1]+')', \
-                '(-'+left[0]+'*'+righ[1]+'+'+left[1]+'*'+righ[0]+')/('+righ[0]+'*'+righ[0]+'+'+righ[1]+'*'+righ[1]+')']
-    elif left == '0' and righ != '0':
+
+    if righ != '0' \
+    and left != '0':
+        return ['(' +left[0]+'*'+righ[0]+'+'+left[1]+'*'+righ[1]+')/(' \
+                    +righ[0]+'*'+righ[0]+'+'+righ[1]+'*'+righ[1]+')', \
+                '(-'+left[0]+'*'+righ[1]+'+'+left[1]+'*'+righ[0]+')/(' \
+                    +righ[0]+'*'+righ[0]+'+'+righ[1]+'*'+righ[1]+')']
+    elif left == '0' \
+    and righ != '0':
         return '0'
-    else: return None
+
+    else: 
+        return None
 
 def complex_add_bracket(complex_list):
+
     temp_list = []
     for strs in complex_list:
         temp_list.append('('+strs+')')
+
     return temp_list
 # end vector_add_bracket()
 
@@ -355,7 +444,8 @@ class tnsr_expr(expr): # need to develop
 # [a1,a2,..] opr [b1,b2,...] --> [a1 opr b1, a2 opr b2, ...]
 # [a1,a2,..] opr b           --> [a1 opr b,  a2 opr b,  ...], opr: + - * /
 # b opr [a1,a2,..]           --> [b  opr a1, b  opr a2, ...]
-# follow as max size law : [a1,a2] opr [b1,b2,b3] --> [a1 opr b1,a2 opr b2,x opr b3], x=1 when opr = '*''/', x=0 when opr = '+''-'
+# follow as max size law : [a1,a2] opr [b1,b2,b3] --> [a1 opr b1,a2 opr b2,x opr b3], 
+#                          x=1 when opr = '*''/', x=0 when opr = '+''-'
 def vector_opr(left,righ,opr_str):
 
     vector_list = []
@@ -384,11 +474,15 @@ def vector_opr(left,righ,opr_str):
             left_str = left[ii] if ii < left_len else ''
             righ_str = righ[ii] if ii < righ_len else ''
 
-            if opr_str == '/' and left_str == '':
+            if opr_str == '/' \
+            and left_str == '':
                 left_str = '1'
                 opr = opr_str
-            elif opr_str == '-' and left_str == '':
+
+            elif opr_str == '-' \
+            and left_str == '':
                 opr = opr_str
+
             else:
                 opr  = opr_str if ii < min_len else ''
 
@@ -397,7 +491,8 @@ def vector_opr(left,righ,opr_str):
 
             vector_list.append(left_str+opr+righ_str)
 
-    elif isinstance(left,list) and len(left) != 0 \
+    elif isinstance(left,list) \
+    and len(left) != 0 \
     and  isinstance(righ,str) :
 
         if isinstance(left[0],str) :
@@ -405,7 +500,8 @@ def vector_opr(left,righ,opr_str):
                 vector_list.append(left[ii]+opr_str+righ)
 
     elif isinstance(left,str) \
-    and  isinstance(righ,list) and len(righ) != 0 :
+    and  isinstance(righ,list) \
+    and len(righ) != 0 :
 
         if isinstance(righ[0],str) :
             for ii in range(len(righ)):
@@ -424,8 +520,12 @@ def vector_dot_multiply(left,righ):
 
     opr = '*'
 
-    if  isinstance(left,list) and len(left) !=0 and isinstance(left[0],str) \
-    and isinstance(righ,list) and len(righ) !=0 and isinstance(righ[0],str) :
+    if  isinstance(left,list) \
+    and len(left) !=0 \
+    and isinstance(left[0],str) \
+    and isinstance(righ,list) \
+    and len(righ) !=0 \
+    and isinstance(righ[0],str) :
         left_len = len(left)
         righ_len = len(righ)
         min_len  = left_len if left_len < righ_len else righ_len
@@ -433,12 +533,13 @@ def vector_dot_multiply(left,righ):
         if righ[0] == '':
             opr = ''
 
-        scalar_strs = left[0]+opr+righ[0]
+        scalar_strs = left[0] + opr + righ[0]
+
         for ii in range(1,min_len):
 
             if righ[ii] == '':
                 opr = ''
-            scalar_strs += '+'+left[ii]+opr+righ[ii]
+            scalar_strs += '+' + left[ii] + opr + righ[ii]
 
         return scalar_strs
 
@@ -664,15 +765,20 @@ def matrix_transpose(matrix):
 
     if isinstance(matrix,str):
         return matrix
+
     elif isinstance(matrix,list) \
     and  isinstance(matrix[0],str):
+
         for ii in range(len(matrix)):
             tran_matrix.append([])
             tran_matrix[ii].append(matrix[ii])
+
         return tran_matrix
+
     elif isinstance(matrix,list) \
     and  isinstance(matrix[0],list) \
     and  isinstance(matrix[0][0],str) :
+
         for ii in range(len(matrix)):
             max_len = max_len if max_len > len(matrix[ii]) else len(matrix[ii])
 
@@ -688,21 +794,26 @@ def matrix_transpose(matrix):
 # end matrix_inverse()
 
 def vector_add_bracket(vector_list):
+
     temp_list = []
     for strs in vector_list:
         temp_list.append('('+strs+')')
+
     return temp_list
 # end vector_add_bracket()
 
 def tensor_add_bracket(tensor_list):
+
     temp_list = []
     if  isinstance(tensor_list,list) \
     and isinstance(tensor_list[0],str) :
         temp_list = vector_add_bracket(tensor_list)
+
     elif isinstance(tensor_list,list) \
     and  isinstance(tensor_list[0],list) :
         for alist in tensor_list:
             temp_list.append(tensor_add_bracket(alist))
+
     return temp_list
 # end tensor_add_bracket()
 
@@ -741,6 +852,7 @@ def tensor_summation(tensor_list):
         for strs in tensor_list:
             expr_strs += strs+'+'
         expr_strs = expr_strs.rstrip('+')
+
     elif isinstance(tensor_list,list) \
     and  isinstance(tensor_list[0],list) :
         for alist in tensor_list:
@@ -758,6 +870,7 @@ def tensor_production(tensor_list):
         for strs in tensor_list:
             expr_strs += '('+strs+')'+'*'
         expr_strs = expr_strs.rstrip('*')
+
     elif isinstance(tensor_list,list) \
     and  isinstance(tensor_list[0],list) :
         for alist in tensor_list:
@@ -803,6 +916,7 @@ def trans_tensor_expr_list(expr_dict,xde_lists):
 
     for expr_key in expr_dict.keys():
         for item in ['left','righ']:
+
             if not isinstance(expr_dict[expr_key][item],list) \
             and expr_dict[expr_key][item].find('expr') == -1:
 
@@ -814,29 +928,39 @@ def trans_tensor_expr_list(expr_dict,xde_lists):
 
                     idx_i = 0
                     for idx in items_list:
+
                         if idx_i == 0:
                             expr_dict[expr_key][item+'_indx'] = []
+
                         else:
                             expr_dict[expr_key][item+'_indx'].append(idx)
+
                         idx_i += 1
 
                 # vector
                 if len(items_list) == 2:
 
-                    if 'vect' in xde_lists and var_name in xde_lists['vect']:
+                    if 'vect' in xde_lists \
+                    and var_name in xde_lists['vect']:
                         expr_dict[expr_key][item] = xde_lists['vect'][var_name]
-                    if 'fvect' in xde_lists and var_name in xde_lists['fvect']:
+
+                    if 'fvect' in xde_lists \
+                    and var_name in xde_lists['fvect']:
                         expr_dict[expr_key][item] = xde_lists['fvect'][var_name]
 
                 # matrix
                 elif len(items_list) == 3:
 
-                    if 'matrix' in xde_lists and var_name in xde_lists['matrix']:
+                    if 'matrix' in xde_lists \
+                    and var_name in xde_lists['matrix']:
+
                         expr_dict[expr_key][item] = []
                         for lists in xde_lists['matrix'][var_name]:
                             expr_dict[expr_key][item].append(lists)
 
-                    if 'fmatr' in xde_lists and var_name in xde_lists['fmatr']:
+                    if 'fmatr' in xde_lists \
+                    and var_name in xde_lists['fmatr']:
+
                         expr_dict[expr_key][item] = []
                         for lists in xde_lists['fmatr'][var_name]:
                             expr_dict[expr_key][item].append(lists)
@@ -852,34 +976,51 @@ def trans_tensor_expr_list(expr_dict,xde_lists):
 # --------------------------dummy index expr summation--------------------------
 # ------------------------------------------------------------------------------
 def idx_summation(left_var,righ_expr,xde_lists):
+
     tensor_dict = {}
     for keys in ['vect','fvect']:
+
         if keys in xde_lists:
+
             for strs, lists in xde_lists[keys].items():
+
                 tlist = lists[1:len(lists)]
                 for ii in range(len(tlist)):
+
                     tlist[ii] = tlist[ii].lstrip('+')
+
                     if len(split_bracket_expr(tlist[ii])) != 1 :
                         tlist[ii] = '('+tlist[ii]+')'
                     tensor_dict[strs+str(ii)] = tlist[ii]
+
     for keys in ['matrix','fmatr']:
+
         if keys in xde_lists:
+
             for strs, lists in xde_lists[keys].items():
+
                 tlist = lists[2:len(lists)]
                 for ii in range(len(tlist)):
+
                     for jj in range(len(tlist[ii])):
+
                         tlist[ii][jj] = tlist[ii][jj].lstrip('+')
+
                         if len(split_bracket_expr(tlist[ii][jj])) != 1 :
                             tlist[ii][jj] = '('+tlist[ii][jj]+')'
                         tensor_dict[strs+str(ii)+str(jj)] = tlist[ii][jj]
 
     left_var_list = []
     left_idxlen = {}
+
     #left_indxs  = parse_xde_type_tensor(left_var,left_var_list,left_idxlen,xde_lists)
     # -- copy parse_xde_type_tensor()
     left_var_list = left_var.split('_')
-    if ('vect'   in xde_lists and left_var_list[0] in xde_lists['vect']) \
-    or ('matrix' in xde_lists and left_var_list[0] in xde_lists['matrix']) :
+    if ('vect'   in xde_lists \
+        and left_var_list[0] in xde_lists['vect']) \
+    or ('matrix' in xde_lists \
+        and left_var_list[0] in xde_lists['matrix']) :
+
         if   len(left_var_list) == 2:
             left_idxlen[left_var_list[1]] = int(xde_lists['vect'][left_var_list[0]][0])
 
@@ -887,8 +1028,11 @@ def idx_summation(left_var,righ_expr,xde_lists):
             left_idxlen[left_var_list[1]] = int(xde_lists['matrix'][left_var_list[0]][0])
             left_idxlen[left_var_list[2]] = int(xde_lists['matrix'][left_var_list[0]][1])
 
-    elif ('fvect' in xde_lists and left_var_list[0] in xde_lists['fvect']) \
-    or   ('fmatr' in xde_lists and left_var_list[0] in xde_lists['fmatr']) :
+    elif ('fvect' in xde_lists \
+        and left_var_list[0] in xde_lists['fvect']) \
+    or   ('fmatr' in xde_lists \
+        and left_var_list[0] in xde_lists['fmatr']) :
+
         if   len(left_var_list) == 2:
             left_idxlen[left_var_list[1]] = int(xde_lists['fvect'][left_var_list[0]][0])
 
@@ -896,7 +1040,8 @@ def idx_summation(left_var,righ_expr,xde_lists):
             left_idxlen[left_var_list[1]] = int(xde_lists['fmatr'][left_var_list[0]][0])
             left_idxlen[left_var_list[2]] = int(xde_lists['fmatr'][left_var_list[0]][1])
 
-    else: pass
+    else: 
+        pass
         
     left_indxs = list(left_idxlen.keys())
     # -- copy parse_xde_type_tensor()
@@ -905,7 +1050,11 @@ def idx_summation(left_var,righ_expr,xde_lists):
     for keys in left_idxlen.keys():
         left_indxi[keys] = 0
 
-    righ_pack = {'righ_exp':[],'righ_len':[],'righ_rdx':[],'righ_idx':[]}
+    righ_pack = {'righ_exp':[], \
+                 'righ_len':[], \
+                 'righ_rdx':[], \
+                 'righ_idx':[] }
+
     righ_expr_list = split_bracket_expr(righ_expr)
     righ_pack['righ_exp'] = righ_expr_list
 
@@ -926,33 +1075,44 @@ def idx_summation(left_var,righ_expr,xde_lists):
 
             temp_idxsl = strs.split('_')
 
-            if ('vect'   in xde_lists and temp_idxsl[0] in xde_lists['vect']) \
-            or ('matrix' in xde_lists and temp_idxsl[0] in xde_lists['matrix']) :
+            if ('vect'   in xde_lists \
+                and temp_idxsl[0] in xde_lists['vect']) \
+            or ('matrix' in xde_lists \
+                and temp_idxsl[0] in xde_lists['matrix']) :
 
                 if   len(temp_idxsl) == 2:
+
                     if not temp_idxsl[1] in left_idxlen:
                         righ_idxlen[temp_idxsl[1]] = int(xde_lists['vect'][temp_idxsl[0]][0])
 
                 elif len(temp_idxsl) == 3:
+
                     if not temp_idxsl[1] in left_idxlen:
                         righ_idxlen[temp_idxsl[1]] = int(xde_lists['matrix'][temp_idxsl[0]][0])
+
                     if not temp_idxsl[2] in left_idxlen:
                         righ_idxlen[temp_idxsl[2]] = int(xde_lists['matrix'][temp_idxsl[0]][1])
 
-            elif ('fvect' in xde_lists and temp_idxsl[0] in xde_lists['fvect']) \
-            or   ('fmatr' in xde_lists and temp_idxsl[0] in xde_lists['fmatr']) :
+            elif ('fvect' in xde_lists \
+                and temp_idxsl[0] in xde_lists['fvect']) \
+            or   ('fmatr' in xde_lists \
+                and temp_idxsl[0] in xde_lists['fmatr']) :
 
                 if   len(temp_idxsl) == 2:
+
                     if not temp_idxsl[1] in left_idxlen:
                         righ_idxlen[temp_idxsl[1]] = int(xde_lists['fvect'][temp_idxsl[0]][0])
 
                 elif len(temp_idxsl) == 3:
+
                     if not temp_idxsl[1] in left_idxlen:
                         righ_idxlen[temp_idxsl[1]] = int(xde_lists['fmatr'][temp_idxsl[0]][0])
+
                     if not temp_idxsl[2] in left_idxlen:
                         righ_idxlen[temp_idxsl[2]] = int(xde_lists['fmatr'][temp_idxsl[0]][1])
 
-            else: pass
+            else: 
+                pass
 
         tensor_list = temp_list.copy()
         righ_indxs = list(righ_idxlen.keys())
@@ -974,32 +1134,43 @@ def idx_summation(left_var,righ_expr,xde_lists):
 
 # xde_tnsr --> xde_tnsr_list & tnsr_dict   return->
 # a_i_j    --> [a,i,j]         {i:2,j:3}   [i,j]
-def parse_xde_type_tensor(xde_tnsr,xde_tnsr_list,tnsr_dict,xde_lists):
+def parse_xde_type_tensor(xde_tnsr, xde_tnsr_list, tnsr_dict, xde_lists):
 
     if xde_tnsr.find('_') == -1:
         return []
     else:
         for strs in xde_tnsr.split('_'):
             xde_tnsr_list.append(strs)
-        if ('vect'   in xde_lists and xde_tnsr_list[0] in xde_lists['vect']) \
-        or ('matrix' in xde_lists and xde_tnsr_list[0] in xde_lists['matrix']) :
+        if ('vect'   in xde_lists \
+            and xde_tnsr_list[0] in xde_lists['vect']) \
+        or ('matrix' in xde_lists \
+            and xde_tnsr_list[0] in xde_lists['matrix']) :
+
             if   len(xde_tnsr_list) == 2:
+
                 tnsr_dict[xde_tnsr_list[1]] = int(xde_lists['vect'][xde_tnsr_list[0]][0])
 
             elif len(xde_tnsr_list) == 3:
+
                 tnsr_dict[xde_tnsr_list[1]] = int(xde_lists['matrix'][xde_tnsr_list[0]][0])
                 tnsr_dict[xde_tnsr_list[2]] = int(xde_lists['matrix'][xde_tnsr_list[0]][1])
 
-        elif ('fvect' in xde_lists and xde_tnsr_list[0] in xde_lists['fvect']) \
-        or   ('fmatr' in xde_lists and xde_tnsr_list[0] in xde_lists['fmatr']) :
+        elif ('fvect' in xde_lists \
+            and xde_tnsr_list[0] in xde_lists['fvect']) \
+        or   ('fmatr' in xde_lists \
+            and xde_tnsr_list[0] in xde_lists['fmatr']) :
+
             if   len(xde_tnsr_list) == 2:
+
                 tnsr_dict[xde_tnsr_list[1]] = int(xde_lists['fvect'][xde_tnsr_list[0]][0])
 
             elif len(xde_tnsr_list) == 3:
+
                 tnsr_dict[xde_tnsr_list[1]] = int(xde_lists['fmatr'][xde_tnsr_list[0]][0])
                 tnsr_dict[xde_tnsr_list[2]] = int(xde_lists['fmatr'][xde_tnsr_list[0]][1])
 
-        else: pass
+        else: 
+            pass
 
     return list(tnsr_dict.keys())
 # end parse_xde_type_tensor()
@@ -1011,31 +1182,43 @@ def righ_loop(loop_level=0, expr_item='', tensor_dict={}, \
                     expr_sum_list=[]):
     #global righ_loop_count
     expr = expr_item
+
     if(loop_level == len(loop_idx)):
         #righ_loop_count += 1
         for keys,vals in loop_rdx.items():
             expr = expr.replace('_'+keys,str(vals))
+
         for keys,vals in fixd_idx.items():
             expr = expr.replace('_'+keys,str(vals))
 
         var_list = regx.split  (r'\+|\-|\*|\/|\(|\)|\[|\]|\;',expr)
         opr_list = regx.findall(r'\+|\-|\*|\/|\(|\)|\[|\]|\;',expr)
+
         var1_list = []
         for strs in var_list:
-            if strs!='' and strs in tensor_dict.keys():
+
+            if strs!='' \
+            and strs in tensor_dict.keys():
                 var1_list.append(strs.replace(strs,tensor_dict[strs]))
+
             else:
                 var1_list.append(strs)
+
         expr = ''
         for ii in range(len(opr_list)):
             expr += var1_list[ii]
             expr += opr_list[ii]
+
         expr += var1_list[len(opr_list)]
 
         expr_sum_list.append(expr)
+
         return
+
     for ii in range(loop_len[loop_idx[loop_level]]):
+
         loop_rdx[loop_idx[loop_level]] = ii
+
         righ_loop(loop_level+1, expr_item, tensor_dict, \
                   loop_idx, loop_rdx, loop_len, fixd_idx, \
                       expr_sum_list)
@@ -1045,28 +1228,41 @@ def righ_loop(loop_level=0, expr_item='', tensor_dict={}, \
 def left_loop(loop_level=0, left_var='', righ_pack={}, tensor_dict={}, \
               loop_idx=[], loop_rdx={}, loop_len={}, \
               expr_list=[]):
+
     #global left_loop_count
     if left_var.find('_') != -1:
+
         var = left_var
         if loop_level == len(loop_idx):
             #left_loop_count += 1
             for keys,vals in loop_rdx.items():
                 var = var.replace('_'+keys,str(vals))
+
             var = var.replace(var,tensor_dict[var])
             var += '='
+
             i = 0
             for expr_item in righ_pack['righ_exp']:
+
                 expr_sum_list = []
+
                 righ_loop(0, expr_item, tensor_dict, \
-                          righ_pack['righ_idx'][i], righ_pack['righ_rdx'][i], righ_pack['righ_len'][i], loop_rdx, \
+                          righ_pack['righ_idx'][i], righ_pack['righ_rdx'][i], \
+                          righ_pack['righ_len'][i], loop_rdx, \
                               expr_sum_list)
                 i += 1
+
                 for strs in expr_sum_list:
                     var += strs
+
             expr_list.append(var)
+
             return
+
         for ii in range(loop_len[loop_idx[loop_level]]):
+
             loop_rdx[loop_idx[loop_level]] = ii
+
             left_loop(loop_level+1, left_var, righ_pack, tensor_dict, \
                       loop_idx, loop_rdx, loop_len, \
                         expr_list)
@@ -1074,14 +1270,19 @@ def left_loop(loop_level=0, left_var='', righ_pack={}, tensor_dict={}, \
         var = left_var
         var += '='
         i = 0
+
         for expr_item in righ_pack['righ_exp']:
             expr_sum_list = []
+
             righ_loop(0, expr_item, tensor_dict, \
-                      righ_pack['righ_idx'][i], righ_pack['righ_rdx'][i], righ_pack['righ_len'][i], loop_rdx, \
+                      righ_pack['righ_idx'][i], righ_pack['righ_rdx'][i], \
+                      righ_pack['righ_len'][i], loop_rdx, \
                           expr_sum_list)
+
             i += 1
             for strs in expr_sum_list:
                 var += strs
+
         expr_list.append(var)
         return
 #end left_loop()
@@ -1089,11 +1290,14 @@ def left_loop(loop_level=0, left_var='', righ_pack={}, tensor_dict={}, \
 
 # split expr to list by the lowest priority
 def split_bracket_expr(expr):
+
     expr_list = []
     bracket_count  = 0
     expr_left_addr = 0
     expr_righ_addr = 0
+
     for ii in range(len(expr)):
+
         if expr[ii] == '(':
             bracket_count += 1
         elif expr[ii] == ')':
@@ -1103,10 +1307,13 @@ def split_bracket_expr(expr):
         or   expr[ii] == '-') \
         and bracket_count == 0) \
         or ii == len(expr)-1:
+
             if ii == len(expr)-1:
                 expr_righ_addr = ii+1
+
             else:
                 expr_righ_addr = ii
+
             expr_list.append(expr[expr_left_addr:expr_righ_addr].replace(' ',''))
             expr_left_addr = expr_righ_addr
 

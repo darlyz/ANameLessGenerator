@@ -61,38 +61,53 @@ def xde_help(input_key):
             
             if input_key[0] == '\\':
                 finded_key = input_key[1:]
-            else: finded_key = input_key
+
+            else: 
+                finded_key = input_key
 
             if finded_key.upper() == xde_key:
                 key_find = 1
                 break
-            else: gather_key.append(xde_key)
+
+            else: 
+                gather_key.append(xde_key)
 
     # if hit the xde_key, show the corresponding help information
     # else show all the similar keys
     if key_find == 1:
         auto_line_break_print(line_len, key_len, finded_key.upper(), keyfunc[finded_key.upper()])
+
     elif input_key.lower() == 'all':
         for keys in keyfunc:
             auto_line_break_print(line_len, key_len, keys, keyfunc[keys])
+
     else:
+
         if len(gather_key) != 0:
             print("do you find '{}'?".format("','".join(gather_key)))
+
         else:
             print(f"xde keys: {keywords}.")
 
 def split_sentense(chars):
+
     quot_find = 0
     quot_strs = ''
     quot_strs_list = []
+
     for char in chars:
-        if   quot_find == 0 and char == '\'':
+
+        if   quot_find == 0 \
+        and char == '\'':
             quot_find = 1
-        elif quot_find == 1 and char == '\'':
+
+        elif quot_find == 1 \
+        and char == '\'':
             quot_find = 0
             quot_strs += char
             quot_strs_list.append(quot_strs)
             quot_strs = ''
+
         if quot_find == 1:
             quot_strs += char
 
@@ -100,19 +115,24 @@ def split_sentense(chars):
         chars = chars.replace(strr, strr.replace(' ','\n'))
 
     words_list = chars.split(' ')
+
     for i, strr in enumerate(words_list):
         words_list[i] = strr.replace('\n', ' ')
+
     return words_list
 
 def auto_line_break_print(line_len, key_len, keys, sentense):
+
     output = keys + ' '*(6-len(keys)) + ' : '
     output_list = []
     help_info_list = split_sentense(sentense)
 
     while True:
         temp_str = ' '*(key_len+2)
+
         for i, strr in enumerate(help_info_list):
             temp_str += f' {strr}'
+
             if len(temp_str) > line_len:
                 temp_str = temp_str.replace(f' {strr}','')
                 help_info_list = help_info_list[i:]
@@ -124,5 +144,9 @@ def auto_line_break_print(line_len, key_len, keys, sentense):
             break
 
     for i, strr in enumerate(output_list):
-        if i == 0: print(strr.replace(' '*(key_len+3), output))
-        else:print(strr)
+
+        if i == 0:
+            print(strr.replace(' '*(key_len+3), output))
+            
+        else:
+            print(strr)
