@@ -333,7 +333,7 @@ def release_funcasgn_code(code_strs, code_place, xde_lists, code_use_dict):
                     
                     elif 'fmatr' in xde_lists and righ_vara in xde_lists['fmatr']:
                         row,clm = list(map(int,xde_lists['fmatr'][righ_vara][:2]))
-                        fmatr   = xde_lists['fmatr'][righ_vara][2:len(xde_lists['fmatr'][righ_vara])]
+                        fmatr   = xde_lists['fmatr'][righ_vara][2:]
                         for vara,idx in zip(temp_list,righ_idxs):
                             expr_list.append(vara+'='+fmatr[math.ceil(int(idx)/clm)-1][int(idx)%clm-1]+'\n\n')
                 
@@ -356,7 +356,8 @@ def release_funcasgn_code(code_strs, code_place, xde_lists, code_use_dict):
                                 expr_list.append(vara+'='+xde_lists['fvect'][righ_vara][idx]+'\n\n')
 
                 elif 'fmatr' in xde_lists and righ_vara in xde_lists['fmatr']:
-                    fmatr = xde_lists['fmatr'][righ_vara][2:len(xde_lists['fmatr'][righ_vara])]
+                    row,clm = list(map(int,xde_lists['fmatr'][righ_vara][:2]))
+                    fmatr = xde_lists['fmatr'][righ_vara][2:]
                     i = 0
                     for matr_row in temp_list:
                         for matr_vara in matr_row:
@@ -428,16 +429,18 @@ def release_funcasgn_code(code_strs, code_place, xde_lists, code_use_dict):
                 expr_list = []
                 matr_len = int(xde_lists['fmatr'][left_name][0]) \
                          * int(xde_lists['fmatr'][left_name][1])
+                lrow, lclm = list(map(int,xde_lists['fmatr'][left_name][:2]))
 
                 if matr_len == len(righ_idxs):
                     if   'fvect' in xde_lists and righ_vara in xde_lists['fvect']:
                         for ii,idx in zip(range(matr_len),righ_idxs):
-                            xde_lists['fmatr'][left_name][math.ceil(ii/clm)+1][ii%clm-1] = \
+                            xde_lists['fmatr'][left_name][math.ceil(ii/lclm)+1][ii%lclm-1] = \
                                 xde_lists['fvect'][righ_vara][int(idx)]
 
                     elif 'fmatr' in xde_lists and righ_vara in xde_lists['fmatr']:
+                        row, clm = list(map(int,xde_lists['fmatr'][righ_vara][:2]))
                         for ii,idx in zip(range(matr_len),righ_idxs):
-                            xde_lists['fmatr'][left_name][math.ceil(ii/clm)+1][ii%clm-1] = \
+                            xde_lists['fmatr'][left_name][math.ceil(ii/lclm)+1][ii%lclm-1] = \
                                 xde_lists['fmatr'][righ_vara][math.ceil(int(idx)/clm)+1][int(idx)%clm-1]
         else:
             righ_expr = righ_expr.replace('[','').replace(']','')
