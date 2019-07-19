@@ -13,7 +13,8 @@ Empha_color = Fore.GREEN
 import re as regx
 pre_check = 1
 sec_check = 1
-ifo_folder = '../4other_gen_file/'
+
+from genxde import gen_obj, ifo_folder
 
 def parse_xde(ges_info, xde_lists, list_addr, xdefile):
 
@@ -21,9 +22,10 @@ def parse_xde(ges_info, xde_lists, list_addr, xdefile):
     pre_parse(ges_info, xde_lists, list_addr, xdefile)
     
     # 2 checking
-    from check_xde import check_xde
-    error = check_xde(ges_info, xde_lists, list_addr)
-    if error : return error
+    if gen_obj['check'] == 1:
+        from check_xde import check_xde
+        error = check_xde(ges_info, xde_lists, list_addr)
+        if error : return error
      
     # 3 secondary parse
     sec_parse(ges_info, xde_lists, list_addr)

@@ -12,7 +12,7 @@ def ex2file(xdename,xde_name,shap,dim,axi):
     import check_xde
     check_xde.error = False
     print(f"parsing {xdename} to {xde_name}{shap}\n")
-    genxde(f'all_fde/{xdename}', xde_name+shap, dim+axi)
+    genxde(f'../0xde_source/all_fde/{xdename}', xde_name+shap, dim+axi)
     print('-'*128+'\n')
 
 def main(argvs=None):

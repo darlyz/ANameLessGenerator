@@ -11,9 +11,9 @@ from time import time
 import re
 
 # default folder
-xde_folder = '../0xde_source'
-ges_folder = '../2ges_target'
-ifo_folder = '../4other_gen_file'
+xde_folder = '../0xde_source/'
+ges_folder = '../2ges_target/'
+ifo_folder = '../4other_gen_file/'
 
 gen_obj = { 'ges'  : 1, \
             'Ccode': 0, \
@@ -83,7 +83,7 @@ def genxde(xdename, gesname, coortype):
     # generate ges by xde element
     if gen_obj['ges'] > 0:
         from xde2ges import xde2ges
-        gesfile = open(ges_folder + gesname+'.ges', mode='w')
+        gesfile = open(ges_folder + gesname + '.ges', mode='w')
         error = xde2ges(ges_info, xde_lists, list_addr, gesfile)
         gesfile.close()
         if error: return
@@ -91,9 +91,16 @@ def genxde(xdename, gesname, coortype):
     # generate html by xde element
     if gen_obj['html'] > 0:
         from xde2html import xde2html
-        htmlfile = open(xdename+'.html', mode='w')
+        htmlfile = open(ifo_folder + xdename + '.html', mode='w')
         xde2html(ges_info, xde_lists, list_addr, htmlfile)
         htmlfile.close()
+
+    # generate markdown by xde element
+    #if gen_obj['md'] > 0:
+    #    from xde2md import xde2md
+    #    mdfile = open('../1ges_target/'+argvs[1]+'.md', mode='w')
+    #    xde2md(ges_info xde_lists, list_addr, mdfile)
+    #    mdfile.close()
 
     # ...
 
@@ -164,6 +171,19 @@ def main(argvs=None):
             gesname  = nonfunc_params[1]
             coortype = nonfunc_params[2]
 
+            if xdename.find('/')  != -1 \
+            or xdename.find('\\') != -1 :
+                xdename = re.split(r'/|\\', nonfunc_params[0])[-1]
+                global xde_folder
+                xde_folder = nonfunc_params[0].replace(xdename, '')
+
+            if gesname.find('/')  != -1 \
+            or gesname.find('\\') != -1 :
+                gesname = re.split(r'/|\\', nonfunc_params[1])[-1]
+                global ges_folder, ifo_folder
+                ges_folder = nonfunc_params[1].replace(gesname, '')
+                ifo_folder = nonfunc_params[1].replace(gesname, '')
+
         elif len(nonfunc_params) == 2:
             
             xdename = nonfunc_params[1].replace('\\','/').rstrip('/')
@@ -197,7 +217,7 @@ def main(argvs=None):
     from felac_data import get_felac_data
     get_felac_data()
 
-    genxde(argvs[1], argvs[2], argvs[3])
+    genxde(xdename, gesname, coortype)
 
 
 if __name__ == "__main__":

@@ -11,13 +11,13 @@ def ex2file(xdename,xde_name,shap,dim,axi):
         file = open("run.log",mode='a')
         file.write(f"parsing {xdename} to {xde_name}{shap}\n")
         file.close()
-        os.system(f"genxde all_fde/{xdename} {xde_name}{shap} {dim}{axi} >> run.log")
+        os.system(f"genxde ../0xde_source/all_fde/{xdename} {xde_name}{shap} {dim}{axi} >> run.log")
         file = open("run.log",mode='a')
         file.write('-'*128+'\n')
         file.close()
     elif out_put == 0:
         print(f"parsing {xdename} to {xde_name}{shap}\n")
-        os.system(f"genxde all_fde/{xdename} {xde_name}{shap} {dim}{axi}")
+        os.system(f"genxde ../0xde_source/all_fde/{xdename} {xde_name}{shap} {dim}{axi}")
         print('-'*128+'\n')
 
 def main(argvs=None):
