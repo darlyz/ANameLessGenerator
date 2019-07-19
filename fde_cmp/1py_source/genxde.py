@@ -67,7 +67,7 @@ def genxde(xdename, gesname, coortype):
     start = time()
 
     # xde elements and their line number
-    xde_lists, list_addr, ges_info = {}, {}, {}
+    xde_dict, xde_addr, ges_info = {}, {}, {}
 
     # get shap, gaus, dim and axis information into ges_info
     from felac_data import prepare_to_genxde
@@ -76,7 +76,7 @@ def genxde(xdename, gesname, coortype):
     # parse xde
     from parse_xde import parse_xde
     xdefile = open(xde_folder + xdename, mode='r')
-    error = parse_xde(ges_info, xde_lists, list_addr, xdefile)
+    error = parse_xde(ges_info, xde_dict, xde_addr, xdefile)
     xdefile.close()
     if error: return
 
@@ -84,7 +84,7 @@ def genxde(xdename, gesname, coortype):
     if gen_obj['ges'] > 0:
         from xde2ges import xde2ges
         gesfile = open(ges_folder + gesname + '.ges', mode='w')
-        error = xde2ges(ges_info, xde_lists, list_addr, gesfile)
+        error = xde2ges(ges_info, xde_dict, xde_addr, gesfile)
         gesfile.close()
         if error: return
 
@@ -92,14 +92,14 @@ def genxde(xdename, gesname, coortype):
     if gen_obj['html'] > 0:
         from xde2html import xde2html
         htmlfile = open(ifo_folder + xdename + '.html', mode='w')
-        xde2html(ges_info, xde_lists, list_addr, htmlfile)
+        xde2html(ges_info, xde_dict, xde_addr, htmlfile)
         htmlfile.close()
 
     # generate markdown by xde element
     #if gen_obj['md'] > 0:
     #    from xde2md import xde2md
     #    mdfile = open('../1ges_target/'+argvs[1]+'.md', mode='w')
-    #    xde2md(ges_info xde_lists, list_addr, mdfile)
+    #    xde2md(ges_info xde_dict, xde_addr, mdfile)
     #    mdfile.close()
 
     # ...
@@ -107,7 +107,7 @@ def genxde(xdename, gesname, coortype):
     # export xde element
     import json
     file = open(ifo_folder + gesname+'.json', mode='w')
-    file.write(json.dumps(xde_lists,indent=4))
+    file.write(json.dumps(xde_dict,indent=4))
     file.close()
 
     end   = time()

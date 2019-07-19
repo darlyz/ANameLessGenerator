@@ -912,7 +912,7 @@ def matrix_expr(expr_head,expr_dict):
 # end matrix_expr()
 
 # transform a_i_j to list in expr_dict and save the dummy index
-def trans_tensor_expr_list(expr_dict,xde_lists):
+def trans_tensor_expr_list(expr_dict,xde_dict):
 
     for expr_key in expr_dict.keys():
         for item in ['left','righ']:
@@ -940,29 +940,29 @@ def trans_tensor_expr_list(expr_dict,xde_lists):
                 # vector
                 if len(items_list) == 2:
 
-                    if 'vect' in xde_lists \
-                    and var_name in xde_lists['vect']:
-                        expr_dict[expr_key][item] = xde_lists['vect'][var_name]
+                    if 'vect' in xde_dict \
+                    and var_name in xde_dict['vect']:
+                        expr_dict[expr_key][item] = xde_dict['vect'][var_name]
 
-                    if 'fvect' in xde_lists \
-                    and var_name in xde_lists['fvect']:
-                        expr_dict[expr_key][item] = xde_lists['fvect'][var_name]
+                    if 'fvect' in xde_dict \
+                    and var_name in xde_dict['fvect']:
+                        expr_dict[expr_key][item] = xde_dict['fvect'][var_name]
 
                 # matrix
                 elif len(items_list) == 3:
 
-                    if 'matrix' in xde_lists \
-                    and var_name in xde_lists['matrix']:
+                    if 'matrix' in xde_dict \
+                    and var_name in xde_dict['matrix']:
 
                         expr_dict[expr_key][item] = []
-                        for lists in xde_lists['matrix'][var_name]:
+                        for lists in xde_dict['matrix'][var_name]:
                             expr_dict[expr_key][item].append(lists)
 
-                    if 'fmatr' in xde_lists \
-                    and var_name in xde_lists['fmatr']:
+                    if 'fmatr' in xde_dict \
+                    and var_name in xde_dict['fmatr']:
 
                         expr_dict[expr_key][item] = []
-                        for lists in xde_lists['fmatr'][var_name]:
+                        for lists in xde_dict['fmatr'][var_name]:
                             expr_dict[expr_key][item].append(lists)
                 # scalar
                 elif len(items_list) == 1:
@@ -975,14 +975,14 @@ def trans_tensor_expr_list(expr_dict,xde_lists):
 # ------------------------------------------------------------------------------
 # --------------------------dummy index expr summation--------------------------
 # ------------------------------------------------------------------------------
-def idx_summation(left_var,righ_expr,xde_lists):
+def idx_summation(left_var,righ_expr,xde_dict):
 
     tensor_dict = {}
     for keys in ['vect','fvect']:
 
-        if keys in xde_lists:
+        if keys in xde_dict:
 
-            for strs, lists in xde_lists[keys].items():
+            for strs, lists in xde_dict[keys].items():
 
                 tlist = lists[1:len(lists)]
                 for ii in range(len(tlist)):
@@ -995,9 +995,9 @@ def idx_summation(left_var,righ_expr,xde_lists):
 
     for keys in ['matrix','fmatr']:
 
-        if keys in xde_lists:
+        if keys in xde_dict:
 
-            for strs, lists in xde_lists[keys].items():
+            for strs, lists in xde_dict[keys].items():
 
                 tlist = lists[2:len(lists)]
                 for ii in range(len(tlist)):
@@ -1013,32 +1013,32 @@ def idx_summation(left_var,righ_expr,xde_lists):
     left_var_list = []
     left_idxlen = {}
 
-    #left_indxs  = parse_xde_type_tensor(left_var,left_var_list,left_idxlen,xde_lists)
+    #left_indxs  = parse_xde_type_tensor(left_var,left_var_list,left_idxlen,xde_dict)
     # -- copy parse_xde_type_tensor()
     left_var_list = left_var.split('_')
-    if ('vect'   in xde_lists \
-        and left_var_list[0] in xde_lists['vect']) \
-    or ('matrix' in xde_lists \
-        and left_var_list[0] in xde_lists['matrix']) :
+    if ('vect'   in xde_dict \
+        and left_var_list[0] in xde_dict['vect']) \
+    or ('matrix' in xde_dict \
+        and left_var_list[0] in xde_dict['matrix']) :
 
         if   len(left_var_list) == 2:
-            left_idxlen[left_var_list[1]] = int(xde_lists['vect'][left_var_list[0]][0])
+            left_idxlen[left_var_list[1]] = int(xde_dict['vect'][left_var_list[0]][0])
 
         elif len(left_var_list) == 3:
-            left_idxlen[left_var_list[1]] = int(xde_lists['matrix'][left_var_list[0]][0])
-            left_idxlen[left_var_list[2]] = int(xde_lists['matrix'][left_var_list[0]][1])
+            left_idxlen[left_var_list[1]] = int(xde_dict['matrix'][left_var_list[0]][0])
+            left_idxlen[left_var_list[2]] = int(xde_dict['matrix'][left_var_list[0]][1])
 
-    elif ('fvect' in xde_lists \
-        and left_var_list[0] in xde_lists['fvect']) \
-    or   ('fmatr' in xde_lists \
-        and left_var_list[0] in xde_lists['fmatr']) :
+    elif ('fvect' in xde_dict \
+        and left_var_list[0] in xde_dict['fvect']) \
+    or   ('fmatr' in xde_dict \
+        and left_var_list[0] in xde_dict['fmatr']) :
 
         if   len(left_var_list) == 2:
-            left_idxlen[left_var_list[1]] = int(xde_lists['fvect'][left_var_list[0]][0])
+            left_idxlen[left_var_list[1]] = int(xde_dict['fvect'][left_var_list[0]][0])
 
         elif len(left_var_list) == 3:
-            left_idxlen[left_var_list[1]] = int(xde_lists['fmatr'][left_var_list[0]][0])
-            left_idxlen[left_var_list[2]] = int(xde_lists['fmatr'][left_var_list[0]][1])
+            left_idxlen[left_var_list[1]] = int(xde_dict['fmatr'][left_var_list[0]][0])
+            left_idxlen[left_var_list[2]] = int(xde_dict['fmatr'][left_var_list[0]][1])
 
     else: 
         pass
@@ -1075,41 +1075,41 @@ def idx_summation(left_var,righ_expr,xde_lists):
 
             temp_idxsl = strs.split('_')
 
-            if ('vect'   in xde_lists \
-                and temp_idxsl[0] in xde_lists['vect']) \
-            or ('matrix' in xde_lists \
-                and temp_idxsl[0] in xde_lists['matrix']) :
+            if ('vect'   in xde_dict \
+                and temp_idxsl[0] in xde_dict['vect']) \
+            or ('matrix' in xde_dict \
+                and temp_idxsl[0] in xde_dict['matrix']) :
 
                 if   len(temp_idxsl) == 2:
 
                     if not temp_idxsl[1] in left_idxlen:
-                        righ_idxlen[temp_idxsl[1]] = int(xde_lists['vect'][temp_idxsl[0]][0])
+                        righ_idxlen[temp_idxsl[1]] = int(xde_dict['vect'][temp_idxsl[0]][0])
 
                 elif len(temp_idxsl) == 3:
 
                     if not temp_idxsl[1] in left_idxlen:
-                        righ_idxlen[temp_idxsl[1]] = int(xde_lists['matrix'][temp_idxsl[0]][0])
+                        righ_idxlen[temp_idxsl[1]] = int(xde_dict['matrix'][temp_idxsl[0]][0])
 
                     if not temp_idxsl[2] in left_idxlen:
-                        righ_idxlen[temp_idxsl[2]] = int(xde_lists['matrix'][temp_idxsl[0]][1])
+                        righ_idxlen[temp_idxsl[2]] = int(xde_dict['matrix'][temp_idxsl[0]][1])
 
-            elif ('fvect' in xde_lists \
-                and temp_idxsl[0] in xde_lists['fvect']) \
-            or   ('fmatr' in xde_lists \
-                and temp_idxsl[0] in xde_lists['fmatr']) :
+            elif ('fvect' in xde_dict \
+                and temp_idxsl[0] in xde_dict['fvect']) \
+            or   ('fmatr' in xde_dict \
+                and temp_idxsl[0] in xde_dict['fmatr']) :
 
                 if   len(temp_idxsl) == 2:
 
                     if not temp_idxsl[1] in left_idxlen:
-                        righ_idxlen[temp_idxsl[1]] = int(xde_lists['fvect'][temp_idxsl[0]][0])
+                        righ_idxlen[temp_idxsl[1]] = int(xde_dict['fvect'][temp_idxsl[0]][0])
 
                 elif len(temp_idxsl) == 3:
 
                     if not temp_idxsl[1] in left_idxlen:
-                        righ_idxlen[temp_idxsl[1]] = int(xde_lists['fmatr'][temp_idxsl[0]][0])
+                        righ_idxlen[temp_idxsl[1]] = int(xde_dict['fmatr'][temp_idxsl[0]][0])
 
                     if not temp_idxsl[2] in left_idxlen:
-                        righ_idxlen[temp_idxsl[2]] = int(xde_lists['fmatr'][temp_idxsl[0]][1])
+                        righ_idxlen[temp_idxsl[2]] = int(xde_dict['fmatr'][temp_idxsl[0]][1])
 
             else: 
                 pass
@@ -1134,40 +1134,40 @@ def idx_summation(left_var,righ_expr,xde_lists):
 
 # xde_tnsr --> xde_tnsr_list & tnsr_dict   return->
 # a_i_j    --> [a,i,j]         {i:2,j:3}   [i,j]
-def parse_xde_type_tensor(xde_tnsr, xde_tnsr_list, tnsr_dict, xde_lists):
+def parse_xde_type_tensor(xde_tnsr, xde_tnsr_list, tnsr_dict, xde_dict):
 
     if xde_tnsr.find('_') == -1:
         return []
     else:
         for strs in xde_tnsr.split('_'):
             xde_tnsr_list.append(strs)
-        if ('vect'   in xde_lists \
-            and xde_tnsr_list[0] in xde_lists['vect']) \
-        or ('matrix' in xde_lists \
-            and xde_tnsr_list[0] in xde_lists['matrix']) :
+        if ('vect'   in xde_dict \
+            and xde_tnsr_list[0] in xde_dict['vect']) \
+        or ('matrix' in xde_dict \
+            and xde_tnsr_list[0] in xde_dict['matrix']) :
 
             if   len(xde_tnsr_list) == 2:
 
-                tnsr_dict[xde_tnsr_list[1]] = int(xde_lists['vect'][xde_tnsr_list[0]][0])
+                tnsr_dict[xde_tnsr_list[1]] = int(xde_dict['vect'][xde_tnsr_list[0]][0])
 
             elif len(xde_tnsr_list) == 3:
 
-                tnsr_dict[xde_tnsr_list[1]] = int(xde_lists['matrix'][xde_tnsr_list[0]][0])
-                tnsr_dict[xde_tnsr_list[2]] = int(xde_lists['matrix'][xde_tnsr_list[0]][1])
+                tnsr_dict[xde_tnsr_list[1]] = int(xde_dict['matrix'][xde_tnsr_list[0]][0])
+                tnsr_dict[xde_tnsr_list[2]] = int(xde_dict['matrix'][xde_tnsr_list[0]][1])
 
-        elif ('fvect' in xde_lists \
-            and xde_tnsr_list[0] in xde_lists['fvect']) \
-        or   ('fmatr' in xde_lists \
-            and xde_tnsr_list[0] in xde_lists['fmatr']) :
+        elif ('fvect' in xde_dict \
+            and xde_tnsr_list[0] in xde_dict['fvect']) \
+        or   ('fmatr' in xde_dict \
+            and xde_tnsr_list[0] in xde_dict['fmatr']) :
 
             if   len(xde_tnsr_list) == 2:
 
-                tnsr_dict[xde_tnsr_list[1]] = int(xde_lists['fvect'][xde_tnsr_list[0]][0])
+                tnsr_dict[xde_tnsr_list[1]] = int(xde_dict['fvect'][xde_tnsr_list[0]][0])
 
             elif len(xde_tnsr_list) == 3:
 
-                tnsr_dict[xde_tnsr_list[1]] = int(xde_lists['fmatr'][xde_tnsr_list[0]][0])
-                tnsr_dict[xde_tnsr_list[2]] = int(xde_lists['fmatr'][xde_tnsr_list[0]][1])
+                tnsr_dict[xde_tnsr_list[1]] = int(xde_dict['fmatr'][xde_tnsr_list[0]][0])
+                tnsr_dict[xde_tnsr_list[2]] = int(xde_dict['fmatr'][xde_tnsr_list[0]][1])
 
         else: 
             pass

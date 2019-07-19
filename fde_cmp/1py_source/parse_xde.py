@@ -16,23 +16,23 @@ sec_check = 1
 
 from genxde import gen_obj, ifo_folder
 
-def parse_xde(ges_info, xde_lists, list_addr, xdefile):
+def parse_xde(ges_info, xde_dict, xde_addr, xdefile):
 
     # 1 preliminary parse
-    pre_parse(ges_info, xde_lists, list_addr, xdefile)
+    pre_parse(ges_info, xde_dict, xde_addr, xdefile)
     
     # 2 checking
     if gen_obj['check'] == 1:
         from check_xde import check_xde
-        error = check_xde(ges_info, xde_lists, list_addr)
+        error = check_xde(ges_info, xde_dict, xde_addr)
         if error : return error
      
     # 3 secondary parse
-    sec_parse(ges_info, xde_lists, list_addr)
+    sec_parse(ges_info, xde_dict, xde_addr)
 
     return False
 
-def pre_parse(ges_info, xde_lists, list_addr, xdefile):
+def pre_parse(ges_info, xde_dict, xde_addr, xdefile):
 
     # all the xde keys
     keyws_reg  = r'ARRAY|COEF|COOR|COMMON|DAMP' \
@@ -47,10 +47,10 @@ def pre_parse(ges_info, xde_lists, list_addr, xdefile):
     }
 
     line_i, stitchline = 0, ''
-    xde_lists['code'] = {}
-    list_addr['code'] = {}
+    xde_dict['code'] = {}
+    xde_addr['code'] = {}
 
-    # 1 fist step parsing while read xde to xde_lists
+    # 1 fist step parsing while read xde to xde_dict
     for line in xdefile.readlines():
         line_i += 1
 
@@ -81,9 +81,9 @@ def pre_parse(ges_info, xde_lists, list_addr, xdefile):
 
             key_lower = code_regx.group().lower()
 
-            # 1.2.1.1 match and pop to xde_lists
+            # 1.2.1.1 match and pop to xde_dict
             if key_lower in ['disp','coef','coor','gaus']:
-                push_key_declare(key_lower, line_i, line, xde_lists, list_addr)
+                push_key_declare(key_lower, line_i, line, xde_dict, xde_addr)
 
             elif key_lower == 'mate':
 
@@ -93,25 +93,25 @@ def pre_parse(ges_info, xde_lists, list_addr, xdefile):
                         + "key word 'DEFI' should not be ommited before " \
                         + "'MATE' line and C insertion for 'MATE'.\n")
 
-                push_key_declare('mate', line_i, line, xde_lists, list_addr)
+                push_key_declare('mate', line_i, line, xde_dict, xde_addr)
                 keywd_tag['paragraph'] = 'AFmate'
 
             elif key_lower == 'vect':
-                push_tonser_declare('vect', line_i, line, xde_lists, list_addr)
-                if line.find('|') != -1: xde_lists['cmplx_tag'] = 1
+                push_tonser_declare('vect', line_i, line, xde_dict, xde_addr)
+                if line.find('|') != -1: xde_dict['cmplx_tag'] = 1
 
             elif key_lower in ['fmatr','fvect']:
-                push_tonser_declare(key_lower, line_i, line, xde_lists, list_addr)
+                push_tonser_declare(key_lower, line_i, line, xde_dict, xde_addr)
 
             elif key_lower.find('$')!= -1 or key_lower.find('@')!= -1:
                 line = line \
                     .replace('%1',ges_info['shap_form']) \
                     .replace('%2',ges_info['shap_nodn'])
 
-                push_code_line (line_i, line, keywd_tag, xde_lists, list_addr)
+                push_code_line (line_i, line, keywd_tag, xde_dict, xde_addr)
 
                 if code_regx.group().lower() == '$cp':
-                    xde_lists['cmplx_tag'] = 1
+                    xde_dict['cmplx_tag'] = 1
 
             elif key_lower in ['common','array']:
 
@@ -119,49 +119,49 @@ def pre_parse(ges_info, xde_lists, list_addr, xdefile):
                     .replace('%1',ges_info['shap_form']) \
                     .replace('%2',ges_info['shap_nodn'])
 
-                push_code_line (line_i, line, keywd_tag, xde_lists, list_addr)
+                push_code_line (line_i, line, keywd_tag, xde_dict, xde_addr)
 
             elif key_lower in ['mass','damp','stif']:
-                push_weak_declare(key_lower, line_i, line, keywd_tag, xde_lists, list_addr)
+                push_weak_declare(key_lower, line_i, line, keywd_tag, xde_dict, xde_addr)
 
             elif key_lower == 'shap':
 
-                if not 'shap' in xde_lists:
-                    list_addr['shap'] = []
-                    xde_lists['shap'] = []
+                if not 'shap' in xde_dict:
+                    xde_addr['shap'] = []
+                    xde_dict['shap'] = []
 
-                list_addr['shap'].append(line_i)
-                xde_lists['shap'].append(line.split()[1:])
+                xde_addr['shap'].append(line_i)
+                xde_dict['shap'].append(line.split()[1:])
 
             elif key_lower == 'dist':
 
                 if line.find('|') != -1:
-                    xde_lists['cmplx_tag'] = 1
+                    xde_dict['cmplx_tag'] = 1
 
                 if keywd_tag['paragraph'] in ['mass','damp','stif']:
-                    xde_lists[keywd_tag['paragraph']].append('dist')
-                    xde_lists[keywd_tag['paragraph']].append(line.split('=')[1].strip())
-                    list_addr[keywd_tag['paragraph']].append(line_i)
+                    xde_dict[keywd_tag['paragraph']].append('dist')
+                    xde_dict[keywd_tag['paragraph']].append(line.split('=')[1].strip())
+                    xde_addr[keywd_tag['paragraph']].append(line_i)
 
             elif key_lower == 'load':
 
                 if line.find('|') != -1:
-                    xde_lists['cmplx_tag'] = 1
+                    xde_dict['cmplx_tag'] = 1
 
-                if not 'load' in xde_lists:
-                    xde_lists['load'] = []
-                    list_addr['load'] = []
+                if not 'load' in xde_dict:
+                    xde_dict['load'] = []
+                    xde_addr['load'] = []
 
                 if line.find('=') != -1:
-                    xde_lists['load'].append(line.split('=')[1].strip())
-                    list_addr['load'].append(line_i)
+                    xde_dict['load'].append(line.split('=')[1].strip())
+                    xde_addr['load'].append(line_i)
                     keywd_tag['paragraph'] = 'load'
 
                 else:
                     load_list = line.rstrip().split()[1:]
-                    xde_lists['load'].append(str(len(load_list)))
-                    xde_lists['load'] += load_list
-                    list_addr['load'].append(line_i)
+                    xde_dict['load'].append(str(len(load_list)))
+                    xde_dict['load'] += load_list
+                    xde_addr['load'].append(line_i)
                 
 
             elif key_lower == 'func':
@@ -169,21 +169,21 @@ def pre_parse(ges_info, xde_lists, list_addr, xdefile):
                 wordlist = line.split()
 
                 if len(wordlist) != 1:
-                    if not 'func' in xde_lists:
-                        xde_lists['func'] = []
+                    if not 'func' in xde_dict:
+                        xde_dict['func'] = []
                     keywd_tag['func'] = 1
-                    xde_lists['func'] += wordlist[1:]
+                    xde_dict['func'] += wordlist[1:]
 
                 else:
                     keywd_tag['paragraph'] = 'func'
 
             elif key_lower == 'matrix':
 
-                push_tonser_declare('matrix', line_i, line, xde_lists, list_addr)
+                push_tonser_declare('matrix', line_i, line, xde_dict, xde_addr)
                 matrix_name = line.split()[1]
-                line_num    = list_addr['matrix'][matrix_name]
-                list_addr['matrix'][matrix_name] = []
-                list_addr['matrix'][matrix_name].append(line_num)
+                line_num    = xde_addr['matrix'][matrix_name]
+                xde_addr['matrix'][matrix_name] = []
+                xde_addr['matrix'][matrix_name].append(line_num)
                 
                 # tackle that code line write between matrix and other paragraph
                 if  keywd_tag['matr_dclr'] == 0:
@@ -205,29 +205,29 @@ def pre_parse(ges_info, xde_lists, list_addr, xdefile):
         else:
             # 1.2.2.1 find cmplx_tag tag
             if line.find('|') != -1:
-                xde_lists['cmplx_tag'] = 1
+                xde_dict['cmplx_tag'] = 1
 
             key_words= keywd_tag['paragraph']
 
             # 1.2.2.2 find weak form and disp var deform in non-keyword-head line
             if  key_words in ['mass','damp','stif','load'] \
-            and key_words in xde_lists:
+            and key_words in xde_dict:
 
                 if line.rstrip().lower() == 'null':
-                    xde_lists[key_words].append(line.rstrip())
-                    list_addr[key_words].append(line_i)
+                    xde_dict[key_words].append(line.rstrip())
+                    xde_addr[key_words].append(line_i)
 
                 else:
-                    xde_lists[key_words].append(line)
-                    list_addr[key_words].append(line_i)
+                    xde_dict[key_words].append(line)
+                    xde_addr[key_words].append(line_i)
 
             elif  key_words == 'func':
-                xde_lists['code'][key_words].append(line)
-                list_addr['code'][key_words].append(line_i)
+                xde_dict['code'][key_words].append(line)
+                xde_addr['code'][key_words].append(line_i)
 
             elif key_words == 'matrix' :
-                xde_lists['matrix'][matrix_name].append(line)
-                list_addr['matrix'][matrix_name].append(line_i)
+                xde_dict['matrix'][matrix_name].append(line)
+                xde_addr['matrix'][matrix_name].append(line_i)
 
             else:
                 print(f'{Warnn_color}Warn NSN03: redundant information ' \
@@ -236,40 +236,40 @@ def pre_parse(ges_info, xde_lists, list_addr, xdefile):
     if pre_check == 1:
         import json
         file = open(ifo_folder+'pre_check.json',mode='w')
-        file.write(json.dumps(xde_lists,indent=4))
+        file.write(json.dumps(xde_dict,indent=4))
         file.close()
         file = open(ifo_folder+'pre_addr.json',mode='w')
-        file.write(json.dumps(list_addr,indent=4))
+        file.write(json.dumps(xde_addr,indent=4))
         file.close()
 # end pre_parse()
 
 # key declare type1: DISP, COEF, COOR, GAUS, MATE
-def push_key_declare (strs, line_num, line, xde_lists, list_addr):
+def push_key_declare (strs, line_num, line, xde_dict, xde_addr):
 
-    if strs in xde_lists:
+    if strs in xde_dict:
         print(f'{Warnn_color}Warn NSN04: line {Empha_color}' \
              +f'{line_num}, {strs} {Warnn_color}has been declared ' \
-             +f'at line {Empha_color}{list_addr[strs]}\n')
+             +f'at line {Empha_color}{xde_addr[strs]}\n')
 
     else:
         line = line.replace(',',' ').replace(';',' ')
-        list_addr[strs] = line_num
-        xde_lists[strs] = line.split()[1:]
+        xde_addr[strs] = line_num
+        xde_dict[strs] = line.split()[1:]
 
 # common declare type: VECT, FMATR
-def push_tonser_declare (strs, line_num, line, xde_lists, list_addr):
+def push_tonser_declare (strs, line_num, line, xde_dict, xde_addr):
 
-    if strs not in xde_lists: 
-        xde_lists[strs] = {}
-        list_addr[strs] = {}
+    if strs not in xde_dict: 
+        xde_dict[strs] = {}
+        xde_addr[strs] = {}
 
     line = regx.sub(r'\s*=\s*',' ',line)
     wordlist = line.split()
-    list_addr[strs][wordlist[1]] = line_num
-    xde_lists[strs][wordlist[1]] = wordlist[2:]
+    xde_addr[strs][wordlist[1]] = line_num
+    xde_dict[strs][wordlist[1]] = wordlist[2:]
 
 # common code line : @x, $Cx
-def push_code_line (line_num, line, keywd_tag, xde_lists, list_addr):
+def push_code_line (line_num, line, keywd_tag, xde_dict, xde_addr):
     code_find = 0
     key_words = keywd_tag['paragraph']
 
@@ -281,97 +281,97 @@ def push_code_line (line_num, line, keywd_tag, xde_lists, list_addr):
 
         code_find = 1
 
-        if key_words not in xde_lists['code']:
-            xde_lists['code'][key_words] = []
-            list_addr['code'][key_words] = []
+        if key_words not in xde_dict['code']:
+            xde_dict['code'][key_words] = []
+            xde_addr['code'][key_words] = []
 
-        xde_lists['code'][key_words].append(line)
-        list_addr['code'][key_words].append(line_num)
+        xde_dict['code'][key_words].append(line)
+        xde_addr['code'][key_words].append(line_num)
 
     if code_find == 0:
         print(f'{Error_color}Error NSN05: line {line_num}, ' \
             + 'wrong position inserted.\n')
 
 # stif, mass, damp declare
-def push_weak_declare (strs, line_num, line, keywd_tag, xde_lists, list_addr):
+def push_weak_declare (strs, line_num, line, keywd_tag, xde_dict, xde_addr):
 
-    if strs in xde_lists:
+    if strs in xde_dict:
         print(f'{Error_color}Error NSN06: line {Empha_color}' \
             + f'{line_num}, {strs} {Error_color}has been declared ' \
-            + f'at line {Empha_color}{list_addr[strs][0]}.\n')
+            + f'at line {Empha_color}{xde_addr[strs][0]}.\n')
 
     else:
-        list_addr[strs], xde_lists[strs] = [], []
+        xde_addr[strs], xde_dict[strs] = [], []
         wordlist = line.split()
 
         if len(wordlist) > 1:
-            list_addr[strs].append(line_num)
-            xde_lists[strs] = wordlist[1:]
+            xde_addr[strs].append(line_num)
+            xde_dict[strs] = wordlist[1:]
 
         else:
             keywd_tag['paragraph'] = strs
 
-def sec_parse(ges_info, xde_lists, list_addr):
+def sec_parse(ges_info, xde_dict, xde_addr):
 
     # 3.0 parse disp and func for complex
-    if 'cmplx_tag' in xde_lists and xde_lists['cmplx_tag'] == 1:
+    if 'cmplx_tag' in xde_dict and xde_dict['cmplx_tag'] == 1:
 
-        if 'disp' in xde_lists:
+        if 'disp' in xde_dict:
 
-            xde_lists['cmplx_disp'] = xde_lists['disp'].copy()
-            xde_lists['disp'].clear()
+            xde_dict['cmplx_disp'] = xde_dict['disp'].copy()
+            xde_dict['disp'].clear()
 
-            for strs in xde_lists['cmplx_disp']:
-                xde_lists['disp'].append(strs+'r')
-                xde_lists['disp'].append(strs+'i')
+            for strs in xde_dict['cmplx_disp']:
+                xde_dict['disp'].append(strs+'r')
+                xde_dict['disp'].append(strs+'i')
 
-        if 'func' in xde_lists:
+        if 'func' in xde_dict:
 
-            xde_lists['cmplx_func'] = xde_lists['func'].copy()
-            xde_lists['func'].clear()
+            xde_dict['cmplx_func'] = xde_dict['func'].copy()
+            xde_dict['func'].clear()
 
-            for strs in xde_lists['cmplx_func']:
-                xde_lists['func'].append(strs+'r')
-                xde_lists['func'].append(strs+'i')
+            for strs in xde_dict['cmplx_func']:
+                xde_dict['func'].append(strs+'r')
+                xde_dict['func'].append(strs+'i')
 
     # 3.1 parsing shap
-    if 'shap' in xde_lists:
-        parse_shap(ges_info, xde_lists)
+    if 'shap' in xde_dict:
+        parse_shap(ges_info, xde_dict)
 
     # 3.2 parsing mate
-    if 'mate' in xde_lists:
-        parse_mate(xde_lists)
+    if 'mate' in xde_dict:
+        parse_mate(xde_dict)
 
     # 3.3 parsing gaus
-    if 'gaus' in xde_lists:
+    if 'gaus' in xde_dict:
 
-        if xde_lists['gaus'][0] == '%3':
-            xde_lists['gaus'] = ges_info['gaus_type']
+        if xde_dict['gaus'][0] == '%3':
+            xde_dict['gaus'] = ges_info['gaus_type']
 
         else:
-            xde_lists['gaus'] = xde_lists['gaus'][0]
+            xde_dict['gaus'] = xde_dict['gaus'][0]
 
     # 3.4 parsing mass and damp
-    if 'mass' in xde_lists:
+    if 'mass' in xde_dict:
 
-        if  xde_lists['mass'][0] == '%1':
-            xde_lists['mass'][0] = 'lump'
+        if  xde_dict['mass'][0] == '%1':
+            xde_dict['mass'][0] = 'lump'
 
-        if  len(xde_lists['mass']) == 1:
-            xde_lists['mass'].append('1.0')
+        if  len(xde_dict['mass']) == 1:
+            xde_dict['mass'].append('1.0')
 
-    if 'damp' in xde_lists:
+    if 'damp' in xde_dict:
 
-        if  xde_lists['damp'][0] == '%1':
-            xde_lists['damp'][0] = 'lump'
+        if  xde_dict['damp'][0] == '%1':
+            xde_dict['damp'][0] = 'lump'
 
-        if  len(xde_lists['damp']) == 1:
-            xde_lists['mass'].append('1.0')
+        if  len(xde_dict['damp']) == 1:
+            xde_dict['mass'].append('1.0')
 
     # 3.5 parsing fvect, fmatr, vect, matrix
-    if 'fvect' in xde_lists:
+    if 'fvect' in xde_dict:
 
-        for lists in xde_lists['fvect'].values():
+        for lists in xde_dict['fvect'].values():
 
             if len(lists) == 0:
                 lists.append('1')
@@ -379,9 +379,9 @@ def sec_parse(ges_info, xde_lists, list_addr):
             if len(lists) == 1:
                 lists += ['' for ii in range(int(lists[0]))]
 
-    if 'fmatr' in xde_lists:
+    if 'fmatr' in xde_dict:
 
-        for lists in xde_lists['fmatr'].values():
+        for lists in xde_dict['fmatr'].values():
 
             if len(lists) == 0:
                 lists += ['1','1']
@@ -390,15 +390,15 @@ def sec_parse(ges_info, xde_lists, list_addr):
                 lists += [['' for ii in range(int(lists[1]))] \
                               for ii in range(int(lists[0]))]
 
-    if 'vect' in xde_lists:
+    if 'vect' in xde_dict:
 
-        for lists in xde_lists['vect'].values():
+        for lists in xde_dict['vect'].values():
             if not lists[0].isnumeric():
                 lists.insert(0,str(len(lists)))
 
-    if 'matrix' in xde_lists:
+    if 'matrix' in xde_dict:
 
-        for lists in xde_lists['matrix'].values():
+        for lists in xde_dict['matrix'].values():
 
             if  not lists[0].isnumeric() \
             and not lists[1].isnumeric() :
@@ -413,27 +413,27 @@ def sec_parse(ges_info, xde_lists, list_addr):
             for ii in range(row):
                 lists[ii+2] = lists[ii+2].split()
 
-    if 'load' in xde_lists:
-        if xde_lists['load'][0].isnumeric():
-            xde_lists['load'] \
-                = ['+[' + xde_lists['disp'][i] + ']*' + xde_lists['load'][i+1] \
-                    for i in range(int(xde_lists['load'][0]))]
+    if 'load' in xde_dict:
+        if xde_dict['load'][0].isnumeric():
+            xde_dict['load'] \
+                = ['+[' + xde_dict['disp'][i] + ']*' + xde_dict['load'][i+1] \
+                    for i in range(int(xde_dict['load'][0]))]
 
     # 3.6 parsing code
-    parse_code(xde_lists)
+    parse_code(xde_dict)
 
     if sec_check == 1:
         import json
         file = open(ifo_folder+'sec_check.json',mode='w')
-        file.write(json.dumps(xde_lists,indent=4))
+        file.write(json.dumps(xde_dict,indent=4))
         file.close()
 # end sec_parse()
 
-def parse_shap(ges_info, xde_lists):
+def parse_shap(ges_info, xde_dict):
     shap_dict = {}
 
     # 3.1.1 common shap (maybe user declare twice or more, so the last active)
-    for shap_list in xde_lists['shap']:
+    for shap_list in xde_dict['shap']:
 
         if len(shap_list) == 2:
 
@@ -444,14 +444,14 @@ def parse_shap(ges_info, xde_lists):
                 shap_list[1] = ges_info['shap_nodn']
 
             base_shap_type = shap_list[0] + shap_list[1]
-            shap_dict[base_shap_type] = xde_lists['disp'].copy()
+            shap_dict[base_shap_type] = xde_dict['disp'].copy()
 
-            if 'coef' in xde_lists:
-                xde_lists['coef_shap'] = {}
-                xde_lists['coef_shap'][base_shap_type] = xde_lists['coef'].copy()
+            if 'coef' in xde_dict:
+                xde_dict['coef_shap'] = {}
+                xde_dict['coef_shap'][base_shap_type] = xde_dict['coef'].copy()
 
     # 3.1.2 penalty or mix shap
-    for shap_list in xde_lists['shap']:
+    for shap_list in xde_dict['shap']:
 
         if len(shap_list) >= 3:
 
@@ -462,11 +462,11 @@ def parse_shap(ges_info, xde_lists):
             or  shap_list[1].isnumeric():
 
                 var_list  = shap_list[2:]
-                disp_find_n = len(set(var_list)&set(xde_lists['disp']))
+                disp_find_n = len(set(var_list)&set(xde_dict['disp']))
                 
                 coef_find_n = 0
-                if 'coef' in xde_lists:
-                    coef_find_n = len(set(var_list)&set(xde_lists['coef']))
+                if 'coef' in xde_dict:
+                    coef_find_n = len(set(var_list)&set(xde_dict['coef']))
 
                 if (disp_find_n > 0 or coef_find_n > 0) \
                 and shap_list[1] == '%4':
@@ -490,32 +490,32 @@ def parse_shap(ges_info, xde_lists):
                         shap_dict[subs_shap_type] = []
 
                 if coef_find_n > 0:
-                    if subs_shap_type not in xde_lists['coef_shap']:
-                        xde_lists['coef_shap'][subs_shap_type] = []
+                    if subs_shap_type not in xde_dict['coef_shap']:
+                        xde_dict['coef_shap'][subs_shap_type] = []
 
                 for var_name in var_list:
 
                     if var_name.isnumeric():
                         continue
 
-                    if 'coef' not in xde_lists:
-                        if var_name not in xde_lists['disp'] :
+                    if 'coef' not in xde_dict:
+                        if var_name not in xde_dict['disp'] :
                             continue
 
                     else:
-                        if  var_name not in xde_lists['disp'] \
-                        and var_name not in xde_lists['coef'] :
+                        if  var_name not in xde_dict['disp'] \
+                        and var_name not in xde_dict['coef'] :
                             continue
 
                     if var_name in shap_dict[base_shap_type]:
                         shap_dict[base_shap_type].remove(var_name)
                         shap_dict[subs_shap_type].append(var_name)
 
-                    if 'coef_shap' in xde_lists:
+                    if 'coef_shap' in xde_dict:
 
-                        if var_name in xde_lists['coef_shap'][base_shap_type]:
-                            xde_lists['coef_shap'][base_shap_type].remove(var_name)
-                            xde_lists['coef_shap'][subs_shap_type].append(var_name)
+                        if var_name in xde_dict['coef_shap'][base_shap_type]:
+                            xde_dict['coef_shap'][base_shap_type].remove(var_name)
+                            xde_dict['coef_shap'][subs_shap_type].append(var_name)
 
             elif shap_list[1] == '%2c' \
             or  (shap_list[1][-1].lower() == 'c' \
@@ -543,17 +543,17 @@ def parse_shap(ges_info, xde_lists):
                 for pena_var in pena_vars.keys() :
                     shap_dict[base_shap_type].remove(pena_var)
 
-    xde_lists['shap'] = shap_dict
+    xde_dict['shap'] = shap_dict
 # end parse_shap()
 
-def parse_mate(xde_lists):
+def parse_mate(xde_dict):
 
     mate_dict = {}
     mate_dict['default'] = {}
     mate_var = []
     mate_val = []
 
-    for strs in xde_lists['mate']:
+    for strs in xde_dict['mate']:
 
         if regx.match(r'[a-z]\w*', strs, regx.I) == None :
             mate_val.append(strs)
@@ -569,15 +569,15 @@ def parse_mate(xde_lists):
         else:
             mate_dict['default'][var] = '0.0'
 
-    xde_lists['mate'] = mate_dict
+    xde_dict['mate'] = mate_dict
 # end parse_mate()
 
-def parse_code(xde_lists):
+def parse_code(xde_dict):
 
     regx_key = r'\$C[CPV6]|@[LAWSR]|ARRAY'
 
-    for code_place in xde_lists['code'].keys():
-        for code_i, code_line in enumerate(xde_lists['code'][code_place]):
+    for code_place in xde_dict['code'].keys():
+        for code_i, code_line in enumerate(xde_dict['code'][code_place]):
             code_regx = regx.match(regx_key,code_line,regx.I)
 
             if code_regx == None:
@@ -588,15 +588,15 @@ def parse_code(xde_lists):
 
             if   code_key.lower() == '$cc' \
             or   code_key.lower() == '$c6':
-                xde_lists['code'][code_place][code_i] \
+                xde_dict['code'][code_place][code_i] \
                     = 'Insr_Code: ' + code_line.replace(code_key,'').lstrip()
 
             elif code_key.lower() == '$cv':
-                xde_lists['code'][code_place][code_i] \
+                xde_dict['code'][code_place][code_i] \
                     = 'Tnsr_Asgn: ' + code_line.replace(code_key,'').lstrip()
 
             elif code_key.lower() == '$cp':
-                xde_lists['code'][code_place][code_i] \
+                xde_dict['code'][code_place][code_i] \
                     = 'Cplx_Asgn: ' + code_line.replace(code_key,'').lstrip()
 
             # 3.6.2 parsing operator
@@ -614,11 +614,11 @@ def parse_code(xde_lists):
                 if asgn_type == 'n':
 
                     if   opr_name.lower() == 'singular':
-                        xde_lists['code'][code_place][code_i] \
+                        xde_dict['code'][code_place][code_i] \
                             = 'Oprt_Asgn: '+opr_expr
 
                     elif opr_name.lower() == 'vol':
-                        xde_lists['code'][code_place][code_i] \
+                        xde_dict['code'][code_place][code_i] \
                             = 'Oprt_Asgn: '+opr_expr
 
                 elif asgn_type in asgn_types:
@@ -629,12 +629,12 @@ def parse_code(xde_lists):
 
                     if asgn_type == 'f':
 
-                        if   'fvect' in xde_lists \
-                        and opr_list[2] in xde_lists['fvect']:
+                        if   'fvect' in xde_dict \
+                        and opr_list[2] in xde_dict['fvect']:
                             posfx_str = '_i'   + posfx_str
 
-                        elif 'fmatr' in xde_lists \
-                        and opr_list[2] in xde_lists['fmatr']:
+                        elif 'fmatr' in xde_dict \
+                        and opr_list[2] in xde_dict['fmatr']:
                             posfx_str = '_i_j' + posfx_str
 
                     temp_str  = 'Oprt_Asgn: ' \
@@ -642,18 +642,18 @@ def parse_code(xde_lists):
                               + '=' + opr_expr + '(' \
                               + ','.join(opr_list[3:]) + ')'
 
-                    xde_lists['code'][code_place][code_i] = temp_str
+                    xde_dict['code'][code_place][code_i] = temp_str
 
             # 3.6.3 parsing assignment
             elif code_key.lower() == '@a':
                 expr = code_line.replace(code_key,'').lstrip().split('=')
-                xde_lists['code'][code_place][code_i] \
+                xde_dict['code'][code_place][code_i] \
                     = 'Func_Asgn: [' + expr[0].rstrip() \
                     + ']=' + expr[1].lstrip()
 
             elif code_key.lower() == '@r':
                 expr = code_line.replace(code_key,'').lstrip().split('=')
-                xde_lists['code'][code_place][code_i] \
+                xde_dict['code'][code_place][code_i] \
                     = 'Func_Asgn: [' + expr[0].rstrip() \
                     + ']=' + expr[1].lstrip().replace('[','').replace(']','')
 
@@ -666,15 +666,15 @@ def parse_code(xde_lists):
                        ['',     '',       '[',     '['     ],
                        ['_i=',  '_i_j=',  '_i]=',  '_i_j]=']) :
 
-                    if strs in xde_lists \
-                    and opr_list[0] in xde_lists[strs]:
+                    if strs in xde_dict \
+                    and opr_list[0] in xde_dict[strs]:
                         prefx_str, posfx_str = prefx, posfx
 
                 temp_str += prefx_str + opr_list[0] + posfx_str
 
                 temp_str += opr_list[1] + '[' + ','.join(opr_list[2:]) + ']'
 
-                xde_lists['code'][code_place][code_i] = temp_str
+                xde_dict['code'][code_place][code_i] = temp_str
 
             elif code_key.lower() == 'array':
 
@@ -688,10 +688,10 @@ def parse_code(xde_lists):
                     if len(idx_list) == 1:
                         vect_len = idx_list[0].lstrip('[').rstrip(']')
 
-                        if 'vect' not in xde_lists : 
-                            xde_lists['vect'] = {}
+                        if 'vect' not in xde_dict : 
+                            xde_dict['vect'] = {}
 
-                        xde_lists['vect'][var_name]  = [vect_len] \
+                        xde_dict['vect'][var_name]  = [vect_len] \
                             + [var_name + '[' + str(ii+1) + ']' \
                                 for ii in range(int(vect_len))]
 
@@ -702,15 +702,15 @@ def parse_code(xde_lists):
                         matr_row = idx_list[0].lstrip('[').rstrip(']')
                         matr_clm = idx_list[1].lstrip('[').rstrip(']')
 
-                        if 'matrix' not in xde_lists :
-                            xde_lists['matrix'] = {}
+                        if 'matrix' not in xde_dict :
+                            xde_dict['matrix'] = {}
 
-                        xde_lists['matrix'][var_name] = [matr_row, matr_clm] \
+                        xde_dict['matrix'][var_name] = [matr_row, matr_clm] \
                             + [[var_name+'['+str(ii+1)+']['+str(jj+1)+']' \
                                 for jj in range(int(matr_clm))] \
                                     for ii in range(int(matr_row))]
 
                     temp_str += var_strs + ','
                     
-                xde_lists['code'][code_place][code_i] = temp_str.rstrip(',') +';'
+                xde_dict['code'][code_place][code_i] = temp_str.rstrip(',') +';'
 # end parse_code()

@@ -24,10 +24,10 @@ from expr import split_bracket_expr
 
 error = False
 
-def check_xde(ges_info, xde_lists, list_addr):
+def check_xde(ges_info, xde_dict, xde_addr):
 
     # check disp
-    if 'disp' in xde_lists:
+    if 'disp' in xde_dict:
         pass
     else:
         error_type  = not_declared('DISP', 'Error')
@@ -36,9 +36,9 @@ def check_xde(ges_info, xde_lists, list_addr):
         report_error('DND01', '*', error_type + sgest_info)
 
     # check coor
-    if 'coor' in xde_lists: pass
-        #xde_axi       =  ''.join(xde_lists['coor'])
-        #xde_coor_strs = ' '.join(xde_lists['coor'])
+    if 'coor' in xde_dict: pass
+        #xde_axi       =  ''.join(xde_dict['coor'])
+        #xde_coor_strs = ' '.join(xde_dict['coor'])
         #if ext_name not in ['fde','cde','vde',pde'] and xde_axi != axi :
         #    addon_info    = "'{}' is not consistent with '{}' " \
         #                  .format(xde_coor_strs,axi)
@@ -52,8 +52,8 @@ def check_xde(ges_info, xde_lists, list_addr):
         report_error('CND01', '*', error_type + sgest_info)
 
     # check shap
-    if 'shap' in xde_lists:
-        check_shap(ges_info, xde_lists, list_addr)
+    if 'shap' in xde_dict:
+        check_shap(ges_info, xde_dict, xde_addr)
     else:
         error_type  = not_declared('SHAP', 'Error')
         sgest_info  = "Shap function may be declared as " \
@@ -61,7 +61,7 @@ def check_xde(ges_info, xde_lists, list_addr):
         report_error('SND01', '*', error_type + sgest_info)
 
     # check gaus
-    if 'gaus' in xde_lists:
+    if 'gaus' in xde_dict:
         pass
     else:
         error_type  = not_declared('GAUS', 'Error')
@@ -71,65 +71,65 @@ def check_xde(ges_info, xde_lists, list_addr):
 
     # check insert code
     c_declares = {}
-    check_code(ges_info, xde_lists, list_addr, c_declares)
+    check_code(ges_info, xde_dict, xde_addr, c_declares)
 
     # check mate
-    if 'mate' in xde_lists:
-        for var in xde_lists['mate']:
+    if 'mate' in xde_dict:
+        for var in xde_dict['mate']:
             if regx.match(r'\^?[a-z]\w*(?:\[\d\])*', var, regx.I) != None :
-                if check_variable_declared(var, 'BFmate', c_declares, list_addr):
+                if check_variable_declared(var, 'BFmate', c_declares, xde_addr):
                     continue
-                line_num   = list_addr['mate']
+                line_num   = xde_addr['mate']
                 error_type = not_declared(var, 'Error')
                 report_error('MND01', line_num, error_type + '\n')
 
     # check vect
-    if 'vect' in xde_lists:
-        for vect in xde_lists['vect'].keys():
-            for strs in xde_lists['vect'][vect]:
+    if 'vect' in xde_dict:
+        for vect in xde_dict['vect'].keys():
+            for strs in xde_dict['vect'][vect]:
                 for var in regx.findall(r'\^?[a-z]\w*(?:\[\d\])*', strs, regx.I):
-                    if check_variable_declared(var, 'all', c_declares, list_addr):
+                    if check_variable_declared(var, 'all', c_declares, xde_addr):
                         continue
-                    line_num   = list_addr['vect'][vect]
+                    line_num   = xde_addr['vect'][vect]
                     error_type = not_declared(var, 'Error')
                     report_error('VND01', line_num, error_type + '\n')
 
     # check matrix
-    if 'matrix' in xde_lists:
-        check_matrix(xde_lists, list_addr, c_declares)
+    if 'matrix' in xde_dict:
+        check_matrix(xde_dict, xde_addr, c_declares)
 
     # check fvect
-    if 'fvect' in xde_lists:
-        for name, lists in xde_lists['fvect'].items():
+    if 'fvect' in xde_dict:
+        for name, lists in xde_dict['fvect'].items():
             if len(lists) != 1:
-                line_num   = list_addr['fvect'][name]
+                line_num   = xde_addr['fvect'][name]
                 error_type = faultly_declared(name, 'Error')
                 sgest_info = f'sugest declare as \'FVECT {name} [len]\'.\n'
                 report_error('VFD01', line_num,  error_type + sgest_info)
 
     # check fmatr
-    if 'fmatr' in xde_lists:
-        for name, lists in xde_lists['fmatr'].items():
+    if 'fmatr' in xde_dict:
+        for name, lists in xde_dict['fmatr'].items():
             if len(lists) != 2:
-                line_num   = list_addr['fmatr'][name]
+                line_num   = xde_addr['fmatr'][name]
                 error_type = faultly_declared(name, 'Error')
                 sgest_info = f'sugest declare as \'FMATR {name} [row] [clm]\'.\n'
                 report_error('MFD01', line_num, error_type + sgest_info)
 
     # check stif, mass, damp
     for weak in ['stif','mass','damp']:
-        if weak in xde_lists:
-            check_weak(xde_lists, list_addr, weak)
+        if weak in xde_dict:
+            check_weak(xde_dict, xde_addr, weak)
 
     # check load
-    if 'load' in xde_lists:
-        check_load(xde_lists, list_addr)
+    if 'load' in xde_dict:
+        check_load(xde_dict, xde_addr)
 
     print('Error=',error)
     return error
 # end check_xde()
 
-def check_shap(ges_info, xde_lists, list_addr):
+def check_shap(ges_info, xde_dict, xde_addr):
 
     base_shap_dclr_times = 0
     base_shap_line = 0
@@ -143,7 +143,7 @@ def check_shap(ges_info, xde_lists, list_addr):
     node_dgree2   = ['3','6','9','10','27']
     #node_dgree1_5 = ['' ,'' ,'8','' ,'20']
 
-    for shap_list, line_num in zip(xde_lists['shap'], list_addr['shap']):
+    for shap_list, line_num in zip(xde_dict['shap'], xde_addr['shap']):
 
         if shap_list[0] == '%1':
             shap_form = ges_info['shap_form']
@@ -212,17 +212,17 @@ def check_shap(ges_info, xde_lists, list_addr):
                         report_warn('SDD02', line_num, 'variable duplicated.\n')
 
                     for var_name in set(vars_list):
-                        if 'coef' not in xde_lists:
-                            if 'disp' in xde_lists \
-                            and var_name not in xde_lists['disp'] :
+                        if 'coef' not in xde_dict:
+                            if 'disp' in xde_dict \
+                            and var_name not in xde_dict['disp'] :
                                 warn_type   = not_declared(var_name, 'Warn')
                                 sgest_info  = 'It must be declared in disp.\n'
                                 report_warn('SND02', line_num, warn_type + sgest_info)
 
                         else:
-                            if  'disp' in xde_lists \
-                            and var_name not in xde_lists['disp'] \
-                            and var_name not in xde_lists['coef'] :
+                            if  'disp' in xde_dict \
+                            and var_name not in xde_dict['disp'] \
+                            and var_name not in xde_dict['coef'] :
                                 warn_type   = not_declared(var_name, 'Warn')
                                 sgest_info  = 'It must be declared in disp or coef.\n'
                                 report_warn('SND03', line_num, warn_type + sgest_info)
@@ -262,25 +262,25 @@ def check_shap(ges_info, xde_lists, list_addr):
                             else:
                                 var_name, pan_name = var_comp.split('_')[:2]
                                 
-                                if 'coef' in xde_lists:
-                                    if var_name in xde_lists['coef'] :
+                                if 'coef' in xde_dict:
+                                    if var_name in xde_dict['coef'] :
                                         warn_type   = faultly_declared(var_name, 'Warn')
                                         sgest_info  = "It must not be declared in 'coef'.\n"
                                         report_warn('SFD05', line_num, warn_type + sgest_info)
 
-                                    elif 'disp' in xde_lists \
-                                    and var_name not in xde_lists['disp'] :
+                                    elif 'disp' in xde_dict \
+                                    and var_name not in xde_dict['disp'] :
                                         warn_type   = faultly_declared(var_name, 'Warn')
                                         sgest_info  = "It must not be declared in 'disp'.\n"
                                         report_warn('SFD06', line_num, warn_type + sgest_info)
 
-                                elif 'disp' in xde_lists \
-                                and var_name not in xde_lists['disp'] :
+                                elif 'disp' in xde_dict \
+                                and var_name not in xde_dict['disp'] :
                                     warn_type   = faultly_declared(var_name, 'Warn')
                                     sgest_info  = "It must not be declared in 'disp'.\n"
                                     report_warn('SFD07', line_num, warn_type + sgest_info)
 
-                                if 'disp' in xde_lists and pan_name not in xde_lists['disp'] :
+                                if 'disp' in xde_dict and pan_name not in xde_dict['disp'] :
                                     error_type  = faultly_declared(var_comp, 'Error')
                                     sgest_info  = f"{Empha_color}'{pan_name}' " \
                                                 + f"{Error_color}must be declared in 'disp.\n"
@@ -328,7 +328,7 @@ def check_shap(ges_info, xde_lists, list_addr):
                 report_error('SFD13', line_num, error_type + sgest_info)
 # end check_shap()
 
-def check_code(ges_info, xde_lists, list_addr, c_declares):
+def check_code(ges_info, xde_dict, xde_addr, c_declares):
 
     # the inner declaration
     inner_declares  = {'tmax','dt','nstep','itnmax','time'} \
@@ -345,22 +345,22 @@ def check_code(ges_info, xde_lists, list_addr, c_declares):
     c_declares['array']['matrix'] = set()
 
     for strs in ["disp","coef","coor","func"]:
-        if strs in xde_lists:
-            c_declares['all'] |= set(xde_lists[strs])
+        if strs in xde_dict:
+            c_declares['all'] |= set(xde_dict[strs])
 
-    if 'cmplx_tag' in xde_lists and xde_lists['cmplx_tag'] == 1:
+    if 'cmplx_tag' in xde_dict and xde_dict['cmplx_tag'] == 1:
         for strs in ['disp', 'func']:
-            if strs in xde_lists:
-                for var in xde_lists[strs]:
+            if strs in xde_dict:
+                for var in xde_dict[strs]:
                     c_declares['all'].add(var+'r')
                     c_declares['all'].add(var+'i')
 
     assist = {}
-    for addr in xde_lists["code"].keys():
+    for addr in xde_dict["code"].keys():
 
         assist['stitch'] = ''
         assist['addrss'] = addr
-        for code_strs, line_num in zip(xde_lists["code"][addr], list_addr["code"][addr]):
+        for code_strs, line_num in zip(xde_dict["code"][addr], xde_addr["code"][addr]):
 
             code_key = regx.match(r'\$C[C6VP]|@[LAWSR]|COMMON|ARRAY',code_strs,regx.I)
             if code_key == None: continue
@@ -384,20 +384,20 @@ def check_code(ges_info, xde_lists, list_addr, c_declares):
                 gather_array_declare(code_strs, line_num, assist, c_declares)
 
             elif lower_key == '$cv':
-                check_tensor_assign(code_strs, line_num, xde_lists, c_declares)
+                check_tensor_assign(code_strs, line_num, xde_dict, c_declares)
 
             elif lower_key == '$cp':
-                check_complex_assign(code_strs, line_num, xde_lists, list_addr, c_declares)
+                check_complex_assign(code_strs, line_num, xde_dict, xde_addr, c_declares)
 
             elif lower_key == '@l':
-                if check_operator(code_strs, code_list, line_num, xde_lists, list_addr, c_declares):
+                if check_operator(code_strs, code_list, line_num, xde_dict, xde_addr, c_declares):
                     continue
 
             elif lower_key in ['@w', '@s']:
-                check_func_asgn1(code_list, line_num, xde_lists, c_declares, lower_key)
+                check_func_asgn1(code_list, line_num, xde_dict, c_declares, lower_key)
 
             elif lower_key in ['@a', '@r']:
-                check_func_asgn2(code_strs, line_num, xde_lists, c_declares)
+                check_func_asgn2(code_strs, line_num, xde_dict, c_declares)
 # end check_code()
 
 def gather_declare(code_strs, line_num, assist_dict, c_declares):
@@ -483,7 +483,7 @@ def gather_array_declare(code_strs, line_num, assist, c_declares):
             insert_array_declare(c_declares, assist, 'matrix', matr_list, var_name)
 # end gather_array_declare()
 
-def check_tensor_assign(code_strs, line_num, xde_lists, c_declares):
+def check_tensor_assign(code_strs, line_num, xde_dict, c_declares):
 
     pattern = regx.compile(r'\^?[a-z][a-z0-9]*(?:_[a-z])+',regx.I)
     tnsr_list = pattern.findall(code_strs)
@@ -498,9 +498,9 @@ def check_tensor_assign(code_strs, line_num, xde_lists, c_declares):
             tnsr_name = tnsr.split('_')[0]
             if tnsr.count('_') == 1:
 
-                if ( 'vect' not in xde_lists \
-                    or ( 'vect' in xde_lists \
-                        and tnsr_name not in xde_lists['vect'] ) ) \
+                if ( 'vect' not in xde_dict \
+                    or ( 'vect' in xde_dict \
+                        and tnsr_name not in xde_dict['vect'] ) ) \
                 and tnsr_name not in c_declares['array']['vect']:
 
                     error_type = not_declared(tnsr_name, 'Error')
@@ -509,9 +509,9 @@ def check_tensor_assign(code_strs, line_num, xde_lists, c_declares):
 
             elif tnsr.count('_') == 2:
 
-                if ( 'matrix' not in xde_lists \
-                    or ( 'matrix' in xde_lists \
-                        and tnsr_name not in xde_lists['matrix'] ) ) \
+                if ( 'matrix' not in xde_dict \
+                    or ( 'matrix' in xde_dict \
+                        and tnsr_name not in xde_dict['matrix'] ) ) \
                 and tnsr_name not in c_declares['array']['matrix']:
 
                     error_type = not_declared(tnsr_name, 'Error')
@@ -519,7 +519,7 @@ def check_tensor_assign(code_strs, line_num, xde_lists, c_declares):
                     report_error('MND02', line_num, error_type + sgest_info)
 # end check_tensor_assign()
 
-def check_complex_assign(code_strs, line_num, xde_lists, list_addr, c_declares):
+def check_complex_assign(code_strs, line_num, xde_dict, xde_addr, c_declares):
 
     pattern = regx.compile(r'\^?[a-z]\w*',regx.I)
     temp_list = pattern.findall(code_strs)
@@ -543,7 +543,7 @@ def check_complex_assign(code_strs, line_num, xde_lists, list_addr, c_declares):
                 
     if len(tnsr_list) != 0:
         
-        check_tensor_assign(code_strs, line_num, xde_lists, c_declares)
+        check_tensor_assign(code_strs, line_num, xde_dict, c_declares)
         
         for tnsr in set(tnsr_list):
 
@@ -551,15 +551,15 @@ def check_complex_assign(code_strs, line_num, xde_lists, list_addr, c_declares):
 
             if tnsr.count('_') == 1:
 
-                if 'vect' in list_addr \
-                and tnsr_name in list_addr['vect']:
-                    tnsr_line = list_addr['vect'][tnsr_name]
+                if 'vect' in xde_addr \
+                and tnsr_name in xde_addr['vect']:
+                    tnsr_line = xde_addr['vect'][tnsr_name]
                 else:
                     continue
 
-                if ( 'vect' not in xde_lists \
-                    or ( 'vect' in xde_lists \
-                        and tnsr_name not in xde_lists['vect'] ) ) \
+                if ( 'vect' not in xde_dict \
+                    or ( 'vect' in xde_dict \
+                        and tnsr_name not in xde_dict['vect'] ) ) \
                 or tnsr_name in c_declares['array']['vect']:
 
                     error_type = not_declared(tnsr_name, 'Error')
@@ -567,7 +567,7 @@ def check_complex_assign(code_strs, line_num, xde_lists, list_addr, c_declares):
                     report_error('VND03', line_num, error_type + sgest_info)
 
                 else:
-                    for var in xde_lists['vect'][tnsr_name]: 
+                    for var in xde_dict['vect'][tnsr_name]: 
                         
                         if var+'r' not in c_declares['all']:
                             Empha_info = f'real of {var} in vector ' \
@@ -583,9 +583,9 @@ def check_complex_assign(code_strs, line_num, xde_lists, list_addr, c_declares):
 
             elif tnsr.count('_') == 2:
 
-                if ( 'matrix' not in xde_lists \
-                    or ( 'matrix' in xde_lists \
-                        and tnsr_name not in xde_lists['matrix'] ) ) \
+                if ( 'matrix' not in xde_dict \
+                    or ( 'matrix' in xde_dict \
+                        and tnsr_name not in xde_dict['matrix'] ) ) \
                 or tnsr_name in c_declares['array']['matrix']:
 
                     error_type = not_declared(tnsr_name, 'Error')
@@ -594,13 +594,13 @@ def check_complex_assign(code_strs, line_num, xde_lists, list_addr, c_declares):
 
                 else:
 
-                    if  xde_lists['matrix'][tnsr_name][0].isnumeric() \
-                    and xde_lists['matrix'][tnsr_name][1].isnumeric() :
-                        matrix_list = xde_lists['matrix'][tnsr_name][2:].copy()
+                    if  xde_dict['matrix'][tnsr_name][0].isnumeric() \
+                    and xde_dict['matrix'][tnsr_name][1].isnumeric() :
+                        matrix_list = xde_dict['matrix'][tnsr_name][2:].copy()
                     else:
-                        matrix_list = xde_lists['matrix'][tnsr_name].copy()
+                        matrix_list = xde_dict['matrix'][tnsr_name].copy()
 
-                    matrix_line_nums = list_addr['matrix'][tnsr_name][1:].copy()
+                    matrix_line_nums = xde_addr['matrix'][tnsr_name][1:].copy()
 
                     for vars_list, matr_line_num in zip(matrix_list, matrix_line_nums):
                         var_regx = regx.compile(r'[a-z][a-z0-9]*',regx.I)
@@ -620,7 +620,7 @@ def check_complex_assign(code_strs, line_num, xde_lists, list_addr, c_declares):
                                 report_error('CND07', line_num, error_type + '\n')
 # end check_complex_assign()
 
-def check_operator(code_strs, code_list, line_num, xde_lists, list_addr, c_declares):
+def check_operator(code_strs, code_list, line_num, xde_dict, xde_addr, c_declares):
 
     # first check length of '@l' code
     oprt_len = len(code_list)
@@ -676,16 +676,16 @@ def check_operator(code_strs, code_list, line_num, xde_lists, list_addr, c_decla
             elif strs.count('_') == 1:
                 vector = strs.split('_')[0]
 
-                if 'vect' not in xde_lists \
-                    or ( 'vect' in xde_lists \
-                        and vector not in xde_lists['vect'] ):
+                if 'vect' not in xde_dict \
+                    or ( 'vect' in xde_dict \
+                        and vector not in xde_dict['vect'] ):
 
                     error_type = not_declared(vector, 'Error')
                     sgest_info = "It must be declared by 'VECT'.\n"
                     report_error('VND04', line_num, error_type + sgest_info)
 
                 else:
-                    vars_list += xde_lists['vect'][vector]
+                    vars_list += xde_dict['vect'][vector]
 
             else:
                 error_type = unsuitable_form(strs, 'Error')
@@ -698,15 +698,15 @@ def check_operator(code_strs, code_list, line_num, xde_lists, list_addr, c_decla
 
         opr_disp_len = len(operator_data[oprt_name][oprt_axis]['disp'])
 
-        if 'disp' in xde_lists \
+        if 'disp' in xde_dict \
         and oprt_deed == 'f':
-            vars_list += xde_lists['coor']
-            vars_list += xde_lists['disp'][:opr_disp_len]
+            vars_list += xde_dict['coor']
+            vars_list += xde_dict['disp'][:opr_disp_len]
 
-        elif 'coef' in xde_lists \
+        elif 'coef' in xde_dict \
         and oprt_deed in ['c','v','m']:
-            vars_list += xde_lists['coor']
-            vars_list += xde_lists['coef'][:opr_disp_len]
+            vars_list += xde_dict['coor']
+            vars_list += xde_dict['coef'][:opr_disp_len]
 
         if   oprt_axis in ['oz', 'so']:
             vars_list.insert(0,'r')
@@ -718,7 +718,7 @@ def check_operator(code_strs, code_list, line_num, xde_lists, list_addr, c_decla
     for strs in vars_list:
 
         if strs in list('xyzros') \
-        or strs in xde_lists['coor']:
+        or strs in xde_dict['coor']:
             oprt_axis_list.append(strs)
         else:
             break
@@ -738,13 +738,13 @@ def check_operator(code_strs, code_list, line_num, xde_lists, list_addr, c_decla
 
 
     # warning that operator's axis be not in accordance with 'coor' declaration
-    if 'coor' in xde_lists \
-    and oprt_axis != ''.join(xde_lists['coor']):
+    if 'coor' in xde_dict \
+    and oprt_axis != ''.join(xde_dict['coor']):
         warn_type   = unsuitable_form(oprt_name+'.'+oprt_axis, 'Warn')
         sgest_info  = f"coordinate of operator {Empha_color}'{oprt_axis}' " \
                     + f"{Warnn_color}is not consistance with 'coor' declaration " \
-                    + f"{Empha_color}'{' '.join(xde_lists['coor'])}' {Warnn_color}in line " \
-                    + f"{Empha_color}{str(list_addr['coor'])}, {Warnn_color}" \
+                    + f"{Empha_color}'{' '.join(xde_dict['coor'])}' {Warnn_color}in line " \
+                    + f"{Empha_color}{str(xde_addr['coor'])}, {Warnn_color}" \
                     + "and please make sure that it is necessary to do so.\n"
         report_warn('OUF07', line_num, warn_type + sgest_info)
 
@@ -753,10 +753,10 @@ def check_operator(code_strs, code_list, line_num, xde_lists, list_addr, c_decla
     elif oprt_deed in ['c','v','m']: 
 
         # normal variables of operator must be declared in 'COEF'
-        if 'coef' not in xde_lists:
+        if 'coef' not in xde_dict:
             dif_set = set(oprt_disp_list)
         else:
-            dif_set = set(oprt_disp_list).difference(set(xde_lists['coef']))
+            dif_set = set(oprt_disp_list).difference(set(xde_dict['coef']))
 
         if len(dif_set) != 0:
             error_type = unsuitable_form(code_strs, 'Error')
@@ -772,8 +772,8 @@ def check_operator(code_strs, code_list, line_num, xde_lists, list_addr, c_decla
         
         # 'v' means resault of operator assigned to vector (vect declared)
         elif oprt_deed == 'v':
-            if  'vect' in xde_lists \
-            and oprt_objt not in xde_lists['vect'] \
+            if  'vect' in xde_dict \
+            and oprt_objt not in xde_dict['vect'] \
             and oprt_objt not in c_declares['array']['vect']:
                 error_type = not_declared(oprt_objt, 'Error')
                 sgest_info = "it must be declared by 'VECT' or 'ARRAY'.\n"
@@ -781,8 +781,8 @@ def check_operator(code_strs, code_list, line_num, xde_lists, list_addr, c_decla
         
         # 'm' means resault of operator assigned to matrix (matrix declared)
         elif oprt_deed == 'm':
-            if  'matrix' in xde_lists \
-            and oprt_objt not in xde_lists['matrix'] \
+            if  'matrix' in xde_dict \
+            and oprt_objt not in xde_dict['matrix'] \
             and oprt_objt not in c_declares['array']['matrix']:
                 error_type = not_declared(oprt_objt, 'Error')
                 sgest_info = "it must be declared by 'MATRIX' or 'ARRAY'.\n"
@@ -792,20 +792,20 @@ def check_operator(code_strs, code_list, line_num, xde_lists, list_addr, c_decla
     elif oprt_deed == 'f':
 
         # normal variables of operator must be declared in 'DISP'
-        if 'disp' not in xde_lists:
+        if 'disp' not in xde_dict:
             dif_set = set(oprt_disp_list)
         else:
-            dif_set = set(oprt_disp_list).difference(set(xde_lists['disp']))
+            dif_set = set(oprt_disp_list).difference(set(xde_dict['disp']))
 
         if len(dif_set) != 0:
             error_type = unsuitable_form(code_strs, 'Error')
             sgest_info = f"'{' '.join(list(dif_set))}' must be declared in 'DISP'.\n"
             report_error('OUF09', line_num, error_type + sgest_info)
 
-        if  ('fvect' in xde_lists \
-            and oprt_objt not in xde_lists['fvect']) \
-        and ('fmatr' in xde_lists \
-            and oprt_objt not in xde_lists['fmatr']):
+        if  ('fvect' in xde_dict \
+            and oprt_objt not in xde_dict['fvect']) \
+        and ('fmatr' in xde_dict \
+            and oprt_objt not in xde_dict['fmatr']):
             error_type = not_declared(oprt_objt, 'Error')
             sgest_info = "it must be declared by 'FVECT' or 'FMATR'.\n"
             report_error('VND07', line_num, error_type + sgest_info)
@@ -816,7 +816,7 @@ def check_operator(code_strs, code_list, line_num, xde_lists, list_addr, c_decla
         report_error('OUF10', line_num, error_type + sgest_info)
 # end check_operator()
 
-def check_func_asgn1(code_list, line_num, xde_lists, c_declares, atype):
+def check_func_asgn1(code_list, line_num, xde_dict, c_declares, atype):
     left_vara, righ_tnsr = code_list[:2]
     left_size, tnsr_size = 0, 0
     tnsr_idxs = code_list[2:]
@@ -826,11 +826,11 @@ def check_func_asgn1(code_list, line_num, xde_lists, c_declares, atype):
     elif atype == '@s':
         tvect, tmatr = 'fvect', 'fmatr'
 
-    if   tvect in xde_lists \
-    and left_vara in xde_lists[tvect]: 
+    if   tvect in xde_dict \
+    and left_vara in xde_dict[tvect]: 
         pass
-    elif tmatr in xde_lists \
-    and left_vara in xde_lists[tmatr]:
+    elif tmatr in xde_dict \
+    and left_vara in xde_dict[tmatr]:
         pass
 
     elif left_vara in c_declares['array']['vect']:
@@ -843,24 +843,24 @@ def check_func_asgn1(code_list, line_num, xde_lists, c_declares, atype):
         sgest_info = f"must be declared by {tvect.upper()} or {tmatr.upper()}.\n"
         report_error('VND08', line_num, error_type + sgest_info)
 
-    if  ( ('fvect' in xde_lists \
-            and righ_tnsr not in xde_lists['fvect'] ) \
-        and ('fmatr' in xde_lists \
-            and righ_tnsr not in xde_lists['fmatr'] ) ) \
-    or ('fvect' not in xde_lists \
-        and 'fmatr' not in xde_lists) :
+    if  ( ('fvect' in xde_dict \
+            and righ_tnsr not in xde_dict['fvect'] ) \
+        and ('fmatr' in xde_dict \
+            and righ_tnsr not in xde_dict['fmatr'] ) ) \
+    or ('fvect' not in xde_dict \
+        and 'fmatr' not in xde_dict) :
         error_type = not_declared(righ_tnsr, 'Error')
         sgest_info = "must be declared by 'FVECT' or 'FMATR'.\n"
         report_error('VND09', line_num, error_type + sgest_info)
 
-    if   'fvect' in xde_lists \
-    and righ_tnsr in xde_lists['fvect']:
-        tnsr_size = int(xde_lists['fvect'][righ_tnsr][0])
+    if   'fvect' in xde_dict \
+    and righ_tnsr in xde_dict['fvect']:
+        tnsr_size = int(xde_dict['fvect'][righ_tnsr][0])
 
-    elif 'fmatr' in xde_lists \
-    and righ_tnsr in xde_lists['fmatr']:
-        tnsr_size = int(xde_lists['fmatr'][righ_tnsr][0]) \
-                  * int(xde_lists['fmatr'][righ_tnsr][1])
+    elif 'fmatr' in xde_dict \
+    and righ_tnsr in xde_dict['fmatr']:
+        tnsr_size = int(xde_dict['fmatr'][righ_tnsr][0]) \
+                  * int(xde_dict['fmatr'][righ_tnsr][1])
 
     dflt_idxs = list(map(str,map(lambda x:x+1, range(tnsr_size))))
 
@@ -877,32 +877,32 @@ def check_func_asgn1(code_list, line_num, xde_lists, c_declares, atype):
 
     if atype == '@w':
 
-        if   'vect'   in xde_lists \
-        and left_vara in xde_lists['vect']:
-            left_size = len(xde_lists['vect'][left_vara])
+        if   'vect'   in xde_dict \
+        and left_vara in xde_dict['vect']:
+            left_size = len(xde_dict['vect'][left_vara])
   
-        elif 'matrix' in xde_lists \
-        and left_vara in xde_lists['matrix']:
+        elif 'matrix' in xde_dict \
+        and left_vara in xde_dict['matrix']:
 
-            if  xde_lists['matrix'][left_vara][0].isnumeric() \
-            and xde_lists['matrix'][left_vara][0].isnumeric() :
-                left_size = int(xde_lists['matrix'][left_vara][0]) \
-                          * int(xde_lists['matrix'][left_vara][1])
+            if  xde_dict['matrix'][left_vara][0].isnumeric() \
+            and xde_dict['matrix'][left_vara][0].isnumeric() :
+                left_size = int(xde_dict['matrix'][left_vara][0]) \
+                          * int(xde_dict['matrix'][left_vara][1])
 
             else:
-                left_size = len(xde_lists['matrix'][left_vara]) \
-                              *(xde_lists['matrix'][left_vara].count(' ')+1)
+                left_size = len(xde_dict['matrix'][left_vara]) \
+                              *(xde_dict['matrix'][left_vara].count(' ')+1)
 
     elif atype == '@s':
 
-        if   'fvect' in xde_lists \
-        and left_vara in xde_lists['fvect']:
-            left_size = int(xde_lists['fvect'][left_vara][0])
+        if   'fvect' in xde_dict \
+        and left_vara in xde_dict['fvect']:
+            left_size = int(xde_dict['fvect'][left_vara][0])
 
-        elif 'fmatr' in xde_lists \
-        and left_vara in xde_lists['fmatr']:
-            left_size = int(xde_lists['fmatr'][left_vara][0]) \
-                      * int(xde_lists['fmatr'][left_vara][1])
+        elif 'fmatr' in xde_dict \
+        and left_vara in xde_dict['fmatr']:
+            left_size = int(xde_dict['fmatr'][left_vara][0]) \
+                      * int(xde_dict['fmatr'][left_vara][1])
 
     if left_size != len(tnsr_idxs):
         error_type = unsuitable_form(left_vara, 'Error')
@@ -911,7 +911,7 @@ def check_func_asgn1(code_list, line_num, xde_lists, c_declares, atype):
         report_error('AUF02', line_num, error_type + sgest_info)
 # end check_func_asgn1()
 
-def check_func_asgn2(code_strs, line_num, xde_lists, c_declares):
+def check_func_asgn2(code_strs, line_num, xde_dict, c_declares):
 
     left_vara, righ_expr = code_strs.split('=')
     ftnsr_pattern = regx.compile(r'\[[a-z][a-z0-9]+(?:_[a-z]+)+\]', regx.I)
@@ -969,8 +969,8 @@ def check_func_asgn2(code_strs, line_num, xde_lists, c_declares):
                 and tnsr == 'matr':
                     tnsr += 'ix'
 
-                if char+tnsr in xde_lists \
-                and var in xde_lists[char+tnsr]:
+                if char+tnsr in xde_dict \
+                and var in xde_dict[char+tnsr]:
                     pass
                 elif var in c_declares['array'][char+tnsr]:
                     pass
@@ -980,14 +980,14 @@ def check_func_asgn2(code_strs, line_num, xde_lists, c_declares):
                     report_error('VND10', line_num, error_type + sgest_info)
 # end check_func_asgn2()
 
-def check_matrix(xde_lists, list_addr, c_declares):
+def check_matrix(xde_dict, xde_addr, c_declares):
 
-    for matrix in xde_lists['matrix'].keys():
+    for matrix in xde_dict['matrix'].keys():
 
-        line_nums = list_addr['matrix'][matrix].copy()
+        line_nums = xde_addr['matrix'][matrix].copy()
         matr_name_line = line_nums.pop(0)
 
-        matr_list = [var for var in xde_lists['matrix'][matrix] \
+        matr_list = [var for var in xde_dict['matrix'][matrix] \
                         if not var.isnumeric()]
 
         row_lenth = set()
@@ -1000,18 +1000,18 @@ def check_matrix(xde_lists, list_addr, c_declares):
             for strs in row_list:
                 for var in regx.findall(r'\^?[a-z]\w*(?:\[\d\])*',strs,regx.I):
 
-                    if check_variable_declared(var, 'all', c_declares, list_addr):
+                    if check_variable_declared(var, 'all', c_declares, xde_addr):
                         continue
 
                     report_error('CND09', line_num, not_declared(var, 'Error') + '\n')
 
-        if xde_lists['matrix'][matrix][0].isnumeric:
+        if xde_dict['matrix'][matrix][0].isnumeric:
 
-            row = xde_lists['matrix'][matrix][0]
+            row = xde_dict['matrix'][matrix][0]
 
-            if xde_lists['matrix'][matrix][1].isnumeric:
+            if xde_dict['matrix'][matrix][1].isnumeric:
 
-                clm = xde_lists['matrix'][matrix][1]
+                clm = xde_dict['matrix'][matrix][1]
 
                 if len(matr_list) != int(row):
                     error_type = faultly_declared(matrix, 'Error')
@@ -1035,14 +1035,14 @@ def check_matrix(xde_lists, list_addr, c_declares):
                 + 'lenth of every row is not equal.\n')
 # end check_matrix()
 
-def check_weak(xde_lists, list_addr, weak):
+def check_weak(xde_dict, xde_addr, weak):
     
-    if   xde_lists[weak][0].lower() == 'null':
+    if   xde_dict[weak][0].lower() == 'null':
         return
 
-    elif xde_lists[weak][0].lower() == 'dist':
+    elif xde_dict[weak][0].lower() == 'dist':
 
-        for weak_strs, line_num in zip(xde_lists[weak][1:], list_addr[weak]):
+        for weak_strs, line_num in zip(xde_dict[weak][1:], xde_addr[weak]):
 
             for weak_item in split_bracket_expr(weak_strs):
 
@@ -1071,45 +1071,45 @@ def check_weak(xde_lists, list_addr, weak):
                     weak_func_set |= set(map(lambda x:x.lstrip('[').rstrip(']') ,\
                                              wset.split(';')))
 
-                check_weak_items(weak_func_set, weak_item, line_num, xde_lists)
+                check_weak_items(weak_func_set, weak_item, line_num, xde_dict)
 
-    elif xde_lists[weak][0] == '%1':
+    elif xde_dict[weak][0] == '%1':
 
         if weak == 'stif':
-            error_type = unsuitable_form(' '.join(xde_lists[weak]), 'Error')
+            error_type = unsuitable_form(' '.join(xde_dict[weak]), 'Error')
             sgest_info = "'STIF' must be declared as paragraph, it is distributed.\n"
-            report_error('WUF03', list_addr[weak][0], error_type + sgest_info)
+            report_error('WUF03', xde_addr[weak][0], error_type + sgest_info)
 
-        coeff_len = len(xde_lists[weak]) - 1
+        coeff_len = len(xde_dict[weak]) - 1
 
-        if 'disp' in xde_lists \
+        if 'disp' in xde_dict \
         and coeff_len > 1 \
-        and coeff_len < len(xde_lists['disp']):
+        and coeff_len < len(xde_dict['disp']):
 
-            no_coeff_var = xde_lists['disp'][coeff_len:]
+            no_coeff_var = xde_dict['disp'][coeff_len:]
             no_mass_list = ['0' for i in range(len(no_coeff_var))]
 
-            line_num   = list_addr[weak][0]
-            error_type = unsuitable_form(' '.join(xde_lists[weak]), 'Error')
+            line_num   = xde_addr[weak][0]
+            error_type = unsuitable_form(' '.join(xde_dict[weak]), 'Error')
             sgest_info = f"Not enough '{weak}' coefficient for 'disp' " \
-                       + f"declaration at {Empha_color}{list_addr['disp']}. " \
+                       + f"declaration at {Empha_color}{xde_addr['disp']}. " \
                        + f"{Error_color}If '{' '.join(no_coeff_var)}' have no " \
                        + f"'mass', it's better declared as {Empha_color}'{weak} " \
-                       + f"{' '.join(xde_lists[weak] + no_mass_list)}'.\n"
+                       + f"{' '.join(xde_dict[weak] + no_mass_list)}'.\n"
             report_error('WUF04', line_num, error_type + sgest_info)
 
     else:
-        line_num   = list_addr[weak][0]
+        line_num   = xde_addr[weak][0]
         error_type = faultly_declared(weak, 'Error')
-        sgest_info = f"Wrong key word {Empha_color}'{xde_lists[weak][0][:8]}...'\n"
+        sgest_info = f"Wrong key word {Empha_color}'{xde_dict[weak][0][:8]}...'\n"
         report_error('WFD01', line_num, error_type + sgest_info)
 # end check_weak()
 
-def check_load(xde_lists, list_addr):
+def check_load(xde_dict, xde_addr):
 
-    if not xde_lists['load'][0].isnumeric():
+    if not xde_dict['load'][0].isnumeric():
 
-        for weak_strs, line_num in zip(xde_lists['load'], list_addr['load']):
+        for weak_strs, line_num in zip(xde_dict['load'], xde_addr['load']):
 
             for weak_item in split_bracket_expr(weak_strs):
 
@@ -1132,7 +1132,7 @@ def check_load(xde_lists, list_addr):
 
                 weak_func_set = set(map(lambda x: x.lstrip('[').rstrip(']'), weak_form))
                 
-                check_weak_items(weak_func_set, weak_item, line_num, xde_lists)
+                check_weak_items(weak_func_set, weak_item, line_num, xde_dict)
 # end check_load()
 
 # --------------------------------------------------------------------------------------------------
@@ -1178,12 +1178,12 @@ def unsuitable_form(form_info, report_type):
 # --------------------------------------------------------------------------------------------------
 # -------------------------------------- tiny functions --------------------------------------------
 # --------------------------------------------------------------------------------------------------
-def check_weak_item(weak_func, weak_item, line_num, xde_lists):
+def check_weak_item(weak_func, weak_item, line_num, xde_dict):
 
-    if ('disp' in xde_lists \
-        and weak_func in xde_lists['disp']) \
-    or ('func' in xde_lists \
-        and weak_func in xde_lists['func']):
+    if ('disp' in xde_dict \
+        and weak_func in xde_dict['disp']) \
+    or ('func' in xde_dict \
+        and weak_func in xde_dict['func']):
         pass
 
     else:
@@ -1193,27 +1193,27 @@ def check_weak_item(weak_func, weak_item, line_num, xde_lists):
         report_error('WUF07', line_num, error_type + sgest_info)
 # end check_weak_item()
 
-def check_weak_items(weak_func_set, weak_item, line_num, xde_lists):
+def check_weak_items(weak_func_set, weak_item, line_num, xde_dict):
 
     for weak_func in weak_func_set:
         if weak_func.count('_') == 0:
-            check_weak_item(weak_func, weak_item, line_num, xde_lists)
+            check_weak_item(weak_func, weak_item, line_num, xde_dict)
 
         elif weak_func.count('_') == 1:
-            if 'vect' in xde_lists:
-                for weak in xde_lists['vect'][weak_func.split('_')[0]]:
-                    check_weak_item(weak, weak_item, line_num, xde_lists)
+            if 'vect' in xde_dict:
+                for weak in xde_dict['vect'][weak_func.split('_')[0]]:
+                    check_weak_item(weak, weak_item, line_num, xde_dict)
 
         elif weak_func.count('_') == 2:
-            if 'matrix' in xde_lists:
-                for weak_vect in xde_lists['matrix'][weak_func.split('_')[0]]:
+            if 'matrix' in xde_dict:
+                for weak_vect in xde_dict['matrix'][weak_func.split('_')[0]]:
                     if weak_vect.isnumeric() :
                         continue
                     for weak in weak_vect.split():
-                        check_weak_item(weak, weak_item, line_num, xde_lists)
+                        check_weak_item(weak, weak_item, line_num, xde_dict)
 # end check_weak_items()
 
-def check_variable_declared(var, addr, c_declares, list_addr):
+def check_variable_declared(var, addr, c_declares, xde_addr):
 
     if var in c_declares[addr]:
         return True

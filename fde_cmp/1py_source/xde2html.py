@@ -9,7 +9,7 @@ import re as regx
 import os
 from expr import split_bracket_expr
 
-def xde2html(ges_info, xde_lists, list_addr, file):
+def xde2html(ges_info, xde_dict, xde_addr, file):
     pfelacpath = os.environ["pfelacpath"].replace("\\","/")
 
     file.write("<!DOCTYPE html>\n")
@@ -22,41 +22,41 @@ def xde2html(ges_info, xde_lists, list_addr, file):
     file.write("<body>\n")
     
     # 1 write disp
-    if 'disp' in xde_lists:
+    if 'disp' in xde_dict:
         file.write('<blockquote>\n')
         file.write('<h3>Unknown Variable, \'Disp\':</h3>\n')
         file.write('<p>\n')
-        for var in xde_lists['disp']:
+        for var in xde_dict['disp']:
             file.write(var+', ')
         file.write('\n')
         file.write('</p>\n')
         file.write('</blockquote>\n')
 
     # 2 write coef
-    if 'coef' in xde_lists:
+    if 'coef' in xde_dict:
         file.write('<blockquote>\n')
         file.write('<h3>Coupled Variable, \'Coef\':</h3>\n')
         file.write('<p>\n')
-        for var in xde_lists['coef']:
+        for var in xde_dict['coef']:
             file.write(var+', ')
         file.write('\n')
         file.write('</p>\n')
         file.write('</blockquote>\n')
 
     # 3 write coor
-    if 'coor' in xde_lists:
+    if 'coor' in xde_dict:
         coortype = f"{ges_info['dim']}d{ges_info['axi']}"
         file.write('<blockquote>\n')
         file.write(f'<h3>Coordinate Type, \'Coor\': {coortype}</h3>\n')
         file.write('<p>\n')
-        for var in xde_lists['coor']:
+        for var in xde_dict['coor']:
             file.write(var+', ')
         file.write('\n')
         file.write('</p>\n')
         file.write('</blockquote>\n')
 
     # 4 write default material
-    if 'mate' in xde_lists:
+    if 'mate' in xde_dict:
         file.write('<blockquote>\n')
         file.write(f'<h3>Default Material, \'Mate\':</h3>\n')
         file.write(f'<table border="1" cellpadding="10" cellspacing="0">\n')
@@ -66,7 +66,7 @@ def xde2html(ges_info, xde_lists, list_addr, file):
             file.write('\t\t<td>var</td>\n')
             file.write('\t\t<td>val</td>\n')
             file.write('\t</tr>\n')
-            for var, val in xde_lists['mate']['default'].items():
+            for var, val in xde_dict['mate']['default'].items():
                 file.write('\t<tr>\n')
                 file.write(f'\t\t<td>{var}</td>\n')
                 file.write(f'\t\t<td>{val}</td>\n')
@@ -74,24 +74,24 @@ def xde2html(ges_info, xde_lists, list_addr, file):
         elif table_style == 'cross':
             file.write('\t<tr>\n')
             file.write('\t\t<td>var</td>\n')
-            for var in xde_lists['mate']['default'].keys():
+            for var in xde_dict['mate']['default'].keys():
                 file.write(f'\t\t<td>{var}</td>\n')
             file.write('\t</tr>\n')
             file.write('\t<tr>\n')
             file.write('\t\t<td>val</td>\n')
-            for val in xde_lists['mate']['default'].values():
+            for val in xde_dict['mate']['default'].values():
                 file.write(f'\t\t<td>{val}</td>\n')
             file.write('\t</tr>\n')
         file.write('</table>\n')
         file.write('</blockquote>\n')
 
     # 5 write shap
-    if 'shap' in xde_lists:
+    if 'shap' in xde_dict:
         for shap_var in ['shap','coef_shap']:
-            if shap_var in xde_lists:
+            if shap_var in xde_dict:
                 file.write('<blockquote>\n')
                 file.write(f'<h3>Element Type, \'{shap_var}\':</h3>\n')
-                for shap_i, key_var in enumerate(xde_lists[shap_var].keys()):
+                for shap_i, key_var in enumerate(xde_dict[shap_var].keys()):
                     file.write('<p>\n')
                     file.write('\tType {}: {}, '.format(shap_i+1,key_var))
                     if key_var == 'l2':
@@ -116,7 +116,7 @@ def xde2html(ges_info, xde_lists, list_addr, file):
                         file.write('Second Order Hexahedral Element<br>\n')
                     else: pass # need to expand
                     file.write(f'\t{"&nbsp "*6}Applicable to: ')
-                    for var in xde_lists[shap_var][key_var]:
+                    for var in xde_dict[shap_var][key_var]:
                         file.write(var+', ')
                     file.write('\n')
                     file.write('</p>\n')
@@ -124,12 +124,12 @@ def xde2html(ges_info, xde_lists, list_addr, file):
                 file.write('</blockquote>\n')
 
     # 6 write gaus
-    if 'gaus' in xde_lists:
+    if 'gaus' in xde_dict:
         file.write('<blockquote>\n')
-        file.write(f'<h3>Element Integration Type, {xde_lists["gaus"]}:</h3>\n')
+        file.write(f'<h3>Element Integration Type, {xde_dict["gaus"]}:</h3>\n')
         file.write('<p>\n')
-        if xde_lists['gaus'][0] == 'g':
-            file.write('Gaussian integral grade {}\n'.format(xde_lists['gaus'].replace('g','')))
+        if xde_dict['gaus'][0] == 'g':
+            file.write('Gaussian integral grade {}\n'.format(xde_dict['gaus'].replace('g','')))
         else:
             file.write('element node integral\n')
         file.write('</p>\n')
@@ -137,10 +137,10 @@ def xde2html(ges_info, xde_lists, list_addr, file):
         
     # 7 write mass damp
     for strs in ['mass','damp']:
-        if strs in xde_lists:
+        if strs in xde_dict:
 
             if strs == 'mass':
-                if 'damp' in xde_lists:
+                if 'damp' in xde_dict:
                     order = 'Second'
                     ordei = '^2'
                 else:
@@ -153,13 +153,13 @@ def xde2html(ges_info, xde_lists, list_addr, file):
             file.write('<blockquote>\n')
             file.write('<h3>{0} items ({1} Order Time Derivative), \'{0}\':</h3>\n'.format(strs,order))
             file.write('<p>\n')
-            if xde_lists[strs][0] == 'lump':
+            if xde_dict[strs][0] == 'lump':
                 file.write('\tLumped {} Matrix:\n'.format(strs))
                 file.write('\\[\n')
                 write_line = ''
-                for var in xde_lists['disp']:
+                for var in xde_dict['disp']:
                     write_line += ' \\int_{\Omega} '
-                    write_line += xde_lists[strs][1].replace('*','\cdot ')+'\cdot '
+                    write_line += xde_dict[strs][1].replace('*','\cdot ')+'\cdot '
                     write_line += '\\frac{\\partial'
                     write_line += ordei+' '
                     write_line += var
@@ -170,31 +170,31 @@ def xde2html(ges_info, xde_lists, list_addr, file):
                 write_line = write_line.rstrip('+')
                 file.write(write_line)
                 file.write('\n\\]\n')
-            elif xde_lists[strs][0] == 'dist':
-                dist_weak(strs, xde_lists, file)
+            elif xde_dict[strs][0] == 'dist':
+                dist_weak(strs, xde_dict, file)
             file.write('</p>\n')
             file.write('</blockquote>\n')
 
     # 8 write stif
-    if 'stif' in xde_lists:
-        if xde_lists['stif'][0] == 'dist':
+    if 'stif' in xde_dict:
+        if xde_dict['stif'][0] == 'dist':
             file.write('<blockquote>\n')
             file.write('<h3>Stiffness items, \'stif\':</h3>\n')
             file.write('<p>\n')
             file.write('\t Distribute Stiffness Matrix:\n')
-            dist_weak('stif', xde_lists, file)
+            dist_weak('stif', xde_dict, file)
             file.write('</p>\n')
             file.write('</blockquote>\n')
 
     file.write("</body>\n")
     file.write("</html>\n")
         
-def dist_weak(weaktype, xde_lists, file):
+def dist_weak(weaktype, xde_dict, file):
     file.write('\\[\n')
     write_line = ''
     expr_list = []
-    for ii in range(1,len(xde_lists[weaktype])):
-        expr_list += split_bracket_expr(xde_lists[weaktype][ii])
+    for ii in range(1,len(xde_dict[weaktype])):
+        expr_list += split_bracket_expr(xde_dict[weaktype][ii])
     
     for weak_strs in expr_list:
 
@@ -222,7 +222,7 @@ def dist_weak(weaktype, xde_lists, file):
 
         weak_list = weak_strs.split(';')
         if weaktype == 'mass':
-            if 'damp' in xde_lists:
+            if 'damp' in xde_dict:
                 left = '\\frac{\\partial^2 '+ weak_list[0] + '}{\\partial t^2}'
             else:
                 left = '\\frac{\\partial '  + weak_list[0] + '}{\\partial t}'

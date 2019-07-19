@@ -8,7 +8,7 @@
 import re as regx
 import os
 
-def xde2md(gesname,coortype,xde_lists,list_addr,file):
+def xde2md(gesname,coortype,xde_dict,xde_addr,file):
 
     # 0 prepare
     shap_tag = regx.search(r'[ltqwc][1-9]+',gesname,regx.I).group()
@@ -20,47 +20,47 @@ def xde2md(gesname,coortype,xde_lists,list_addr,file):
     axi = coortype.split('d')[1]
 
     # 1 write disp
-    if 'disp' in xde_lists:
+    if 'disp' in xde_dict:
 
         file.write('#### Unknown Variable, \'Disp\':\n\t')
-        for var in xde_lists['disp']:
+        for var in xde_dict['disp']:
             file.write(var+', ')
         file.write('\n')
 
     # 2 write coef
-    if 'coef' in xde_lists:
+    if 'coef' in xde_dict:
 
         file.write('#### Coupled Variable, \'Coef\':\n\t')
-        for var in xde_lists['coef']:
+        for var in xde_dict['coef']:
             file.write(var+', ')
         file.write('\n')
 
 
     # 3 write coor
-    if 'coor' in xde_lists:
+    if 'coor' in xde_dict:
 
         file.write('#### Coordinate Type, \'Coor\': {}\n\t'.format(coortype))
-        for var in xde_lists['coor']:
+        for var in xde_dict['coor']:
             file.write(var+', ')
         file.write('\n')
 
     # 4 write default material
-    if 'mate' in xde_lists:
+    if 'mate' in xde_dict:
 
         file.write('#### Default Material, \'Mate\':\n')
         file.write('| var|value|\n')
         file.write('|:---:|:---:|\n')
-        for var in xde_lists['mate']['default'].keys():
-            file.write('|'+var+'|'+xde_lists['mate']['default'][var]+'|\n')
+        for var in xde_dict['mate']['default'].keys():
+            file.write('|'+var+'|'+xde_dict['mate']['default'][var]+'|\n')
 
     # 5 write shap
-    if 'shap' in xde_lists:
+    if 'shap' in xde_dict:
 
         for shap_var in ['shap','coef_shap']:
-            if shap_var in xde_lists:
+            if shap_var in xde_dict:
                 file.write('#### Element Type, \'{}\':\n'.format(shap_var))
                 shap_i = 0
-                for key_var in xde_lists[shap_var].keys():
+                for key_var in xde_dict[shap_var].keys():
                     shap_i += 1
                     file.write('\tType {}: {}, '.format(shap_i,key_var))
                     if key_var == 'l2':
@@ -85,22 +85,22 @@ def xde2md(gesname,coortype,xde_lists,list_addr,file):
                         file.write('Second Order Hexahedral Element\n')
                     else: pass # need to expand
                     file.write('\t\tApplicable to: ')
-                    for var in xde_lists[shap_var][key_var]:
+                    for var in xde_dict[shap_var][key_var]:
                         file.write(var+', ')
                     file.write('\n')
 
     # 6 write gaus
-    if 'gaus' in xde_lists:
-        file.write('#### Element Integration Type, {}:\n\t'.format(xde_lists['gaus']))
+    if 'gaus' in xde_dict:
+        file.write('#### Element Integration Type, {}:\n\t'.format(xde_dict['gaus']))
 
-        if xde_lists['gaus'][0] == 'g':
-            file.write('Gaussian integral grade {}\n'.format(xde_lists['gaus'].replace('g','')))
+        if xde_dict['gaus'][0] == 'g':
+            file.write('Gaussian integral grade {}\n'.format(xde_dict['gaus'].replace('g','')))
         else:
             file.write('element node integral\n')
 
     # 7 write mass damp
     for strs in ['mass','damp']:
-        if strs in xde_lists:
+        if strs in xde_dict:
 
             if strs == 'mass':
                 order = 'Second'
@@ -110,13 +110,13 @@ def xde2md(gesname,coortype,xde_lists,list_addr,file):
                 ordei = ''
 
             file.write('#### {0} items ({1} Order Time Derivative), \'{0}\':\n'.format(strs,order))
-            if xde_lists[strs][0] == 'lump':
+            if xde_dict[strs][0] == 'lump':
                 file.write('\tLumped {} Matrix:\n'.format(strs))
                 file.write('$$')
                 write_line = ''
-                for var in xde_lists['disp']:
+                for var in xde_dict['disp']:
                     write_line += ' \\int_{\Omega} '
-                    write_line += xde_lists[strs][1]+'*'
+                    write_line += xde_dict[strs][1]+'*'
                     write_line += '\\frac{\\partial'
                     write_line += ordei+' '
                     write_line += var
@@ -127,19 +127,19 @@ def xde2md(gesname,coortype,xde_lists,list_addr,file):
                 write_line = write_line.rstrip('+')
                 file.write(write_line)
                 file.write('$$\n')
-            elif xde_lists[strs][0] == 'dist': pass
+            elif xde_dict[strs][0] == 'dist': pass
 
     # 8 write stif
-    if 'stif' in xde_lists:
-        if xde_lists['stif'][0] == 'dist':
+    if 'stif' in xde_dict:
+        if xde_dict['stif'][0] == 'dist':
 
             file.write('#### Stiffness items, \'stif\'\n')
             file.write('\t Distribute Stiffness Matrix:\n')
             file.write('$$')
             write_line = ''
 
-            for ii in range(1,len(xde_lists['stif'])):
-                weak_strs = xde_lists['stif'][ii]
+            for ii in range(1,len(xde_dict['stif'])):
+                weak_strs = xde_dict['stif'][ii]
 
                 def tran_index(matched):
                     index_str = matched.group('index')
