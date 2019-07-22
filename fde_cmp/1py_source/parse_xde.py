@@ -11,8 +11,8 @@ Error_color = Fore.MAGENTA
 Warnn_color = Fore.CYAN
 Empha_color = Fore.GREEN
 import re as regx
-pre_check = 1
-sec_check = 1
+pre_check = 0
+sec_check = 0
 
 from genxde import gen_obj, ifo_folder
 

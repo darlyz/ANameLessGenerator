@@ -17,6 +17,10 @@ from felac_data import operator_data, \
 
 ges_dict = {}
 
+from genxde import gen_obj, ifo_folder
+
+ges_dict_check = 1
+
 def xde2ges_dict(ges_info, xde_dict, xde_addr, gesfile):
 
     pfelacpath = os.environ['pfelacpath']
@@ -79,6 +83,12 @@ def xde2ges_dict(ges_info, xde_dict, xde_addr, gesfile):
     # 12 parse load paragraph
     if 'load' in xde_dict:
         parse_load(xde_dict, ges_dict)
+
+    if ges_dict_check == 1:
+        import json
+        file = open(ifo_folder+'ges_dict.json',mode='w')
+        file.write(json.dumps(ges_dict,indent=4))
+        file.close()
 
     return False
 # end xde2ges()
@@ -562,7 +572,7 @@ def parse_shap_tran(pfelacpath, ges_info, xde_dict, ges_dict):
             else:
                 temp_strs = shap_strs.replace('u',shap_var)
 
-            ges_dict['shap'][shap_var] = temp_strs+'\n'
+            ges_dict['shap'][shap_var] = temp_strs.rstrip('\n').split('\n')
 
     # 9.2 push tran
     ges_dict['tran'] = {}
@@ -588,7 +598,7 @@ def parse_shap_tran(pfelacpath, ges_info, xde_dict, ges_dict):
         ges_dict['tran'][coor_str] = []
 
         for tran_expr in tran_expr_list:
-            ges_dict['tran'][coor_str].append(tran_expr.replace('u', coor_str) + '\n')
+            ges_dict['tran'][coor_str].append(tran_expr.replace('u', coor_str))
 # end parse_shap_tran()
 
 def parse_coefshap(pfelacpath, ges_info, xde_dict, ges_dict):
@@ -621,12 +631,13 @@ def parse_coefshap(pfelacpath, ges_info, xde_dict, ges_dict):
         # 9.3.3 replace shap func's disp by xde's disp and write
         for shap_var in xde_dict['coef_shap'][shap]:
             temp_string = shap_strs.replace('u', shap_var)
-            ges_dict['coef_shap'][shap_var] = temp_string+'\n'
+            ges_dict['coef_shap'][shap_var] = temp_string.rstrip('\n').split('\n')
 # end parse_coefshap()
 
 def parse_gaus(pfelacpath, ges_info, xde_dict, ges_dict):
 
-    ges_dict['gaus'] = ''
+    ges_dict['gaus'] = []
+
     # 9.1 Gaussian integral
     if xde_dict['gaus'][0] == 'g':
 
@@ -641,41 +652,49 @@ def parse_gaus(pfelacpath, ges_info, xde_dict, ges_dict):
             for line in gaussian_data['line'][gaus_degree].rstrip().split('\n'):
                 gaus_strs = line.split()
 
-                if  gaus_strs[0][0] not in ['-' ,'+'] :
-                    gaus_strs[0] = ' '+gaus_strs[0]
-
                 gaus_axis.append(gaus_strs[0])
                 gaus_weit.append(gaus_strs[1])
 
             # 9.1.1.2 write line square or cube's gaussian integra
-            ges_dict['gaus'] += 'gaus = ' \
-                             + str(len(gaus_weit)**int(ges_info['dim'])) + '\n'
+            ges_dict['gaus'].append( 'gaus = ' \
+                             + str(len(gaus_weit)**int(ges_info['dim'])) )
 
             if  ges_info['shap_form'].lower()=='l':
                 for axis_i in range(len(gaus_axis)):
-                    ges_dict['gaus'] += gaus_axis[axis_i]+' ' \
-                                     +  gaus_weit[axis_i]+'\n'
+                    ges_dict['gaus'].append([])
+                    ges_dict['gaus'][axis_i+1].append(gaus_axis[axis_i])
+                    ges_dict['gaus'][axis_i+1].append(gaus_weit[axis_i])
 
             elif ges_info['shap_form'].lower()=='q':
+                gaus_i = 0
                 for axis_i in range(len(gaus_axis)):
                     for axis_j in range(len(gaus_axis)):
                         weight = float(gaus_weit[axis_i]) \
                                 *float(gaus_weit[axis_j])
-                        ges_dict['gaus'] += gaus_axis[axis_i]+' ' \
-                                         +  gaus_axis[axis_j]+' ' \
-                                         +  str(weight)+'\n'
+
+                        gaus_i += 1
+                        ges_dict['gaus'].append([])
+
+                        ges_dict['gaus'][gaus_i].append(gaus_axis[axis_i])
+                        ges_dict['gaus'][gaus_i].append(gaus_axis[axis_j])
+                        ges_dict['gaus'][gaus_i].append(str(weight))
                                         
             elif ges_info['shap_form'].lower()=='c':
+                gaus_i = 0
                 for axis_i in range(len(gaus_axis)):
                     for axis_j in range(len(gaus_axis)):
                         for axis_k in range(len(gaus_axis)):
                             weight = float(gaus_weit[axis_i]) \
                                     *float(gaus_weit[axis_j]) \
                                     *float(gaus_weit[axis_k])
-                            ges_dict['gaus'] += gaus_axis[axis_i]+' ' \
-                                             +  gaus_axis[axis_j]+' ' \
-                                             +  gaus_axis[axis_k]+' ' \
-                                             +  str(weight)+'\n'
+
+                            gaus_i += 1
+                            ges_dict['gaus'].append([])
+
+                            ges_dict['gaus'][gaus_i].append(gaus_axis[axis_i])
+                            ges_dict['gaus'][gaus_i].append(gaus_axis[axis_j])
+                            ges_dict['gaus'][gaus_i].append(gaus_axis[axis_k])
+                            ges_dict['gaus'][gaus_i].append(str(weight))
 
         # 9.1.2 triangle shap
         elif ges_info['shap_form'].lower()=='t':
@@ -690,7 +709,11 @@ def parse_gaus(pfelacpath, ges_info, xde_dict, ges_dict):
             elif int(gaus_degree) > 17:
                 gaus_degree = '17'
 
-            ges_dict['gaus'] += gaussian_data['triangle'][gaus_degree]
+            gaus_list = gaussian_data['triangle'][gaus_degree].rstrip('\n').strip().split('\n')
+
+            ges_dict['gaus'].append(gaus_list[0].strip())
+            for gaus_str in gaus_list[1:]:
+                ges_dict['gaus'].append(regx.split(r'[ \t]+', gaus_str.strip()))
 
         # 9.1.3 tetrahedron shap
         elif ges_info['shap_form'].lower()=='w':
@@ -705,14 +728,24 @@ def parse_gaus(pfelacpath, ges_info, xde_dict, ges_dict):
             elif int(gaus_degree) > 7:
                 gaus_degree = '7'
 
-            ges_dict['gaus'] += gaussian_data['tetrahedron'][gaus_degree]
+            gaus_list = gaussian_data['tetrahedron'][gaus_degree].rstrip('\n').strip().split('\n')
 
-        else: pass
+            ges_dict['gaus'].append(gaus_list[0].strip())
+            for gaus_str in gaus_list[1:]:
+                ges_dict['gaus'].append(regx.split(r'[ \t]+', gaus_str.strip()))
+
+        else:
+            pass
 
     # 9.2 node integral
     else:
         shap_name = 'd'+ges_info['dim']+ges_info['shap_form']+ges_info['shap_nodn']
-        ges_dict['gaus'] += shapfunc_data['gau'][shap_name]['expr']
+        gaus_list = shapfunc_data['gau'][shap_name]['expr'].rstrip('\n').split('\n')
+
+        ges_dict['gaus'].append(gaus_list[0].strip())
+        
+        for gaus_str in gaus_list[1:]:
+            ges_dict['gaus'].append(regx.split(r'[ \t]+', gaus_str.strip()))
 # end parse_gaus()
 
 def write_func(ges_dict, xde_dict, gesfile):
@@ -783,7 +816,7 @@ def parse_weak(weak, xde_dict, ges_dict):
 
     if xde_dict[weak][0].lower() != 'null' \
     or weak in ges_dict['code']:
-        ges_dict[weak] = ''
+        ges_dict[weak] = []
 
     else: 
         return
@@ -798,7 +831,7 @@ def parse_weak(weak, xde_dict, ges_dict):
 
         expr_list = idx_summation(left_vara,righ_expr,xde_dict)
         expr_list = split_bracket_expr(expr_list[0])
-        ges_dict[weak] += expr_list[0]
+        ges_dict[weak].append(expr_list[0].replace('=',''))
 
         for strs in expr_list[1:]:
 
@@ -833,10 +866,11 @@ def parse_weak(weak, xde_dict, ges_dict):
                     and cplx_list[i][-1] == '0' : 
                         continue
 
-                    ges_dict[weak] += strs.replace(weak_item, f'[{weak_left_list[i]};{weak_righ_list[i]}]') \
-                                          .replace(cplx_item, f'({cplx_list[i]})') + '\n'
+                    ges_dict[weak].append(strs.replace(weak_item, f'[{weak_left_list[i]};{weak_righ_list[i]}]') \
+                                               .replace(cplx_item, f'({cplx_list[i]})') )
                 
-            else: ges_dict[weak] += strs+'\n'
+            else: 
+                ges_dict[weak].append(strs)
 
     elif xde_dict[weak][0] == 'lump':
 
@@ -845,24 +879,23 @@ def parse_weak(weak, xde_dict, ges_dict):
 
         if len(xde_dict[weak]) == 2: pass
 
-        ges_dict[weak] += 'lump =\n'
+        ges_dict[weak].append('lump')
         for shaps in xde_dict['shap']:
             nodn = regx.search(r'\d+',shaps,regx.I).group()
 
             for vara in xde_dict['shap'][shaps]:
                 for ii in range(int(nodn)):
-                    ges_dict[weak] += f'+[{xde_dict[weak][1]}]{vara}{ii+1}\n'
+                    ges_dict[weak].append(f'+[{xde_dict[weak][1]}]{vara}{ii+1}')
 # end parse_weak()
 
 def parse_load(xde_dict, ges_dict):
 
-    ges_dict['load'] = ''
+    ges_dict['load'] = []
 
     left_vara = 'load'
     righ_expr = ''.join(xde_dict['load'])
     expr_list = idx_summation(left_vara,righ_expr,xde_dict)
     expr_list = split_bracket_expr(expr_list[0])
-    ges_dict['load'] += expr_list[0]
 
     for strs in expr_list[1:]:
 
@@ -889,10 +922,11 @@ def parse_load(xde_dict, ges_dict):
                 and cplx_list[i][-1] == '0' :
                     continue
 
-                ges_dict['load'] += strs.replace(weak_item, f'[{weak_list[i]}]') \
-                                        .replace(cplx_item, f'({cplx_list[i]})') + '\n'
+                ges_dict['load'].append(strs.replace(weak_item, f'[{weak_list[i]}]') \
+                                            .replace(cplx_item, f'({cplx_list[i]})') )
 
-        else: ges_dict['load'] += strs + '\n'
+        else: 
+            ges_dict['load'].append(strs)
 # end parse_load() 
 
 def xde2ges(ges_info, xde_dict, xde_addr, gesfile):
@@ -940,11 +974,13 @@ def xde2ges(ges_info, xde_dict, xde_addr, gesfile):
     # 6 write mate line
     if 'mate' in ges_dict:
         gesfile.write('mate')
+
         for var in ges_dict['mate']['default'].keys():
             gesfile.write(' '+var)
             
         for var in ges_dict['mate']['default'].keys():
             gesfile.write(' '+ges_dict['mate']['default'][var])
+
         gesfile.write('\n')
 
     # 7 write code after mate declaration
@@ -958,28 +994,53 @@ def xde2ges(ges_info, xde_dict, xde_addr, gesfile):
     # 8 write shap and tran paragraph
     if 'shap' in ges_dict:
         gesfile.write('\nshap\n')
+
         for disp_var in ges_dict['shap'].keys():
             gesfile.write(disp_var+'=\n')
-            gesfile.write(ges_dict['shap'][disp_var])
+
+            for strs in ges_dict['shap'][disp_var]:
+                gesfile.write(strs+'=\n')
+
+            gesfile.write('\n')
 
     if 'tran' in ges_dict:
         gesfile.write('tran\n')
+
         for coor_str in ges_dict['tran'].keys():
             gesfile.write(coor_str+'=\n')
+
             for strs in ges_dict['tran'][coor_str]:
-                gesfile.write(strs)
+                gesfile.write(strs+'=\n')
+
             gesfile.write('\n')
 
     # 9 write coef shap paragraph
     if 'coef_shap' in ges_dict:
         gesfile.write('coef\n')
         for disp_var in ges_dict['coef_shap'].keys():
+
             gesfile.write(disp_var+'=\n')
-            gesfile.write(ges_dict['coef_shap'][disp_var])
+
+            for strs in ges_dict['coef_shap'][disp_var]:
+                gesfile.write(strs+'=\n')
+
+            gesfile.write('\n')
 
     # 10 write gaus paragraph
     if 'gaus' in ges_dict:
-        gesfile.write(ges_dict['gaus'])
+        gesfile.write(ges_dict['gaus'][0]+'\n')
+
+        for gaus_pt in ges_dict['gaus'][1:]:
+            for val in gaus_pt:
+
+                if val[0] in ['-','+']:
+                    gesfile.write(' '+val)
+
+                else:
+                    gesfile.write('  '+val)
+
+            gesfile.write('\n')
+        gesfile.write('\n')
 
     # 11 write func paragraph
     if 'func' in ges_dict['code'] \
@@ -996,12 +1057,23 @@ def xde2ges(ges_info, xde_dict, xde_addr, gesfile):
                 for strs in ges_dict['code'][weak]:
                     gesfile.write(strs)
             
-            gesfile.write(ges_dict[weak])
+            if   ges_dict[weak][0] == 'dist':
+                gesfile.write(ges_dict[weak][0]+'=')
+
+            elif ges_dict[weak][0] == 'lump':
+                gesfile.write(ges_dict[weak][0]+'=\n')
+
+            for weak_item in ges_dict[weak][1:]:
+                gesfile.write(weak_item + '\n')
 
     # 13 write load paragraph
     if 'load' in ges_dict:
+
         gesfile.write('\n')
-        gesfile.write(ges_dict['load'])
+        gesfile.write('load=')
+
+        for weak_item in ges_dict['load']:
+                gesfile.write(weak_item + '\n')
 
     gesfile.write('\nend')
 
