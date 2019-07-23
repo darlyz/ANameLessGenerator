@@ -42,8 +42,6 @@ keyfunc['@A']     = ''
 keyfunc['@W']     = ''
 keyfunc['@S']     = ''
 keyfunc['@R']     = ''
-    
-line_len, key_len = 80, 6
 
 import re as regx
 
@@ -74,12 +72,15 @@ def xde_help(input_key):
 
     # if hit the xde_key, show the corresponding help information
     # else show all the similar keys
+    from os import get_terminal_size
+    maxcol = get_terminal_size().columns - 10
+
     if key_find == 1:
-        auto_line_break_print(line_len, key_len, finded_key.upper(), keyfunc[finded_key.upper()])
+        auto_line_break_print(maxcol, 6, finded_key.upper(), keyfunc[finded_key.upper()])
 
     elif input_key.lower() == 'all':
         for keys in keyfunc:
-            auto_line_break_print(line_len, key_len, keys, keyfunc[keys])
+            auto_line_break_print(maxcol, 6, keys, keyfunc[keys])
 
     else:
 
@@ -123,7 +124,7 @@ def split_sentense(chars):
 
 def auto_line_break_print(line_len, key_len, keys, sentense):
 
-    output = keys + ' '*(6-len(keys)) + ' : '
+    output = keys + ' '*(key_len-len(keys)) + ' : '
     output_list = []
     help_info_list = split_sentense(sentense)
 

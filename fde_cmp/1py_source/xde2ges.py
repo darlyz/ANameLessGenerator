@@ -15,13 +15,11 @@ from felac_data import operator_data, \
                        shapfunc_data, \
                        gaussian_data
 
-ges_dict = {}
-
 from genxde import gen_obj, ifo_folder
 
 ges_dict_check = 1
 
-def xde2ges_dict(ges_info, xde_dict, xde_addr, gesfile):
+def xde2ges_dict(ges_info, xde_dict, xde_addr, ges_dict):
 
     pfelacpath = os.environ['pfelacpath']
 
@@ -929,9 +927,7 @@ def parse_load(xde_dict, ges_dict):
             ges_dict['load'].append(strs)
 # end parse_load() 
 
-def xde2ges(ges_info, xde_dict, xde_addr, gesfile):
-
-    error = xde2ges_dict(ges_info, xde_dict, xde_addr, gesfile)
+def xde2ges(ges_info, xde_dict, ges_dict, gesfile):
 
     gesfile.write(ges_info['name']+'\ndefi\n')
         
@@ -1078,8 +1074,6 @@ def xde2ges(ges_info, xde_dict, xde_addr, gesfile):
     gesfile.write('\nend')
 
     gesfile.close()
-
-    return error
 # end xde2ges()
 
 def write_disp_var(ges_info, ges_dict, gesfile):

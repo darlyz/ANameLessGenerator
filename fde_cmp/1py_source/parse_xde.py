@@ -22,7 +22,7 @@ def parse_xde(ges_info, xde_dict, xde_addr, xdefile):
     pre_parse(ges_info, xde_dict, xde_addr, xdefile)
     
     # 2 checking
-    if gen_obj['check'] == 1:
+    if gen_obj['check'] > 0:
         from check_xde import check_xde
         error = check_xde(ges_info, xde_dict, xde_addr)
         if error : return error
