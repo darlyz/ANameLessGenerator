@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 '''
  Copyright: Copyright (c) 2019
- Created: 2019-7-18
+ Created: 2019-4-15
  Author: Zhang_Licheng
  Title: main func of generate xde file to ges, html, md, xml, c or fortran
  All rights reserved
@@ -13,6 +13,7 @@ import re
 # default folder
 xde_folder = '../0xde_source/'
 ges_folder = '../2ges_target/'
+c_folder   = '../3c_target/'
 ifo_folder = '../4other_gen_file/'
 
 gen_obj = { 'ges'  : 1, \
@@ -96,6 +97,13 @@ def genxde(xdename, gesname, coortype):
         gesfile = open(ges_folder + gesname + '.ges', mode='w')
         xde2ges(ges_info, xde_dict, ges_dict, gesfile)
         gesfile.close()
+
+    # generate c by ges_dict
+    if gen_obj['Ccode'] > 0:
+        from ges2c import ges2c
+        cfile = open(c_folder + gesname + '.c', mode = 'w')
+        ges2c(ges_info, ges_dict, cfile)
+        cfile.close()
 
     # generate html by xde element to preview
     if gen_obj['html'] > 0:

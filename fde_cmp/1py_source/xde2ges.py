@@ -46,6 +46,9 @@ def xde2ges_dict(ges_info, xde_dict, xde_addr, ges_dict):
         ges_dict['coef'] =  xde_dict['coef'].copy()
 
     # 3 parse func declare
+    if 'vol'  in xde_dict :
+        ges_dict['vol'] =  xde_dict['vol']
+
     if 'func' in xde_dict:
         ges_dict['func'] =  xde_dict['func'].copy()
 
@@ -750,8 +753,8 @@ def write_func(ges_dict, xde_dict, gesfile):
 
     gesfile.write('\nfunc\n')
 
-    if 'vol'  in xde_dict :
-        gesfile.write(xde_dict['vol'])
+    if 'vol'  in ges_dict :
+        gesfile.write(ges_dict['vol'])
 
     if 'func' in ges_dict['code']:
         for strs in ges_dict['code']['func']:
