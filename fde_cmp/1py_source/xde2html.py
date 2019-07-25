@@ -5,7 +5,7 @@
  Title: parse xde file to html file
  All rights reserved
 '''
-import re as regx
+import re
 import os
 from expr import split_bracket_expr
 
@@ -207,7 +207,7 @@ def dist_weak(weaktype, xde_dict, file):
             index_str+='}'
             return index_str
 
-        weak_strs = regx.sub(r'(?P<index>(_[a-z])+)',tran_index,weak_strs)
+        weak_strs = re.sub(r'(?P<index>(_[a-z])+)',tran_index,weak_strs)
 
         weak_list = []
         second_opr = ''

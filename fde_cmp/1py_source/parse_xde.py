@@ -10,7 +10,7 @@ init(autoreset=True)
 Error_color = Fore.MAGENTA
 Warnn_color = Fore.CYAN
 Empha_color = Fore.GREEN
-import re as regx
+import re
 pre_check = 0
 sec_check = 0
 
@@ -55,7 +55,7 @@ def pre_parse(ges_info, xde_dict, xde_addr, xdefile):
         line_i += 1
 
         # 1.1.2 skip comment line and blank line
-        if regx.match(r'\s*(\$c[c6])?\s*((\\|//).*)?\s*\n',line,regx.I) != None:
+        if re.match(r'\s*(\$c[c6])?\s*((\\|//).*)?\s*\n',line,re.I) != None:
             continue
 
         # 1.1 deal with valid sentence with comment
@@ -74,7 +74,7 @@ def pre_parse(ges_info, xde_dict, xde_addr, xdefile):
         line = line.strip()
 
         # 1.2 retrieve the keywords
-        code_regx = regx.match(keyws_reg, line, regx.I)
+        code_regx = re.match(keyws_reg, line, re.I)
 
         # 1.2.1 find the keyword at the head
         if code_regx != None:
@@ -263,7 +263,7 @@ def push_tonser_declare (strs, line_num, line, xde_dict, xde_addr):
         xde_dict[strs] = {}
         xde_addr[strs] = {}
 
-    line = regx.sub(r'\s*=\s*',' ',line)
+    line = re.sub(r'\s*=\s*',' ',line)
     wordlist = line.split()
     xde_addr[strs][wordlist[1]] = line_num
     xde_dict[strs][wordlist[1]] = wordlist[2:]
@@ -555,7 +555,7 @@ def parse_mate(xde_dict):
 
     for strs in xde_dict['mate']:
 
-        if regx.match(r'[a-z]\w*', strs, regx.I) == None :
+        if re.match(r'[a-z]\w*', strs, re.I) == None :
             mate_val.append(strs)
 
         else:
@@ -578,7 +578,7 @@ def parse_code(xde_dict):
 
     for code_place in xde_dict['code'].keys():
         for code_i, code_line in enumerate(xde_dict['code'][code_place]):
-            code_regx = regx.match(regx_key,code_line,regx.I)
+            code_regx = re.match(regx_key,code_line,re.I)
 
             if code_regx == None:
                 # say something
@@ -683,7 +683,7 @@ def parse_code(xde_dict):
 
                 for var_strs in var_list:
                     var_name = var_strs.strip().split('[')[0]
-                    idx_list = regx.findall(r'\[\d+\]',var_strs,regx.I)
+                    idx_list = re.findall(r'\[\d+\]',var_strs,re.I)
 
                     if len(idx_list) == 1:
                         vect_len = idx_list[0].lstrip('[').rstrip(']')

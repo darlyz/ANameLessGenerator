@@ -43,7 +43,7 @@ keyfunc['@W']     = ''
 keyfunc['@S']     = ''
 keyfunc['@R']     = ''
 
-import re as regx
+import re
 
 def xde_help(input_key):
 
@@ -55,7 +55,7 @@ def xde_help(input_key):
 
     for xde_key in keywords:
         
-        if regx.match(input_key, xde_key, regx.I) != None:
+        if re.match(input_key, xde_key, re.I) != None:
             
             if input_key[0] == '\\':
                 finded_key = input_key[1:]

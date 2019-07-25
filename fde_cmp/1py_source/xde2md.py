@@ -5,18 +5,18 @@
  Title: parse xde file to markdown file
  All rights reserved
 '''
-import re as regx
+import re
 import os
 
 def xde2md(gesname,coortype,xde_dict,xde_addr,file):
 
     # 0 prepare
-    shap_tag = regx.search(r'[ltqwc][1-9]+',gesname,regx.I).group()
-    gaus_tag = regx.search(r'g[1-9]+',gesname,regx.I)
+    shap_tag = re.search(r'[ltqwc][1-9]+',gesname,re.I).group()
+    gaus_tag = re.search(r'g[1-9]+',gesname,re.I)
     if gaus_tag != None:
         gaus_tag = gaus_tag.group()
 
-    dim = regx.search(r'[1-9]+',coortype,regx.I).group()
+    dim = re.search(r'[1-9]+',coortype,re.I).group()
     axi = coortype.split('d')[1]
 
     # 1 write disp
@@ -150,7 +150,7 @@ def xde2md(gesname,coortype,xde_dict,xde_addr,file):
                     index_str+='}'
                     return index_str
 
-                weak_strs = regx.sub(r'(?P<index>(_[a-z])+)',tran_index,weak_strs)
+                weak_strs = re.sub(r'(?P<index>(_[a-z])+)',tran_index,weak_strs)
 
                 weak_list = []
                 second_opr = ''

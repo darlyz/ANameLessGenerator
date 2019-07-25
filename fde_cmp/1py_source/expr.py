@@ -5,7 +5,7 @@
  Title: complex, tensor expression in dummy index summation
  All rights reserved
 '''
-import re as regx
+import re
 # ------------------------------------------------------------------------------
 # --------------------------------base expr class-------------------------------
 # ------------------------------------------------------------------------------
@@ -91,8 +91,8 @@ class expr:
 # -a+b*c --> ['-a','+b*c']
 def split_unequal_grade_expr(expr_strs):
 
-    opr_list = regx.findall(r'\+|\-',expr_strs)
-    val_list = regx.split(r'\+|\-',expr_strs)
+    opr_list = re.findall(r'\+|\-',expr_strs)
+    val_list = re.split(r'\+|\-',expr_strs)
 
     if val_list[0] == '':
         val_list.pop(0)
@@ -116,7 +116,7 @@ def expr_strs2list (expr_strs,opr_list=['+','-','*','/','(',')']):
         expr_strs = 'neg_'+expr_strs.lstrip('-')
 
     expr_strs = expr_strs.replace('(+','(').replace('(-','(neg_')
-    single_val = regx.findall(r'\([a-z]\w*\)', expr_strs, regx.I)
+    single_val = re.findall(r'\([a-z]\w*\)', expr_strs, re.I)
 
     for val in single_val:
         expr_strs = expr_strs.replace(val, val.lstrip('(').rstrip(')'))
@@ -1063,7 +1063,7 @@ def idx_summation(left_var,righ_expr,xde_dict):
         # find tensors in right expression
         righ_idxlen = {}
         righ_indxs  = []
-        pattern = regx.compile(r'[\^a-zA-Z]+(?:_[a-zA-Z])+')
+        pattern = re.compile(r'[\^a-zA-Z]+(?:_[a-zA-Z])+')
         tensor_list = pattern.findall(expr_strs)
 
         # find indexs in right expression and pop non-repetitive tensors and indexs
@@ -1191,8 +1191,8 @@ def righ_loop(loop_level=0, expr_item='', tensor_dict={}, \
         for keys,vals in fixd_idx.items():
             expr = expr.replace('_'+keys,str(vals))
 
-        var_list = regx.split  (r'\+|\-|\*|\/|\(|\)|\[|\]|\;',expr)
-        opr_list = regx.findall(r'\+|\-|\*|\/|\(|\)|\[|\]|\;',expr)
+        var_list = re.split  (r'\+|\-|\*|\/|\(|\)|\[|\]|\;',expr)
+        opr_list = re.findall(r'\+|\-|\*|\/|\(|\)|\[|\]|\;',expr)
 
         var1_list = []
         for strs in var_list:

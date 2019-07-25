@@ -1,5 +1,5 @@
 import os
-import re as regx
+import re
 from sys import argv,exit
 
 dirs = os.listdir("../0xde_source/all_fde")
@@ -36,22 +36,22 @@ def main(argvs=None):
     for xdename in dirs:
         xde_name, pos_name = xdename.split('.')
         
-        if regx.search(r'xyz|roz|rso', xdename, regx.I) != None:
-            axi = regx.search(r'xyz|roz|rso', xdename, regx.I).group()
+        if re.search(r'xyz|roz|rso', xdename, re.I) != None:
+            axi = re.search(r'xyz|roz|rso', xdename, re.I).group()
             
             #for shap in ['w4g2','c8g2','w10g3','c27g3']:
             for shap in ['w4g2']:
                 ex2file(xdename,xde_name,shap,'3d',axi)
     
-        elif regx.search(r'xy|r[soz]|so', xdename, regx.I) != None:
-            axi = regx.search(r'xy|r[soz]|so', xdename, regx.I).group()
+        elif re.search(r'xy|r[soz]|so', xdename, re.I) != None:
+            axi = re.search(r'xy|r[soz]|so', xdename, re.I).group()
                 
             #for shap in ['t3g2','q4g2','t6g3','q9g3']:
             for shap in ['t3g2']:
                 ex2file(xdename,xde_name,shap,'2d',axi)
                 
-        elif regx.search(r'x|r|s', xdename, regx.I) != None:
-            axi = regx.search(r'x|r|s', xdename, regx.I).group()
+        elif re.search(r'x|r|s', xdename, re.I) != None:
+            axi = re.search(r'x|r|s', xdename, re.I).group()
             
             #for shap in ['l2g2','l3g3']:
             for shap in ['l2g2']:

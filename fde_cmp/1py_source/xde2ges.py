@@ -5,8 +5,9 @@
  Title: generate the dict data to ges gesfile
  All rights reserved
 '''
-import re as regx
-import os,math
+import re
+import os
+import math
 from expr import split_bracket_expr, \
                  idx_summation, \
                  cmplx_expr, \
@@ -98,7 +99,7 @@ def release_code(xde_dict, code_place, pfelacpath, ges_dict):
     
     for code_strs in xde_dict['code'][code_place]:
 
-        code_regx = regx.match(r'Insr|Tnsr|Cplx|Oprt|Func',code_strs,regx.I)
+        code_regx = re.match(r'Insr|Tnsr|Cplx|Oprt|Func',code_strs,re.I)
 
         if code_regx == None: 
             ges_dict['code'][code_place].append(code_strs+'\n')
@@ -286,7 +287,7 @@ def release_funcasgn_code(code_strs, code_place, xde_dict, ges_dict):
     if  left_vara[0]  != '[' and left_vara[-1] != ']' :
 
         # Func_Asgn: a = b[*,*] --------- @W a b * *
-        if regx.search(r'[a-z]+[0-9a-z]*\[([0-9],)*[0-9]?\]',righ_expr,regx.I) != None \
+        if re.search(r'[a-z]+[0-9a-z]*\[([0-9],)*[0-9]?\]',righ_expr,re.I) != None \
         and righ_expr[-1] == ']':
 
             # read right variable index list
@@ -394,7 +395,7 @@ def release_funcasgn_code(code_strs, code_place, xde_dict, ges_dict):
         left_vara = left_vara.lstrip('[').rstrip(']')
 
         # Func_Asgn: [a] = b[*,*] --------- @S a b * *
-        if regx.search(r'[a-z]+[0-9a-z]*\[([0-9],)*[0-9]?\]',righ_expr,regx.I) != None \
+        if re.search(r'[a-z]+[0-9a-z]*\[([0-9],)*[0-9]?\]',righ_expr,re.I) != None \
         and righ_expr[-1] == ']':
 
             # read right variable index list
@@ -522,7 +523,7 @@ def parse_disp_var(ges_info, xde_dict, ges_dict):
             pan_vars |= set(xde_dict['shap'][shap])
             continue
 
-        nodn = int(regx.search(r'[1-9]+', shap, regx.I).group())
+        nodn = int(re.search(r'[1-9]+', shap, re.I).group())
         
         for var in xde_dict['shap'][shap]:
             var_dict[var] = [var+str(ii+1) for ii in range(nodn)]
@@ -546,7 +547,7 @@ def parse_shap_tran(pfelacpath, ges_info, xde_dict, ges_dict):
     geslib_coor = ['x','y','z']
     base_shap_strs = ''
     base_shap_type = list(xde_dict['shap'].keys())[0]
-    #base_shap_nodn = regx.search(r'[1-9]+',base_shap_type,regx.I).group()
+    #base_shap_nodn = re.search(r'[1-9]+',base_shap_type,re.I).group()
     #base_shap_form = base_shap_type[0]
 
     # 9.1 push shap
@@ -584,7 +585,7 @@ def parse_shap_tran(pfelacpath, ges_info, xde_dict, ges_dict):
     # 9.2.1 add '()'
     for shap_expr in shap_expr_list:
         shap_var,shap_exp = shap_expr.split('=')[:2]
-        shap_num = regx.search(r'[0-9]+', shap_var, regx.I).group()
+        shap_num = re.search(r'[0-9]+', shap_var, re.I).group()
         shap_var = shap_var.replace(shap_num, '('+shap_num+')')
         tran_expr_list.append(shap_var + '=' + shap_exp)
 
@@ -619,7 +620,7 @@ def parse_coefshap(pfelacpath, ges_info, xde_dict, ges_dict):
         for shap_expr in shap_expr_list:
 
             shap_var, shap_exp  = shap_expr.split('=')[:2]
-            shap_num  = regx.search(r'[0-9]+', shap_var, regx.I).group()
+            shap_num  = re.search(r'[0-9]+', shap_var, re.I).group()
             shap_var  = shap_var.replace(shap_num, '('+shap_num+')')
             coef_expr_list.append(shap_var + '=' + shap_exp)
 
@@ -642,7 +643,7 @@ def parse_gaus(pfelacpath, ges_info, xde_dict, ges_dict):
     # 9.1 Gaussian integral
     if xde_dict['gaus'][0] == 'g':
 
-        gaus_degree = regx.search(r'[0-9]+',xde_dict['gaus'],regx.I).group()
+        gaus_degree = re.search(r'[0-9]+',xde_dict['gaus'],re.I).group()
 
         # 9.1.1 line square or cube shap
         if ges_info['shap_form'].lower() in ['l','q','c']:
@@ -714,7 +715,7 @@ def parse_gaus(pfelacpath, ges_info, xde_dict, ges_dict):
 
             ges_dict['gaus'].append(gaus_list[0].strip())
             for gaus_str in gaus_list[1:]:
-                ges_dict['gaus'].append(regx.split(r'[ \t]+', gaus_str.strip()))
+                ges_dict['gaus'].append(re.split(r'[ \t]+', gaus_str.strip()))
 
         # 9.1.3 tetrahedron shap
         elif ges_info['shap_form'].lower()=='w':
@@ -733,7 +734,7 @@ def parse_gaus(pfelacpath, ges_info, xde_dict, ges_dict):
 
             ges_dict['gaus'].append(gaus_list[0].strip())
             for gaus_str in gaus_list[1:]:
-                ges_dict['gaus'].append(regx.split(r'[ \t]+', gaus_str.strip()))
+                ges_dict['gaus'].append(re.split(r'[ \t]+', gaus_str.strip()))
 
         else:
             pass
@@ -746,7 +747,7 @@ def parse_gaus(pfelacpath, ges_info, xde_dict, ges_dict):
         ges_dict['gaus'].append(gaus_list[0].strip())
         
         for gaus_str in gaus_list[1:]:
-            ges_dict['gaus'].append(regx.split(r'[ \t]+', gaus_str.strip()))
+            ges_dict['gaus'].append(re.split(r'[ \t]+', gaus_str.strip()))
 # end parse_gaus()
 
 def write_func(ges_dict, xde_dict, gesfile):
@@ -767,7 +768,7 @@ def write_func(ges_dict, xde_dict, gesfile):
                     strs = strs.rstrip('\n')
                     
                     # save derivative in driv_list[] and replace by rplc_list[]
-                    driv_list = set(regx.findall(r'\[[a-z][a-z0-9]*/[xyzros]\]', strs, regx.I))
+                    driv_list = set(re.findall(r'\[[a-z][a-z0-9]*/[xyzros]\]', strs, re.I))
                     rplc_list = ['driv'+str(i) for i in range(len(driv_list))]
 
                     for rplc, driv in zip(rplc_list, driv_list):
@@ -791,7 +792,7 @@ def write_func(ges_dict, xde_dict, gesfile):
                     left_vara, righ_expr = strs.rstrip('\n').split('=')
                     cmplx_var = []
                     cmplx_var.append(left_vara.strip())
-                    vara_list = regx.findall(r'\[\w+/?\w*\]', righ_expr, regx.I)
+                    vara_list = re.findall(r'\[\w+/?\w*\]', righ_expr, re.I)
 
                     for var in vara_list:
 
@@ -838,8 +839,8 @@ def parse_weak(weak, xde_dict, ges_dict):
 
             if 'cmplx_tag' in xde_dict and xde_dict['cmplx_tag'] == 1:
 
-                weak_item = regx.search(r'\[\w+\;\w+\]', strs, regx.I)
-                cplx_item = regx.search(r'\(?\|[+-]?\w+\;[+-]?\w+\|\)?', strs, regx.I)
+                weak_item = re.search(r'\[\w+\;\w+\]', strs, re.I)
+                cplx_item = re.search(r'\(?\|[+-]?\w+\;[+-]?\w+\|\)?', strs, re.I)
 
                 if weak_item != None: 
                     weak_item = weak_item.group()
@@ -863,7 +864,7 @@ def parse_weak(weak, xde_dict, ges_dict):
                     cplx_list[2]  = '-' + cplx_list[2]
 
                 for i in range(4):
-                    if regx.match(r'[+-]?0(?:\.0*)?|[+-]?\.0+', cplx_list[i] ,regx.I) != None \
+                    if re.match(r'[+-]?0(?:\.0*)?|[+-]?\.0+', cplx_list[i] ,re.I) != None \
                     and cplx_list[i][-1] == '0' : 
                         continue
 
@@ -882,7 +883,7 @@ def parse_weak(weak, xde_dict, ges_dict):
 
         ges_dict[weak].append('lump')
         for shaps in xde_dict['shap']:
-            nodn = regx.search(r'\d+',shaps,regx.I).group()
+            nodn = re.search(r'\d+',shaps,re.I).group()
 
             for vara in xde_dict['shap'][shaps]:
                 for ii in range(int(nodn)):
@@ -902,8 +903,8 @@ def parse_load(xde_dict, ges_dict):
 
         if 'cmplx_tag' in xde_dict and xde_dict['cmplx_tag'] == 1:
 
-            weak_item = regx.search(r'\[\w+\]', strs, regx.I)
-            cplx_item = regx.search(r'\(?\|[+-]?\w+\;[+-]?\w+\|\)?', strs, regx.I)
+            weak_item = re.search(r'\[\w+\]', strs, re.I)
+            cplx_item = re.search(r'\(?\|[+-]?\w+\;[+-]?\w+\|\)?', strs, re.I)
 
             if weak_item != None: 
                 weak_item = weak_item.group()
@@ -919,7 +920,7 @@ def parse_load(xde_dict, ges_dict):
 
             for i in range(2):
 
-                if regx.match(r'[+-]?0(?:\.0*)?|[+-]?\.0+', cplx_list[i] ,regx.I) != None \
+                if re.match(r'[+-]?0(?:\.0*)?|[+-]?\.0+', cplx_list[i] ,re.I) != None \
                 and cplx_list[i][-1] == '0' :
                     continue
 

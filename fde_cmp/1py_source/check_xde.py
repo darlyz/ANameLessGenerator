@@ -14,7 +14,7 @@ color = {'Error': Error_color, \
          'Warn' : Warnn_color, \
          'Empha': Empha_color}
 
-import re as regx
+import re
 import os
 
 from felac_data import operator_data, oprt_name_list,\
@@ -76,7 +76,7 @@ def check_xde(ges_info, xde_dict, xde_addr):
     # check mate
     if 'mate' in xde_dict:
         for var in xde_dict['mate']:
-            if regx.match(r'\^?[a-z]\w*(?:\[\d\])*', var, regx.I) != None :
+            if re.match(r'\^?[a-z]\w*(?:\[\d\])*', var, re.I) != None :
                 if check_variable_declared(var, 'BFmate', c_declares, xde_addr):
                     continue
                 line_num   = xde_addr['mate']
@@ -87,7 +87,7 @@ def check_xde(ges_info, xde_dict, xde_addr):
     if 'vect' in xde_dict:
         for vect in xde_dict['vect'].keys():
             for strs in xde_dict['vect'][vect]:
-                for var in regx.findall(r'\^?[a-z]\w*(?:\[\d\])*', strs, regx.I):
+                for var in re.findall(r'\^?[a-z]\w*(?:\[\d\])*', strs, re.I):
                     if check_variable_declared(var, 'all', c_declares, xde_addr):
                         continue
                     line_num   = xde_addr['vect'][vect]
@@ -362,7 +362,7 @@ def check_code(ges_info, xde_dict, xde_addr, c_declares):
         assist['addrss'] = addr
         for code_strs, line_num in zip(xde_dict["code"][addr], xde_addr["code"][addr]):
 
-            code_key = regx.match(r'\$C[C6VP]|@[LAWSR]|COMMON|ARRAY',code_strs,regx.I)
+            code_key = re.match(r'\$C[C6VP]|@[LAWSR]|COMMON|ARRAY',code_strs,re.I)
             if code_key == None: continue
             assist['ckey'] = code_key  = code_key.group()
             assist['lkey'] = lower_key = code_key.lower()
@@ -423,9 +423,9 @@ def gather_declare(code_strs, line_num, assist_dict, c_declares):
     else: assist_dict['stitch'] = ''
 
     # find c declaration sentence and gather the variables
-    if regx.search(c_dclr_key, code_strs, regx.I) != None:
+    if re.search(c_dclr_key, code_strs, re.I) != None:
 
-        if regx.search(c_func_exp, code_strs, regx.I) != None:
+        if re.search(c_func_exp, code_strs, re.I) != None:
             return True   # continue
 
         code_list = code_strs.split(';')
@@ -433,20 +433,20 @@ def gather_declare(code_strs, line_num, assist_dict, c_declares):
         
         for sub_strs in code_list:
 
-            if regx.search(c_dclr_key, sub_strs.lstrip(), regx.I) == None:
+            if re.search(c_dclr_key, sub_strs.lstrip(), re.I) == None:
                 continue
 
-            if regx.match(r'static',sub_strs,regx.I) != None:
-                sub_strs = regx.sub(r'static', '', sub_strs, 0, regx.I).lstrip()
-            sub_strs = regx.sub(c_dclr_key, '', sub_strs).lstrip()
+            if re.match(r'static',sub_strs,re.I) != None:
+                sub_strs = re.sub(r'static', '', sub_strs, 0, re.I).lstrip()
+            sub_strs = re.sub(c_dclr_key, '', sub_strs).lstrip()
 
             for var in sub_strs.split(','):
                 var = var.strip()
                 if var.find('=') != -1:
-                    var = regx.sub(r'=.*', '', var)
+                    var = re.sub(r'=.*', '', var)
 
                 if var.find('[') != -1:
-                    idx_list = regx.findall(r'\[\d+\]',var,regx.I)
+                    idx_list = re.findall(r'\[\d+\]',var,re.I)
                     var = '*'*len(idx_list) + var.split('[')[0].strip()
 
                 c_declares['all'].add(var)
@@ -463,7 +463,7 @@ def gather_array_declare(code_strs, line_num, assist, c_declares):
 
     for var_strs in vara_list:
         var_name = var_strs.strip().split('[')[0]
-        idx_list = regx.findall(r'\[\d+\]',var_strs,regx.I)
+        idx_list = re.findall(r'\[\d+\]',var_strs,re.I)
 
         if len(idx_list) == 1:
 
@@ -485,7 +485,7 @@ def gather_array_declare(code_strs, line_num, assist, c_declares):
 
 def check_tensor_assign(code_strs, line_num, xde_dict, c_declares):
 
-    pattern = regx.compile(r'\^?[a-z][a-z0-9]*(?:_[a-z])+',regx.I)
+    pattern = re.compile(r'\^?[a-z][a-z0-9]*(?:_[a-z])+',re.I)
     tnsr_list = pattern.findall(code_strs)
 
     if len(tnsr_list) == 0 and code_strs.find('{') == -1:
@@ -521,7 +521,7 @@ def check_tensor_assign(code_strs, line_num, xde_dict, c_declares):
 
 def check_complex_assign(code_strs, line_num, xde_dict, xde_addr, c_declares):
 
-    pattern = regx.compile(r'\^?[a-z]\w*',regx.I)
+    pattern = re.compile(r'\^?[a-z]\w*',re.I)
     temp_list = pattern.findall(code_strs)
     tnsr_list, vara_list = [], []
 
@@ -603,7 +603,7 @@ def check_complex_assign(code_strs, line_num, xde_dict, xde_addr, c_declares):
                     matrix_line_nums = xde_addr['matrix'][tnsr_name][1:].copy()
 
                     for vars_list, matr_line_num in zip(matrix_list, matrix_line_nums):
-                        var_regx = regx.compile(r'[a-z][a-z0-9]*',regx.I)
+                        var_regx = re.compile(r'[a-z][a-z0-9]*',re.I)
 
                         for var in set(var_regx.findall(vars_list)):
 
@@ -914,8 +914,8 @@ def check_func_asgn1(code_list, line_num, xde_dict, c_declares, atype):
 def check_func_asgn2(code_strs, line_num, xde_dict, c_declares):
 
     left_vara, righ_expr = code_strs.split('=')
-    ftnsr_pattern = regx.compile(r'\[[a-z][a-z0-9]+(?:_[a-z]+)+\]', regx.I)
-    tnsr_pattern  = regx.compile(r'\^?[a-z][a-z0-9]+(?:_[a-z]+)+' , regx.I)
+    ftnsr_pattern = re.compile(r'\[[a-z][a-z0-9]+(?:_[a-z]+)+\]', re.I)
+    tnsr_pattern  = re.compile(r'\^?[a-z][a-z0-9]+(?:_[a-z]+)+' , re.I)
     ftensor_list  = ftnsr_pattern.findall(righ_expr)
     tensor_list   =  tnsr_pattern.findall(righ_expr)
     
@@ -998,7 +998,7 @@ def check_matrix(xde_dict, xde_addr, c_declares):
             row_lenth.add(len(row_list))
 
             for strs in row_list:
-                for var in regx.findall(r'\^?[a-z]\w*(?:\[\d\])*',strs,regx.I):
+                for var in re.findall(r'\^?[a-z]\w*(?:\[\d\])*',strs,re.I):
 
                     if check_variable_declared(var, 'all', c_declares, xde_addr):
                         continue
@@ -1046,7 +1046,7 @@ def check_weak(xde_dict, xde_addr, weak):
 
             for weak_item in split_bracket_expr(weak_strs):
 
-                weak_pattern = regx.compile(r'\[?\w+\;?\w+\]|\[\w+\;?\w+\]?', regx.I)
+                weak_pattern = re.compile(r'\[?\w+\;?\w+\]|\[\w+\;?\w+\]?', re.I)
                 weak_form = set(weak_pattern.findall(weak_item))
 
                 if len(weak_form) != 1:
@@ -1113,7 +1113,7 @@ def check_load(xde_dict, xde_addr):
 
             for weak_item in split_bracket_expr(weak_strs):
 
-                weak_form = regx.findall(r'\[\w+\]?|\[?\w+\]', weak_item, regx.I)
+                weak_form = re.findall(r'\[\w+\]?|\[?\w+\]', weak_item, re.I)
 
                 if len(set(weak_form)) != 1:
                     error_type = unsuitable_form(weak_item, 'Error')
@@ -1219,7 +1219,7 @@ def check_variable_declared(var, addr, c_declares, xde_addr):
         return True
 
     elif var.find('[') != -1:
-        idx_list = regx.findall(r'\[\d+\]',var,regx.I)
+        idx_list = re.findall(r'\[\d+\]',var,re.I)
         var = '*'*len(idx_list) + var.split('[')[0].strip()
 
         if var in c_declares[addr]:
