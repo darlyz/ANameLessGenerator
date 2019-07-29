@@ -24,6 +24,9 @@ def xde2ges_dict(ges_info, xde_dict, xde_addr, ges_dict):
 
     pfelacpath = os.environ['pfelacpath']
 
+    if 'array' in xde_dict:
+        ges_dict['array'] = xde_dict['array'].copy()
+
     # use to deal with @L, @A, vol, singular, ...
     ges_dict['code'] = {}
     for code_key in ['BFmate','AFmate','func','stif','mass','damp']:
@@ -513,33 +516,19 @@ def parse_disp_var(ges_info, xde_dict, ges_dict):
     ges_dict['disp'] = xde_dict['disp'].copy()
 
     # 1.2 parse var
-    ges_dict['var'] = []
+    ges_dict['var'] = {}
     var_dict = {}
     pan_vars = set()
 
     for shap in xde_dict['shap'].keys():
 
         if shap[-1] == 'c':
-            pan_vars |= set(xde_dict['shap'][shap])
             continue
 
         nodn = int(re.search(r'[1-9]+', shap, re.I).group())
         
         for var in xde_dict['shap'][shap]:
-            var_dict[var] = [var+str(ii+1) for ii in range(nodn)]
-
-    disp_vars = xde_dict['disp'].copy()
-
-    for pan_var in pan_vars:
-        disp_vars.remove(pan_var)
-
-    for nodi in range(int(ges_info['shap_nodn'])):
-
-        for strs in disp_vars:
-            if nodi >= len(var_dict[strs]):
-                continue
-
-            ges_dict['var'].append(var_dict[strs][nodi])
+            ges_dict['var'][var] = nodn
 # end parse_disp_var()
 
 def parse_shap_tran(pfelacpath, ges_info, xde_dict, ges_dict):
@@ -999,7 +988,7 @@ def xde2ges(ges_info, xde_dict, ges_dict, gesfile):
             gesfile.write(disp_var+'=\n')
 
             for strs in ges_dict['shap'][disp_var]:
-                gesfile.write(strs+'=\n')
+                gesfile.write(strs+'\n')
 
             gesfile.write('\n')
 
@@ -1010,7 +999,7 @@ def xde2ges(ges_info, xde_dict, ges_dict, gesfile):
             gesfile.write(coor_str+'=\n')
 
             for strs in ges_dict['tran'][coor_str]:
-                gesfile.write(strs+'=\n')
+                gesfile.write(strs+'\n')
 
             gesfile.write('\n')
 
@@ -1022,7 +1011,7 @@ def xde2ges(ges_info, xde_dict, ges_dict, gesfile):
             gesfile.write(disp_var+'=\n')
 
             for strs in ges_dict['coef_shap'][disp_var]:
-                gesfile.write(strs+'=\n')
+                gesfile.write(strs+'\n')
 
             gesfile.write('\n')
 
@@ -1089,14 +1078,24 @@ def write_disp_var(ges_info, ges_dict, gesfile):
     gesfile.write('\n')
 
     # 1.2 write var declare
+    max_nodn = 0
+    for var in ges_dict['var']:
+        if max_nodn < ges_dict['var'][var]:
+            max_nodn = ges_dict['var'][var]
+            
     gesfile.write('var')
-    i = 0
-    for strs in ges_dict['var']:
 
-        gesfile.write(' '+strs)
-        i += 1
- 
-        if i == 10:
-            gesfile.write('\nvar')
-            i = 0
+    i = 0
+    for nodi in range(max_nodn):
+    
+        for strs in ges_dict['var'].keys():
+            if nodi >= ges_dict['var'][strs]:
+                continue
+
+            gesfile.write(' '+strs+str(nodi+1))
+            i += 1
+    
+            if i == 10:
+                gesfile.write('\nvar')
+                i = 0
 # end parse_disp_var()

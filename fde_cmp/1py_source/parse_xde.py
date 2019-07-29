@@ -14,7 +14,7 @@ Empha_color = Fore.GREEN
 import re
 from genxde import gen_obj, ifo_folder
 
-pre_check = 1
+pre_check = 0
 sec_check = 0
 
 def parse_xde(ges_info, xde_dict, xde_addr, xdefile):
@@ -337,6 +337,17 @@ def sec_parse(ges_info, xde_dict, xde_addr):
                     xde_dict[keywd].append(strs+'r')
                     xde_dict[keywd].append(strs+'i')
 
+    # parse array declaration
+    if 'array' in xde_dict:
+        array_declare_list = xde_dict['array'].copy()
+        xde_dict['array'].clear()
+        xde_dict['array'] = {}
+        for array_strs in array_declare_list:
+            array_list = re.findall(r'\^?\w+(?:\[\d+\]){1,2}', array_strs)
+            for array in array_list:
+                var = array.split('[')[0].lstrip('^')
+                index_list = list(map(lambda x: x.lstrip('[').rstrip(']') , re.findall(r'\[\d+\]', array)))
+                xde_dict['array'][var] = index_list
 
     if 'shap' in xde_dict:
         parse_shap_declaration(ges_info, xde_dict)
