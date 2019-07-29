@@ -168,20 +168,21 @@ def release_code(indentation, keywd, ges_dict, ges_info, cfile):
     node_num = int(ges_dict['node'])
     gaus_num = len(ges_dict['gaus']) - 1
     dim      = int(ges_info['dim'])
+    coor_num = len(ges_dict['coor'])
     ges_coor = ges_dict["coor"]
     ges_disp = ges_dict["disp"]
 
     for strs in ges_dict['code'][keywd]:
 
-        if re.match(r'\$cc', strs, re.I) != None:
+        if re.match(r'\$c[cv]', strs, re.I) != None:
 
-            strs = re.sub(r'\$cc', '', strs, 0, re.I).lstrip()
+            strs = re.sub(r'\$c[cv]', '', strs, 0, re.I).lstrip()
 
-            if re.search(r'\^\w+(?:\[\d+\]){1,2}',strs,re.I) != None:
-                array_list = re.findall(r'\^\w+(?:\[\d+\]){1,2}',strs,re.I)
+            if re.search(r'\^\w+(?:\[\d+\]){1,2}',strs) != None:
+                array_list = re.findall(r'\^\w+(?:\[\d+\]){1,2}',strs)
 
                 for array in array_list:
-                    idx_list = re.findall(r'\[\d+\]',array,re.I)
+                    idx_list = re.findall(r'\[\d+\]',array)
                     var_name = array.split('[')[0].lstrip('^')
 
                     if re.match(r'double', strs, re.I) != None:
@@ -207,6 +208,15 @@ def release_code(indentation, keywd, ges_dict, ges_info, cfile):
                             insteed_str = var_name + index_str
 
                     strs = strs.replace(array, insteed_str)
+
+            if re.search(r"\{\w+/\w+\}",strs) != None:
+
+                driv_list = re.findall(r"\{\w+/\w+\}",strs)
+                for coef_driv in driv_list:
+                    coef_var, driv_coor = coef_driv.lstrip('{').rstrip('}').split('/')
+                    insteed_str = f"coefc[{ges_dict['coef'].index(coef_var)}*{disp_num*coor_num}+{ges_dict['coor'].index(driv_coor)}]"
+
+                    strs = strs.replace(coef_driv, insteed_str)
 
             cfile.write(indentation + strs)
 

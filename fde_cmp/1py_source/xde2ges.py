@@ -140,7 +140,11 @@ def release_tensor_code(code_strs, code_place, xde_dict, ges_dict):
     expr_list = idx_summation(left_vara, righ_expr, xde_dict)
 
     for expres in expr_list:
-        ges_dict['code'][code_place].append('$cc '+expres+';\n')
+        if  expres.find('{') != -1 \
+        and expres.find('}') != -1:
+            ges_dict['code'][code_place].append('$cv '+expres+';\n')
+        else:
+            ges_dict['code'][code_place].append('$cc '+expres+';\n')
 # end release_tensor_code()
 
 def release_complex_code(code_strs, code_place, xde_dict, ges_dict):
