@@ -1046,7 +1046,7 @@ def check_weak(xde_dict, xde_addr, weak):
 
             for weak_item in split_bracket_expr(weak_strs):
 
-                weak_pattern = re.compile(r'\[?\w+\;?\w+\]|\[\w+\;?\w+\]?', re.I)
+                weak_pattern = re.compile(r'\[?\w+(?:/\w+)?;?\w+(?:/\w+)?\]|\[\w+(?:/\w+)?;?\w+(?:/\w+)?\]?', re.I)
                 weak_form = set(weak_pattern.findall(weak_item))
 
                 if len(weak_form) != 1:
@@ -1196,6 +1196,20 @@ def check_weak_item(weak_func, weak_item, line_num, xde_dict):
 def check_weak_items(weak_func_set, weak_item, line_num, xde_dict):
 
     for weak_func in weak_func_set:
+
+        if weak_func.count('/') == 1 \
+        or weak_func.count('/') == 2:
+            weak_func = weak_func.split('/')[0]
+            coor_list = weak_func.split('/')[1:]
+            for coor in coor_list:
+                if coor.count('_') == 1:
+                    pass # .............................
+
+        elif weak_func.count('/') > 2:
+            error_type = unsuitable_form(weak_item, 'Error')
+            sgest_info = 'only allow second order derivative at most.\n'
+            report_error('WUF08', line_num, error_type + sgest_info)
+
         if weak_func.count('_') == 0:
             check_weak_item(weak_func, weak_item, line_num, xde_dict)
 

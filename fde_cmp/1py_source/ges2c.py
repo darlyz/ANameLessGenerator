@@ -160,7 +160,15 @@ def ges2c(ges_info, ges_dict, cfile):
     if 'func' in ges_dict['code']:
         release_code('\t\t', 'func', ges_dict, ges_info, cfile)
 
-    # for weak in ['mass',]
+    for key_word in ges_dict.keys():
+
+        if key_word in ['stif', 'mass', 'damp']:
+
+            if key_word in ges_dict['code'].keys():
+
+                release_code('\t\t', key_word, ges_dict, ges_info, cfile)
+
+            release_weak('\t\t', key_word, ges_dict, ges_info, cfile)
 
 from expr import split_bracket_expr
 def release_code(indentation, keywd, ges_dict, ges_info, cfile):
@@ -246,5 +254,46 @@ def release_code(indentation, keywd, ges_dict, ges_info, cfile):
                 cfile.write(indentation + f'    stif={exp_str.replace(func_exp,insteed_str)};\n')
                 cfile.write(indentation + f'    e{left_var}[iv]+=stif;\n')
                 cfile.write(indentation +  '}\n')
+# end release_code()
 
+def release_weak(indentation, key_word, ges_dict, ges_info, cfile):
+
+    dim = int(ges_info['dim'])
+
+    disp_len = len(ges_dict['disp'])
+
+    if   ges_dict[key_word][0] == 'lump':
+
+        for strs in ges_dict[key_word][1:]:
+
+            parameter, variable = strs.split(']')
+            parameter = parameter.replace('[','')
+            parameter = re.sub(r'^\+{1,2}','',parameter)
+            parameter = re.sub(r'^\+?\-','-',parameter)
+            var_order = int(re.search(r'\d+',variable).group())
+            variable  = variable.replace(str(var_order),'')
+
+            cfile.write(f"{indentation}stif={parameter};\n")
+            cfile.write(f"{indentation}elump[{(var_order-1)*disp_len+ges_dict['disp'].index(variable)+1}]=stif*weight;\n")
+
+        for i,var in enumerate(ges_dict['disp']):
+            cfile.write(f"{indentation}for (i=1; i<=nvard[{i+1}]; ++i)\n")
+            cfile.write(indentation+"{\n")
+            cfile.write(f"{indentation}    iv = kvord[(i-1)*(3)+{i+1}-1];\n")
+            cfile.write(f"{indentation}    e{key_word}[iv]+=elump[iv]*c{var}[(i-1)*({dim+1})+1-1];\n")
+            cfile.write(indentation+"}\n")
+
+    
+    elif ges_dict[key_word][0] == 'dist':
+
+        # four type of weak form: 
+        #   d-d: [disp;disp]
+        #   d-f: [disp;func]
+        #   f-d: [func;disp]
+        #   f-f: [func;func]
+        weak_type = {}
         
+        for strs in ges_dict[key_word][1:]:
+            
+            left_weak, righ_weak = re.search(r'\w+(/\w+)?;\w+(/\w+)?',strs).group().split(';')
+            print(left_weak, righ_weak)
