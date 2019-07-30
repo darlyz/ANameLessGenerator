@@ -24,9 +24,6 @@ def xde2ges_dict(ges_info, xde_dict, xde_addr, ges_dict):
 
     pfelacpath = os.environ['pfelacpath']
 
-    if 'array' in xde_dict:
-        ges_dict['array'] = xde_dict['array'].copy()
-
     # use to deal with @L, @A, vol, singular, ...
     ges_dict['code'] = {}
     for code_key in ['BFmate','AFmate','func','stif','mass','damp']:
@@ -34,60 +31,63 @@ def xde2ges_dict(ges_info, xde_dict, xde_addr, ges_dict):
             ges_dict['code'][code_key] = []
             release_code(xde_dict, code_key, pfelacpath, ges_dict)
 
-    # 1 parse disp and var declare
-    if 'disp' in xde_dict:
-        parse_disp_var(ges_info, xde_dict, ges_dict)
+    for key_word in xde_dict.keys():
 
-    # 2 parse refc, coor and coef declare
-    if 'coor' in xde_dict:
-        ges_dict['refc'] = []
-        for strs in xde_dict['coor']: 
-            ges_dict['refc'].append('r'+strs)
+        if 'array' == key_word:
+            ges_dict['array'] = xde_dict['array'].copy()
 
-        ges_dict['coor'] =  xde_dict['coor'].copy()
+        # parse disp and var declare
+        # parse dord and node declare
+        elif 'disp' == key_word:
+            parse_disp_var(ges_info, xde_dict, ges_dict)
 
-    if 'coef' in xde_dict:
-        ges_dict['coef'] =  xde_dict['coef'].copy()
+            ges_dict['dord'] = ''
+            for strs in xde_dict['disp']: 
+                ges_dict['dord'] += '1'+','
+    
+            ges_dict['node'] = str(ges_info['shap_nodn'])
 
-    # 3 parse func declare
-    if 'vol'  in xde_dict :
-        ges_dict['vol'] =  xde_dict['vol']
+        # parse refc, coor and coef declare
+        elif 'coor' == key_word:
+            ges_dict['coor'] =  xde_dict['coor'].copy()
 
-    if 'func' in xde_dict:
-        ges_dict['func'] =  xde_dict['func'].copy()
+            ges_dict['refc'] = []
+            for strs in xde_dict['coor']: 
+                ges_dict['refc'].append('r'+strs)
 
-    # 4 parse dord and node declare
-    if 'disp' in xde_dict:
-        ges_dict['dord'] = ''
-        for strs in xde_dict['disp']: 
-            ges_dict['dord'] += '1'+','
+        elif 'coef' == key_word:
+            ges_dict['coef'] =  xde_dict['coef'].copy()
 
-        ges_dict['node'] = str(ges_info['shap_nodn'])
+        # parse func declare
+        elif 'vol' == key_word:
+            ges_dict['vol'] =  xde_dict['vol']
 
-    # 5 parse mate line
-    if 'mate' in xde_dict:
-        ges_dict['mate'] = xde_dict['mate'].copy()
+        elif 'func' == key_word:
+            ges_dict['func'] =  xde_dict['func'].copy()
 
-    # 9 parse shap and tran paragraph
-    if 'shap' in xde_dict:
-        parse_shap_tran(pfelacpath, ges_info, xde_dict, ges_dict)
+        # 5 parse mate line
+        elif 'mate' == key_word:
+            ges_dict['mate'] = xde_dict['mate'].copy()
 
-    # 9 parse coef shap
-    if 'coef_shap' in xde_dict:
-        parse_coefshap(pfelacpath, ges_info, xde_dict, ges_dict)
+        # parse shap and tran paragraph
+        elif 'shap' == key_word:
+            parse_shap_tran(pfelacpath, ges_info, xde_dict, ges_dict)
 
-    # 10 parse gaus paragraph
-    if 'gaus' in xde_dict:
-        parse_gaus(pfelacpath, ges_info, xde_dict, ges_dict)
+        # parse coef shap
+        elif 'coef_shap' == key_word:
+            parse_coefshap(pfelacpath, ges_info, xde_dict, ges_dict)
 
-    # 11 parse stif, mass, damp paragraph
-    for weak in ['stif', 'mass', 'damp']:
-        if weak in xde_dict:
-            parse_weak(weak, xde_dict, ges_dict)
+        # parse gaus paragraph
+        elif 'gaus' == key_word:
+            parse_gaus(pfelacpath, ges_info, xde_dict, ges_dict)
 
-    # 12 parse load paragraph
-    if 'load' in xde_dict:
-        parse_load(xde_dict, ges_dict)
+        # parse stif, mass, damp paragraph
+        elif key_word in ['stif', 'mass', 'damp']:
+            parse_weak(key_word, xde_dict, ges_dict)
+
+        # parse load paragraph
+        elif 'load' == key_word:
+            parse_load(xde_dict, ges_dict)
 
     if ges_dict_check == 1:
         import json
@@ -1041,22 +1041,23 @@ def xde2ges(ges_info, xde_dict, ges_dict, gesfile):
         write_func(ges_dict, xde_dict, gesfile)
 
     # 12 write stif, mass, damp paragraph
-    for weak in ['stif', 'mass', 'damp']:
-        if weak in ges_dict:
+    for key_word in ges_dict.keys():
 
-            gesfile.write(f'\n{weak}\n')
+        if key_word in ['stif', 'mass', 'damp']:
 
-            if weak in ges_dict['code']:
-                for strs in ges_dict['code'][weak]:
+            gesfile.write(f'\n{key_word}\n')
+
+            if key_word in ges_dict['code']:
+                for strs in ges_dict['code'][key_word]:
                     gesfile.write(strs)
             
-            if   ges_dict[weak][0] == 'dist':
-                gesfile.write(ges_dict[weak][0]+'=')
+            if   ges_dict[key_word][0] == 'dist':
+                gesfile.write(ges_dict[key_word][0]+'=')
 
-            elif ges_dict[weak][0] == 'lump':
-                gesfile.write(ges_dict[weak][0]+'=\n')
+            elif ges_dict[key_word][0] == 'lump':
+                gesfile.write(ges_dict[key_word][0]+'=\n')
 
-            for weak_item in ges_dict[weak][1:]:
+            for weak_item in ges_dict[key_word][1:]:
                 gesfile.write(weak_item + '\n')
 
     # 13 write load paragraph

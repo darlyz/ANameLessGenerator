@@ -160,32 +160,32 @@ def ges2c(ges_info, ges_dict, cfile):
     if 'func' in ges_dict['code']:
         release_code('\t\t', 'func', ges_dict, ges_info, cfile)
 
+    # for weak in ['mass',]
+
 from expr import split_bracket_expr
 def release_code(indentation, keywd, ges_dict, ges_info, cfile):
 
     disp_num = len(ges_dict['disp'])
-    var_num  = len(ges_dict['var'])
     node_num = int(ges_dict['node'])
-    gaus_num = len(ges_dict['gaus']) - 1
-    dim      = int(ges_info['dim'])
     coor_num = len(ges_dict['coor'])
+    dim      = int(ges_info['dim'])
     ges_coor = ges_dict["coor"]
     ges_disp = ges_dict["disp"]
 
-    for strs in ges_dict['code'][keywd]:
+    for code_strs in ges_dict['code'][keywd]:
 
-        if re.match(r'\$c[cv]', strs, re.I) != None:
+        if re.match(r'\$c[cv]', code_strs, re.I) != None:
 
-            strs = re.sub(r'\$c[cv]', '', strs, 0, re.I).lstrip()
+            code_strs = re.sub(r'\$c[cv]', '', code_strs, 0, re.I).lstrip()
 
-            if re.search(r'\^\w+(?:\[\d+\]){1,2}',strs) != None:
-                array_list = re.findall(r'\^\w+(?:\[\d+\]){1,2}',strs)
+            if re.search(r'\^\w+(?:\[\d+\]){1,2}',code_strs) != None:
+                array_list = re.findall(r'\^\w+(?:\[\d+\]){1,2}',code_strs)
 
                 for array in array_list:
                     idx_list = re.findall(r'\[\d+\]',array)
                     var_name = array.split('[')[0].lstrip('^')
 
-                    if re.match(r'double', strs, re.I) != None:
+                    if re.match(r'double', code_strs, re.I) != None:
 
                         # it mey be necessary or error for parsing '^xx[d]'
                         if   len(idx_list) == 1:
@@ -207,22 +207,22 @@ def release_code(indentation, keywd, ges_dict, ges_info, cfile):
                                       + f"+ {idx_list[1].lstrip('[').rstrip(']')}-1]"
                             insteed_str = var_name + index_str
 
-                    strs = strs.replace(array, insteed_str)
+                    code_strs = code_strs.replace(array, insteed_str)
 
-            if re.search(r"\{\w+/\w+\}",strs) != None:
+            if re.search(r"\{\w+/\w+\}",code_strs) != None:
 
-                driv_list = re.findall(r"\{\w+/\w+\}",strs)
+                driv_list = re.findall(r"\{\w+/\w+\}",code_strs)
                 for coef_driv in driv_list:
                     coef_var, driv_coor = coef_driv.lstrip('{').rstrip('}').split('/')
                     insteed_str = f"coefc[{ges_dict['coef'].index(coef_var)}*{disp_num*coor_num}+{ges_dict['coor'].index(driv_coor)}]"
 
-                    strs = strs.replace(coef_driv, insteed_str)
+                    code_strs = code_strs.replace(coef_driv, insteed_str)
 
-            cfile.write(indentation + strs)
+            cfile.write(indentation + code_strs)
 
-        elif re.search(r'\[.*\]', strs, re.I) != None:
-            left_var = strs.split('=')[0].strip()
-            exp_list = split_bracket_expr(strs.split('=')[1].strip().rstrip('\n'))
+        elif re.search(r'\[.*\]', code_strs, re.I) != None:
+            left_var = code_strs.split('=')[0].strip()
+            exp_list = split_bracket_expr(code_strs.split('=')[1].strip().rstrip('\n'))
 
             for exp_str in exp_list:
                 disp, coor = '', ''
