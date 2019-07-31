@@ -35,14 +35,14 @@ def ges2c(ges_info, ges_dict, cfile):
     cfile.write(f'double rctr[{dim*dim}],crtr[{dim*dim}];\n')
 
     cfile.write('void dshap(double (*shap)(double *,int),\n')
-    cfile.write('       double *,double *,int,int,int);\n')
+    cfile.write('           double *,double *,int,int,int);\n')
     cfile.write('void dcoor(double (*shap)(double *,int),\n')
     cfile.write('           double *,double *,double *,int,int,int);\n')
     cfile.write('double invm(int,double *,double *);\n')
     cfile.write('double inver_rc(int,int,double *,double *);\n')
     if 'coef' in ges_dict:
         cfile.write('void dcoef(double (*shap)(double *,int),\n')
-        cfile.write('       double *,double *, double *,int,int,int);\n')
+        cfile.write('           double *,double *, double *,int,int,int);\n')
     cfile.write('static void initial();\n')
     cfile.write('static void tran_coor(double *,double *,double *,double *);\n')
     cfile.write('static double ftran_coor(double *,int);\n')
@@ -170,6 +170,9 @@ def ges2c(ges_info, ges_dict, cfile):
 
             release_weak('\t\t', key_word, ges_dict, ges_info, cfile)
 
+    if 'load' in ges_dict:
+        release_weak('\t\t', 'load', ges_dict, ges_info, cfile)
+
 from expr import split_bracket_expr
 def release_code(indentation, keywd, ges_dict, ges_info, cfile):
 
@@ -260,7 +263,9 @@ def release_weak(indentation, key_word, ges_dict, ges_info, cfile):
 
     dim = int(ges_info['dim'])
 
-    disp_len = len(ges_dict['disp'])
+    disp_num = len(ges_dict['disp'])
+    node_num = int(ges_dict['node'])
+
 
     if   ges_dict[key_word][0] == 'lump':
 
@@ -274,12 +279,12 @@ def release_weak(indentation, key_word, ges_dict, ges_info, cfile):
             variable  = variable.replace(str(var_order),'')
 
             cfile.write(f"{indentation}stif={parameter};\n")
-            cfile.write(f"{indentation}elump[{(var_order-1)*disp_len+ges_dict['disp'].index(variable)+1}]=stif*weight;\n")
+            cfile.write(f"{indentation}elump[{(var_order-1)*disp_num+ges_dict['disp'].index(variable)+1}]=stif*weight;\n")
 
         for i,var in enumerate(ges_dict['disp']):
             cfile.write(f"{indentation}for (i=1; i<=nvard[{i+1}]; ++i)\n")
             cfile.write(indentation+"{\n")
-            cfile.write(f"{indentation}    iv = kvord[(i-1)*(3)+{i+1}-1];\n")
+            cfile.write(f"{indentation}    iv = kvord[(i-1)*({disp_num})+{i+1}-1];\n")
             cfile.write(f"{indentation}    e{key_word}[iv]+=elump[iv]*c{var}[(i-1)*({dim+1})+1-1];\n")
             cfile.write(indentation+"}\n")
 
@@ -293,7 +298,380 @@ def release_weak(indentation, key_word, ges_dict, ges_info, cfile):
         #   f-f: [func;func]
         weak_type = {}
         
+        # classify by weak type
         for strs in ges_dict[key_word][1:]:
+
+            weak_item = re.search(r'\w+(/\w+)?;\w+(/\w+)?',strs)
+            if weak_item != None:
+                weak_item = weak_item.group()
+            else: 
+                continue
             
-            left_weak, righ_weak = re.search(r'\w+(/\w+)?;\w+(/\w+)?',strs).group().split(';')
-            print(left_weak, righ_weak)
+            left_weak, righ_weak = weak_item.split(';')
+
+            if left_weak.find('/') != -1:
+                left_var = left_weak.split('/')[0]
+            else: 
+                left_var = left_weak
+
+            if righ_weak.find('/') != -1:
+                righ_var = righ_weak.split('/')[0]
+            else: 
+                righ_var = righ_weak
+                
+            if   left_var in ges_dict['disp']:
+                left_char = 'd'
+            elif left_var in ges_dict['func']:
+                left_char = 'f'
+
+            if   righ_var in ges_dict['disp']:
+                righ_char = 'd'
+            elif righ_var in ges_dict['func']:
+                righ_char = 'f'
+
+            wtype = left_char + '-' + righ_char
+            if wtype not in weak_type:
+                if  wtype == 'f-f':
+                    weak_type[wtype] = []
+                else:
+                    weak_type[wtype] = {}
+
+            if   wtype == 'f-f':
+                weak_type[wtype].append(strs)
+
+            # classify by left and righ disp
+            elif wtype == 'd-d':
+
+                disp_type = left_var + '-' + righ_var
+
+                if disp_type not in weak_type[wtype]:
+                    weak_type[wtype][disp_type] = []
+
+                weak_type[wtype][disp_type].append(strs)
+
+            # classify by left disp
+            elif wtype == 'd-f':
+
+                if left_var not in weak_type[wtype]:
+                    weak_type[wtype][left_var] = []
+
+                weak_type[wtype][left_var].append(strs)
+
+            # classify by righ disp
+            elif wtype == 'f-d':
+
+                if righ_var not in weak_type[wtype]:
+                    weak_type[wtype][righ_var] = []
+
+                weak_type[wtype][righ_var].append(strs)
+
+        # write by weak type
+        for wtype in weak_type.keys():
+
+            # write by left and righ disp
+            if   wtype == 'd-d':
+
+                for disp_type in weak_type[wtype].keys():
+
+                    left_var, righ_var = disp_type.split('-')
+
+                    cfile.write(f"{indentation}for (i=1; i<={disp_num*node_num}; ++i)\n")
+                    cfile.write(indentation+"{\n")
+                    cfile.write(f"{indentation}    iv=kvord[(i-1)*{disp_num}+{ges_dict['disp'].index(left_var)+1}-1];\n")
+                    cfile.write(f"{indentation}    for (j=1; j<={disp_num*node_num}; ++j)\n")
+                    cfile.write(indentation+"    {\n")
+                    cfile.write(f"{indentation}        jv=kvord[(j-1)*{disp_num}+{ges_dict['disp'].index(righ_var)+1}-1];\n")
+                    cfile.write(f"{indentation}        stif=")
+
+                    weak_len = len(weak_type[wtype][disp_type])
+
+                    for i,weak_item in enumerate(weak_type[wtype][disp_type]):
+
+                        left_weak, righ_weak = re.search(r'\w+(/\w+)?;\w+(/\w+)?',weak_item).group().split(';')
+
+                        be_insteed = f"[{left_weak};{righ_weak}]"
+                        
+                        if left_weak.find('/') == -1:
+                            left_coor_order = 1
+                        else:
+                            left_coor_order = ges_dict['coor'].index(left_weak.split('/')[1]) + 2
+
+                        left_insteed = f"c{left_var}[(i-1)*{disp_num}+{left_coor_order}-1]"
+
+                        if righ_weak.find('/') == -1:
+                            righ_coor_order = 1
+                        else:
+                            righ_coor_order = ges_dict['coor'].index(righ_weak.split('/')[1]) + 2
+
+                        righ_insteed = f"c{righ_var}[(i-1)*{disp_num}+{righ_coor_order}-1]"
+
+                        insteed_str = f"{left_insteed}*{righ_insteed}"
+
+                        to_be_write_str = weak_item.replace(be_insteed,insteed_str)
+
+                        if weak_len == 1:
+                            cfile.write(f"{to_be_write_str};\n")
+                        else:
+                            if i == 0:
+                                cfile.write(f"{to_be_write_str}\n")
+                            elif i == weak_len - 1:
+                                cfile.write(f"{indentation}             {to_be_write_str};\n")
+                            else:
+                                cfile.write(f"{indentation}             {to_be_write_str}\n")
+
+                    cfile.write(f"{indentation}        e{key_word}[(iv-1)*{disp_num*node_num}+jv-1]+=stif*weigh;\n")
+                    cfile.write(indentation+"    }\n")
+                    cfile.write(indentation+"}\n")
+
+            # write by left disp
+            elif wtype == 'd-f':
+
+                for disp_type in weak_type[wtype].keys():
+
+                    left_var = disp_type
+
+                    cfile.write(f"{indentation}for (i=1; i<={disp_num*node_num}; ++i)\n")
+                    cfile.write(indentation+"\n")
+                    cfile.write(f"{indentation}    iv=kvord[(i-1)*{disp_num}+{ges_dict['disp'].index(left_var)+1}-1];\n")
+                    cfile.write(f"{indentation}    for (jv=1; jv<={disp_num*node_num}; ++jv)\n")
+                    cfile.write(indentation+"    {\n")
+                    cfile.write(f"{indentation}        stif=")
+
+                    weak_len = len(weak_type[wtype][disp_type])
+
+                    for i,weak_item in enumerate(weak_type[wtype][disp_type]):
+
+                        left_weak, righ_func = re.search(r'\w+(/\w+)?;\w+',weak_item).group().split(';')
+
+                        be_insteed = f"[{left_weak};{righ_func}]"
+
+                        if left_weak.find('/') == -1:
+                            left_coor_order = 1
+                        else:
+                            left_coor_order = ges_dict['coor'].index(left_weak.split('/')[1]) + 2
+
+                        left_insteed = f"c{left_var}[(i-1)*{disp_num}+{left_coor_order}-1]"
+
+                        righ_insteed = f"e{righ_func}[jv]"
+
+                        insteed_str = f"{left_insteed}*{righ_insteed}"
+
+                        to_be_write_str = weak_item.replace(be_insteed,insteed_str)
+
+                        if weak_len == 1:
+                            cfile.write(f"{to_be_write_str};\n")
+                        else:
+                            if i == 0:
+                                cfile.write(f"{to_be_write_str}\n")
+                            elif i == weak_len - 1:
+                                cfile.write(f"{indentation}             {to_be_write_str};\n")
+                            else:
+                                cfile.write(f"{indentation}             {to_be_write_str}\n")
+
+                    cfile.write(f"{indentation}        e{key_word}[(iv-1)*{disp_num*node_num}+jv-1]+=stif*weigh;\n")
+                    cfile.write(indentation+"    }\n")
+                    cfile.write(indentation+"}\n")
+            
+            # write by righ disp
+            elif wtype == 'f-d':
+
+                for disp_type in weak_type[wtype].keys():
+
+                    righ_var = disp_type
+
+                    cfile.write(f"{indentation}for (iv=1; iv<={disp_num*node_num}; ++iv)\n")
+                    cfile.write(indentation+"{\n")
+                    cfile.write(f"{indentation}    for (j=1; j<={disp_num*node_num}; ++j)\n")
+                    cfile.write(indentation+"    {\n")
+                    cfile.write(f"{indentation}        jv=kvord[(j-1)*{disp_num}+{ges_dict['disp'].index(righ_var)+1}-1];\n")
+                    cfile.write(f"{indentation}        stif=")
+
+                    weak_len = len(weak_type[wtype][disp_type])
+
+                    for i,weak_item in enumerate(weak_type[wtype][disp_type]):
+
+                        left_func, righ_weak = re.search(r'\w+;\w+(/\w+)?',weak_item).group().split(';')
+
+                        be_insteed = f"[{left_func};{righ_weak}]"
+
+                        left_insteed = f"e{left_func}[iv]"
+
+                        if righ_weak.find('/') == -1:
+                            righ_coor_order = 1
+                        else:
+                            righ_coor_order = ges_dict['coor'].index(righ_weak.split('/')[1]) + 2
+
+                        righ_insteed = f"c{righ_var}[(i-1)*{disp_num}+{righ_coor_order}-1]"
+
+
+
+                        insteed_str = f"{left_insteed}*{righ_insteed}"
+
+                        to_be_write_str = weak_item.replace(be_insteed,insteed_str)
+
+                        if weak_len == 1:
+                            cfile.write(f"{to_be_write_str};\n")
+                        else:
+                            if i == 0:
+                                cfile.write(f"{to_be_write_str}\n")
+                            elif i == weak_len - 1:
+                                cfile.write(f"{indentation}             {to_be_write_str};\n")
+                            else:
+                                cfile.write(f"{indentation}             {to_be_write_str}\n")
+
+                    cfile.write(f"{indentation}        e{key_word}[(iv-1)*{disp_num*node_num}+jv-1]+=stif*weigh;\n")
+                    cfile.write(indentation+"    }\n")
+                    cfile.write(indentation+"}\n")
+            
+            elif wtype == 'f-f':
+
+                cfile.write(f"{indentation}for (iv=1; iv<={disp_num*node_num}; ++iv)\n")
+                cfile.write(indentation+"{\n")
+                cfile.write(f"{indentation}    for (jv=1; jv<={disp_num*node_num}; ++jv)\n")
+                cfile.write(indentation+"    {\n")
+                cfile.write(f"{indentation}        stif=")
+
+                weak_len = len(weak_type[wtype])
+
+                for i,weak_item in enumerate(weak_type[wtype]):
+
+                    left_func, righ_func = re.search(r'\w+;\w+',weak_item).group().split(';')
+
+                    be_insteed = f"[{left_func};{righ_func}]"
+
+                    left_insteed = f"e{left_func}[iv]"
+
+                    righ_insteed = f"e{righ_func}[jv]"
+
+                    insteed_str = f"{left_insteed}*{righ_insteed}"
+
+                    to_be_write_str = weak_item.replace(be_insteed,insteed_str)
+
+                    if weak_len == 1:
+                        cfile.write(f"{to_be_write_str};\n")
+                    else:
+                        if i == 0:
+                            cfile.write(f"{to_be_write_str}\n")
+                        elif i == weak_len - 1:
+                            cfile.write(f"{indentation}             {to_be_write_str};\n")
+                        else:
+                            cfile.write(f"{indentation}             {to_be_write_str}\n")
+
+                cfile.write(f"{indentation}        e{key_word}[(iv-1)*{disp_num*node_num}+jv-1]+=stif*weigh;\n")
+                cfile.write(indentation+"    }\n")
+                cfile.write(indentation+"}\n")
+
+    if key_word == 'load':
+
+        # two type of weak form:
+        # d: [disp]*parameter
+        # f: [func]*parameter
+        weak_type = {}
+
+        # classify by weak type
+        for strs in ges_dict[key_word]:
+
+            weak_item = re.search(r'\[\w+(/\w+)?\]',strs)
+            if weak_item != None:
+                weak_item = weak_item.group().lstrip('[').rstrip(']')
+            else: 
+                continue
+
+            if weak_item.find('/') != -1:
+                weak_var = weak_item.split('/')[0]
+            else: 
+                weak_var = weak_item
+
+            if   weak_var in ges_dict['disp']:
+                weak_char = 'd'
+            elif weak_var in ges_dict['func']:
+                weak_char = 'f'
+
+            if weak_char not in weak_type:
+                if  weak_char == 'f':
+                    weak_type[weak_char] = []
+                else:
+                    weak_type[weak_char] = {}
+
+            if   weak_char == 'f':
+                weak_type[weak_char].append(strs)
+
+            elif weak_char == 'd':
+
+                if weak_var not in weak_type[weak_char]:
+                    weak_type[weak_char][weak_var] = []
+
+                weak_type[weak_char][weak_var].append(strs)
+
+        # write by weak type
+        for wtype in weak_type.keys():
+
+            # write by disp
+            if   wtype == 'd':
+
+                for weak_var in weak_type[wtype].keys():
+
+                    cfile.write(f"{indentation}for (i=1; i<={node_num}; ++i)\n")
+                    cfile.write(indentation+"{\n")
+                    cfile.write(f"{indentation}    iv=kvord[(i-1)*({disp_num})+{ges_dict['disp'].index(weak_var)+1}-1];\n")
+                    cfile.write(f"{indentation}    stif=")
+
+                    weak_len = len(weak_type[wtype][weak_var])
+
+                    for i,weak_item in enumerate(weak_type[wtype][weak_var]):
+
+                        be_insteed = re.search(r'\[\w+(/\w+)?\]',weak_item).group()
+
+                        weak = be_insteed.lstrip('[').rstrip(']')
+
+                        if weak.find('/') == -1:
+                            coor_order = 1
+                        else:
+                            coor_order = ges_dict['coor'].index(weak.split('/')[1]) + 2
+
+                        insteed_str = f"c{weak_var}[(i-1)*({dim+1})+{coor_order}-1]"
+
+                        to_be_write_str = weak_item.replace(be_insteed,insteed_str)
+
+                        if weak_len == 1:
+                            cfile.write(f"{to_be_write_str};\n")
+                        else:
+                            if i == 0:
+                                cfile.write(f"{to_be_write_str}\n")
+                            elif i == weak_len - 1:
+                                cfile.write(f"{indentation}         {to_be_write_str};\n")
+                            else:
+                                cfile.write(f"{indentation}         {to_be_write_str}\n")
+
+                    cfile.write(f"{indentation}    eload[iv]+=stif*weigh;\n")
+                    cfile.write(indentation+"}\n")
+
+            elif wtype == 'f':
+                cfile.write(f"{indentation}for (iv=1; iv<={dim*node_num}; ++iv)\n")
+                cfile.write(indentation+"{\n")
+                cfile.write(f"{indentation}    stif=")
+
+                weak_len = len(weak_type[wtype])
+
+                for i,weak_item in enumerate(weak_type[wtype]):
+
+                    be_insteed = re.search(r'\[\w+\]',weak_item).group()
+
+                    func = be_insteed.lstrip('[').rstrip(']')
+
+                    insteed_str = f"e{func}[iv]"
+
+                    to_be_write_str = weak_item.replace(be_insteed,insteed_str)
+
+                    if weak_len == 1:
+                        cfile.write(f"{to_be_write_str};\n")
+                    else:
+                        if i == 0:
+                            cfile.write(f"{to_be_write_str}\n")
+                        elif i == weak_len - 1:
+                            cfile.write(f"{indentation}         {to_be_write_str};\n")
+                        else:
+                            cfile.write(f"{indentation}         {to_be_write_str}\n")
+
+                cfile.write(f"{indentation}    eload[iv]+=stif*weigh;\n")
+                cfile.write(indentation+"}\n")

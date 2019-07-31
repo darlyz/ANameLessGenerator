@@ -1113,7 +1113,7 @@ def check_load(xde_dict, xde_addr):
 
             for weak_item in split_bracket_expr(weak_strs):
 
-                weak_form = re.findall(r'\[\w+\]?|\[?\w+\]', weak_item, re.I)
+                weak_form = re.findall(r'\[\w+(?:/\w+)?\]?|\[?\w+(?:/\w+)?\]', weak_item, re.I)
 
                 if len(set(weak_form)) != 1:
                     error_type = unsuitable_form(weak_item, 'Error')
@@ -1203,7 +1203,21 @@ def check_weak_items(weak_func_set, weak_item, line_num, xde_dict):
             coor_list = weak_func.split('/')[1:]
             for coor in coor_list:
                 if coor.count('_') == 1:
-                    pass # .............................
+                    vect = coor.split('_')[0]
+                    for var in xde_dict['vect'][vect]:
+                        if var not in xde_dict['coor']:
+                            error_type = faultly_declared(var, 'Error')
+                            sgest_info = f"{var} in vector {vect} must be declared in 'coor'.\n"
+                            report_error('WFD02', line_num, error_type + sgest_info)
+                elif coor.count('_') == 0:
+                    if coor not in xde_dict['coor']:
+                        error_type = faultly_declared(coor, 'Error')
+                        sgest_info = f"{coor} must be declared in 'coor'.\n"
+                        report_error('WFD02', line_num, error_type + sgest_info)
+                else:
+                    error_type = unsuitable_form(coor, 'Error')
+                    sgest_info = f"only vector or scalar type allowed.\n"
+                    report_error('WFD03', line_num, error_type + sgest_info)
 
         elif weak_func.count('/') > 2:
             error_type = unsuitable_form(weak_item, 'Error')
