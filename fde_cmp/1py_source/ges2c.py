@@ -247,6 +247,46 @@ def ges2c(ges_info, ges_dict, cfile):
         cfile.write(f"\treturn fval;\n")
         cfile.write("}\n")
 
+    # write transcoor functions
+    cfile.write(f"static void tran_coor(double *refc,double *coor,double *coorr,double *rc)\n")
+    cfile.write("{\n")
+    cfile.write(f"\tdouble (*shap)(double *,int)=&ftran_coor;\n")
+    cfile.write(f"\tdcoor(shap,refc,coor,rc,{dim},{dim},{1});\n") # 1 maybe the derivative order
+    cfile.write(f"\treturn;\n")
+    cfile.write("}\n")
+
+    cfile.write(f"static double ftran_coor(double *refc,int n)\n")
+    cfile.write("{\n")
+    cfile.write(f"\tdouble fval,")
+    cfile.write(f"{','.join(ges_dict['refc'])};\n")
+    cfile.write(f"\tdouble ")
+    cfile.write(f"{','.join(map(lambda x: x+f'[{gaus_num+1}]',ges_dict['coor']))};\n")
+    cfile.write(f"\tint j;\n")
+    cfile.write(f"\tfor (j=1; j<={gaus_num}; ++j)\n")
+    cfile.write("\t{\n")
+    for i,coor in enumerate(ges_dict['coor']):
+        cfile.write(f"\t\t{coor}[j]=coorr[{i}*{gaus_num}+j-1];\n")
+    cfile.write("\t}\n")
+    for i,refc in enumerate(ges_dict['refc']):
+        cfile.write(f"\t{refc}=refc[{i+1}];\n")
+    cfile.write(f"\tswitch (n)\n")
+    cfile.write("\t{\n")
+    for i,coor in enumerate(ges_dict['coor']):
+        cfile.write(f"\tcase {i+1}:\n")
+        cfile.write(f"\t\tfval=\n")
+        for j,tran_expr in enumerate(ges_dict['tran'][coor]):
+            var, expr = tran_expr.split('=')
+            var = var.strip().replace('(','[').replace(')',']')
+            cfile.write(f"\t\t\t+({expr.strip()})*{var}")
+            if j == node_num-1:
+                cfile.write(';\n')
+            else:
+                cfile.write('\n')
+        cfile.write(f"\t\tbreak;\n")
+    cfile.write(f"\t\t//default:\n")
+    cfile.write("\t}\n")
+    cfile.write(f"\treturn fval;\n")
+    cfile.write("}\n")
 
 from expr import split_bracket_expr
 def release_code(indentation, keywd, ges_dict, ges_info, cfile):
