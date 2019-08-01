@@ -24,6 +24,11 @@ def xde2ges_dict(ges_info, xde_dict, xde_addr, ges_dict):
 
     pfelacpath = os.environ['pfelacpath']
 
+    if 'disp' in xde_dict:
+        ges_dict['disp_driv_order'] = {}
+        for disp in xde_dict['disp']:
+            ges_dict['disp_driv_order'][disp] = 1
+
     # use to deal with @L, @A, vol, singular, ...
     ges_dict['code'] = {}
     for code_key in ['BFmate','AFmate','func','stif','mass','damp']:
