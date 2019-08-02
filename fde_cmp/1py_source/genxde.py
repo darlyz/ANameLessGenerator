@@ -108,7 +108,7 @@ def genxde(xdename, gesname, coortype):
     # generate html by xde element to preview
     if gen_obj['html'] > 0:
         from xde2html import xde2html
-        htmlfile = open(ifo_folder + xdename + '.html', mode='w')
+        htmlfile = open(ls + xdename + '.html', mode='w')
         xde2html(ges_info, xde_dict, xde_addr, htmlfile)
         htmlfile.close()
 
@@ -238,9 +238,10 @@ def main(argvs=None):
             if gesname.find('/')  != -1 \
             or gesname.find('\\') != -1 :
                 gesname = re.split(r'/|\\', nonfunc_params[1])[-1]
-                global ges_folder, ifo_folder
+                global ges_folder, ifo_folder, c_folder
                 ges_folder = nonfunc_params[1].replace(gesname, '')
                 ifo_folder = nonfunc_params[1].replace(gesname, '')
+                c_folder   = nonfunc_params[1].replace(gesname, '')
 
         elif len(nonfunc_params) == 2:
             
