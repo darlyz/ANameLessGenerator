@@ -213,7 +213,7 @@ def ges2c(ges_info, ges_dict, cfile):
     cfile.write('}\n')
 
     # write shap functions
-    for shap in ges_dict['shap']:
+    for shap in ges_dict['shap'].keys():
         cfile.write(f"static void shap_{shap}(refc,shpr)\n")
         cfile.write(f"double *refc,shpr[{(dim+1)*gaus_num}];\n")
         cfile.write("{\n")
@@ -288,6 +288,51 @@ def ges2c(ges_info, ges_dict, cfile):
     cfile.write(f"\treturn fval;\n")
     cfile.write("}\n")
 
+    # write coef functions
+    if 'coef' in ges_dict:
+        cfile.write(f"static void coef_shap(double *refc,double *coef,double *coefr,double *coefd)\n")
+        cfile.write("{\n")
+        cfile.write(f"\tdouble (*shap)(double *,int)=&fcoef_shap;\n")
+        cfile.write(f"\tdcoef(shap,refc,coef,coefd,{3},{3},{2});\n")
+        cfile.write(f"\treturn;\n")
+        cfile.write("}\n")
+
+        cfile.write(f"static double fcoef_shap(double *refc,int n)\n")
+        cfile.write("{\n")
+        cfile.write(f"\tdouble {','.join(ges_dict['refc'])};\n")
+        cfile.write(f"\tdouble {','.join(ges_dict['coor'])},fval;\n")
+        cfile.write(f"\tdouble {','.join(map(lambda x: f'{x}[{coor_num*disp_num}]',ges_dict['disp']))};\n")
+        cfile.write(f"\tint j;\n")
+        cfile.write(f"\tfor (j=1; j<={node_num}; ++j)\n")
+        cfile.write("\t{\n")
+        for i,coef in enumerate(ges_dict['coef']) :
+            cfile.write(f"\t\t{coef}[j]=coefr[{i}*{node_num}+j-1];\n")
+        cfile.write("\t}\n")
+        for i,coor in enumerate(ges_dict['coor']):
+            cfile.write(f"\t{coor}=coor[{i+1}];\n")
+        for i,refc in enumerate(ges_dict['refc']):
+            cfile.write(f"\t{refc}=refc[{i+1}];\n")
+
+        cfile.write(f"\tswitch (n)\n")
+        cfile.write("\t{\n")
+        for i,coef in enumerate(ges_dict['coef_shap'].keys()) :
+            cfile.write(f"\tcase {i+1}:\n")
+            cfile.write(f"\t\tfval=\n")
+            for j,coef_expr in enumerate(ges_dict['coef_shap'][coef]):
+                var, expr = coef_expr.split('=')
+                var = var.strip().replace('(','[').replace(')',']')
+                cfile.write(f"\t\t\t+({expr.strip()})*{var}")
+                if j == node_num-1:
+                    cfile.write(';\n')
+                else:
+                    cfile.write('\n')
+            cfile.write(f"\t\tbreak;\n")
+        cfile.write(f"\t\t//default:\n")
+        cfile.write("\t}\n")
+        cfile.write(f"\treturn fval;\n")
+        cfile.write("}\n")
+        
+
 from expr import split_bracket_expr
 def release_code(indentation, keywd, ges_dict, ges_info, cfile):
 
@@ -347,18 +392,21 @@ def release_code(indentation, keywd, ges_dict, ges_info, cfile):
             cfile.write(indentation + code_strs)
 
         elif re.search(r'\[.*\]', code_strs, re.I) != None:
-            left_var = code_strs.split('=')[0].strip()
-            exp_list = split_bracket_expr(code_strs.split('=')[1].strip().rstrip('\n'))
+            left_var, righ_exp = code_strs.split('=')
+            left_var = left_var.strip()
+            righ_exp = righ_exp.strip().rstrip('\n')
 
-            for exp_str in exp_list:
-                disp, coor = '', ''
-                func_exp = re.search(r'\[.*\]', exp_str, re.I).group()
+            disp, coor = '', ''
+            func_exp_list = re.findall(r'\[\w+(?:/\w+)?\]', righ_exp)
+
+            for func_exp in func_exp_list:
 
                 if func_exp.find('/') != -1:
                     disp, coor = func_exp.lstrip('[').rstrip(']').split('/')
 
                 else:
                     disp = func_exp.lstrip('[').rstrip(']')
+                    coor = ''
 
                 if coor == '':
                     insteed_str = f'c{disp}[(i-1)*({dim+1})+{1}-1]'
@@ -366,12 +414,14 @@ def release_code(indentation, keywd, ges_dict, ges_info, cfile):
                 else:
                     insteed_str = f'c{disp}[(i-1)*({dim+1})+{ges_coor.index(coor)+2}-1]'
 
-                cfile.write(indentation + f'for (i=1; i<={node_num}; ++i)\n')
-                cfile.write(indentation +  '{\n')
-                cfile.write(indentation + f'\tiv=kvord[(i-1)*({disp_num})+{ges_disp.index(disp)+1}-1];\n')
-                cfile.write(indentation + f'\tstif={exp_str.replace(func_exp,insteed_str)};\n')
-                cfile.write(indentation + f'\te{left_var}[iv]+=stif;\n')
-                cfile.write(indentation +  '}\n')
+                righ_exp = righ_exp.replace(func_exp,insteed_str)
+
+            cfile.write(indentation + f'for (i=1; i<={node_num}; ++i)\n')
+            cfile.write(indentation +  '{\n')
+            cfile.write(indentation + f'\tiv=kvord[(i-1)*({disp_num})+{ges_disp.index(disp)+1}-1];\n')
+            cfile.write(indentation + f'\tstif={righ_exp};\n')
+            cfile.write(indentation + f'\te{left_var}[iv]+=stif;\n')
+            cfile.write(indentation +  '}\n')
 # end release_code()
 
 def release_weak(indentation, key_word, ges_dict, ges_info, cfile):
