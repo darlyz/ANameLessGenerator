@@ -63,9 +63,10 @@ def check_xde(ges_info, xde_dict, xde_addr):
                     + "'GAUS %3' in the first garaph."
         report_error('GASND', '*', error_type + sgest_info)
 
-    # check insert code
+    # check insert code and gether c code variable declaration
     c_declares = {}
     check_code(ges_info, xde_dict, xde_addr, c_declares)
+    print(c_declares)
 
 
 
@@ -408,6 +409,66 @@ def check_code(ges_info, xde_dict, xde_addr, c_declares):
             assist['ckey'] = code_key  = code_key.group()
             assist['lkey'] = lower_key = code_key.lower()
 
+            if lower_key == 'common':
+                code_strs = code_strs.replace(code_key,'')+';'
+
+            else:
+                code_strs = code_strs.replace(code_key,'').lstrip()
+
+            if lower_key in ['$cc','$c6','common'] :
+                if gather_declare(code_strs, line_num, assist, c_declares):
+                    continue
+# end check_code()
+
+def gather_declare(code_strs, line_num, assist_dict, c_declares):
+    # check $cc code
+    code_key   = assist_dict['ckey']
+    #lower_key  = assist_dict['lkey']
+    declare_pattern  = r"char|int|long|short|double|float"
+    #expr_pattern = r"[a-z].*="
+    function_pattern = r"\w+\(.*\)"
+
+
+    # find c declaration sentence and gather the variables
+    if re.search(declare_pattern, code_strs, re.I) != None:
+
+        code_strs = assist_dict['stitch'] + code_strs
+        if code_strs[-1] != ';':
+            assist_dict['stitch'] = code_strs
+            return True    # continue
+        else:
+            assist_dict['stitch'] = ''
+
+        code_list = code_strs.split(';')
+        code_list.pop()
+
+        for sub_sentence in code_list:
+
+            if re.search(function_pattern, code_strs, re.I) != None:
+                continue
+
+            if re.search(declare_pattern, sub_sentence, re.I) == None:
+                continue
+
+            var_strs = re.split(declare_pattern,sub_sentence,re.I)[1].strip()
+
+            for var in var_strs.split(','):
+                var = var.strip()
+
+                if var.find('=') != -1:
+                    var = re.sub(r'=.*', '', var)
+
+                if var.find('[') != -1:
+                    idx_list = re.findall(r'\[\d+\]',var,re.I)
+                    var = '*'*len(idx_list) + var.split('[')[0].strip()
+
+                c_declares['all'].add(var)
+                if assist_dict['addrss'] == 'BFmate':
+                    c_declares['BFmate'].add(var)
+
+    else:
+        return True
+    return False
 
 # --------------------------------------------------------------------------------------------------
 # ------------------------------------ report in terminal ------------------------------------------
