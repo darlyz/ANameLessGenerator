@@ -68,7 +68,9 @@ def check_xde(ges_info, xde_dict, xde_addr):
     check_code(ges_info, xde_dict, xde_addr, c_declares)
     print(c_declares)
 
-
+    print('Error=',error)
+    return error
+# end check_xde()
 
 def check_shap(ges_info, xde_dict, xde_addr):
 
@@ -418,6 +420,15 @@ def check_code(ges_info, xde_dict, xde_addr, c_declares):
             if lower_key in ['$cc','$c6','common'] :
                 if gather_declare(code_strs, line_num, assist, c_declares):
                     continue
+
+            elif lower_key == 'array':
+                gather_array_declare(code_strs, line_num, assist, c_declares)
+
+            elif lower_key == '$cv':
+                check_tensor_assign(code_strs, line_num, xde_dict, c_declares)
+
+            elif lower_key == '$cp':
+                check_complex_assign(code_strs, line_num, xde_dict, xde_addr, c_declares)
 # end check_code()
 
 def gather_declare(code_strs, line_num, assist_dict, c_declares):
@@ -469,6 +480,262 @@ def gather_declare(code_strs, line_num, assist_dict, c_declares):
     else:
         return True
     return False
+# end gather_declare()
+
+def gather_array_declare(code_strs, line_num, assist, c_declares):
+    
+    var_list = code_strs.replace(assist['ckey'],'').strip().split(',')
+
+    wrong_form_list = []
+
+    for var_strs in var_list:
+        var_name = var_strs.strip().split('[')[0]
+        idx_list = re.findall(r'\[\d+\]',var_strs,re.I)
+
+        if len(idx_list) == 1:
+
+            vect_len  = idx_list[0].lstrip('[').rstrip(']')
+            vect_list = [var_name+'['+str(ii+1)+']' for ii in range(int(vect_len))]
+
+            insert_array_declare(c_declares, assist, 'vect', vect_list, var_name)
+
+        elif len(idx_list) == 2:
+            
+            matr_row  = idx_list[0].lstrip('[').rstrip(']')
+            matr_clm  = idx_list[1].lstrip('[').rstrip(']')
+            matr_list = [var_name+'['+str(ii+1)+']['+str(jj+1)+']' \
+                            for jj in range(int(matr_clm)) \
+                                for ii in range(int(matr_row))]
+
+            insert_array_declare(c_declares, assist, 'matrix', matr_list, var_name)
+
+        else:
+            wrong_form_list.append(var_strs)
+
+    if len(wrong_form_list) != 0:
+        warn_type   = unsuitable_form(', '.join(wrong_form_list), 'Warn')
+        sgest_info  = "Right form write as 'a[d]' or '^a[d][d]', where " \
+                    + "'a' means charactors and 'd' means digitals.\n"
+        report_warn('CUF01', line_num, warn_type + sgest_info)
+# end gather_array_declare()
+
+def insert_array_declare(c_declares, assist, vtype, vlist, var_name):
+
+    c_declares['all'] |= set(vlist)
+    c_declares['array'][vtype].add(var_name)
+
+    if assist['addrss'] == 'BFmate':
+        c_declares['BFmate'] |= set(vlist)
+# end insert_array_declare()
+
+def check_tensor_assign(code_strs, line_num, xde_dict, c_declares, complex_tag = 0):
+
+    tensor_pattern = re.compile(r'\^?[a-z][a-z0-9]*(?:_[a-z])+',re.I)
+    tensor_list = tensor_pattern.findall(code_strs)
+
+    if len(tensor_list) == 0 \
+    and code_strs.find('{') == -1:
+        sgest_info = "there is no tensor or derivation of " \
+                   + "'coef' variable, need not to use '$CV'.\n"
+        report_warn('CUF02', line_num, sgest_info)
+
+    elif complex_tag == 0:
+        wrong_form_list = []
+        vect_not_found  = []
+        matr_not_found  = []
+
+        for tensor in set(tensor_list):
+            tensor_name = tensor.split('_')[0]
+
+            # find all the vectors not declared
+            if tensor.count('_') == 1:
+                if ( 'vect' not in xde_dict \
+                    or ( 'vect' in xde_dict \
+                        and tensor_name not in xde_dict['vect'] ) ) \
+                and tensor_name not in c_declares['array']['vect']:
+
+                    vect_not_found.append(tensor)
+
+            # find all the matrices not declared
+            elif tensor.count('_') == 2:
+                if ( 'matrix' not in xde_dict \
+                    or ( 'matrix' in xde_dict \
+                        and tensor_name not in xde_dict['matrix'] ) ) \
+                and tensor_name not in c_declares['array']['matrix']:
+
+                    matr_not_found.append(tensor)
+
+            # find all the wrong form
+            else:
+                wrong_form_list.append(tensor)
+
+        # check all the vectors not declared
+        if len(vect_not_found) != 0:
+            error_type = not_declared(', '.join(set(vect_not_found)), 'Error')
+            sgest_info = "It must declared by 'VECT' or 'ARRAY'.\n"
+            report_error('CND03', line_num, error_type + sgest_info)
+
+        # check all the matrices not declared
+        if len(matr_not_found) != 0:
+            error_type = not_declared(', '.join(set(matr_not_found)), 'Error')
+            sgest_info = "It must declared by 'MATRIX' or 'ARRAY'.\n"
+            report_error('CND04', line_num, error_type + sgest_info)
+
+        # check all the wrong form
+        if len(wrong_form_list) != 0:
+            warn_type   = unsuitable_form(', '.join(set(wrong_form_list)), 'Warn')
+            sgest_info  = "Right form write as 'a[d]' or '^a[d][d]', where " \
+                        + "'a' means charactors and 'd' means digitals.\n"
+            report_warn('CUF05', line_num, warn_type + sgest_info)
+# end check_tensor_assign()
+
+def check_complex_assign(code_strs, line_num, xde_dict, xde_addr, c_declares):
+
+    var_pattern = re.compile(r'\^?[a-z]\w*',re.I)
+    var_list = var_pattern.findall(code_strs)
+    tensor_list, scalar_list = [], []
+
+    for var in var_list:
+        if var.find('_') != -1:
+            tensor_list.append(var)
+        else:
+            scalar_list.append(var)
+
+    if len(scalar_list) != 0:
+
+        real_list = []
+        imag_list = []
+
+        for var in set(scalar_list):
+
+            # find all real part not declared
+            if var+'r' not in c_declares['all']:
+                real_list.append(var)
+
+            # find all image part not declared
+            if var+'i' not in c_declares['all']:
+                imag_list.append(var)
+
+        # check all real part not declared
+        if len(real_list) != 0:
+            error_type = not_declared('real of '+', '.join(real_list), 'Error')
+            report_error('CND06', line_num, error_type + '\n')
+
+        # check all image part not declared
+        if len(imag_list) != 0:
+            error_type = not_declared('imag of '+', '.join(imag_list), 'Error')
+            report_error('CND07', line_num, error_type + '\n')
+                
+    if len(tensor_list) != 0:
+        
+        check_tensor_assign(code_strs, line_num, xde_dict, c_declares, 1)
+
+        vect_not_found  = []
+        matr_not_found  = []
+        vect_real_not_found = []
+        vect_imag_not_found = []
+        matr_real_not_found = []
+        matr_imag_not_found = []
+        
+        for tensor in set(tensor_list):
+
+            tensor_name = tensor.split('_')[0]
+
+            if tensor.count('_') == 1:
+
+                if 'vect' in xde_addr \
+                and tensor_name in xde_addr['vect']:
+                    vect_line_num = xde_addr['vect'][tensor_name]
+                else:
+                    continue
+
+                if ( 'vect' not in xde_dict \
+                    or ( 'vect' in xde_dict \
+                        and tensor_name not in xde_dict['vect'] ) ) \
+                or tensor_name in c_declares['array']['vect']:
+
+                    vect_not_found.append(tensor)
+
+                else:
+                    for var in xde_dict['vect'][tensor_name]: 
+                        
+                        if var+'r' not in c_declares['all']:
+
+                            Empha_info = f'real of {var} in vector ' \
+                                       + f'{tensor_name}(line {vect_line_num})'
+                            error_type = not_declared(Empha_info, 'Error')
+
+                            vect_real_not_found.append('\t'+error_type)
+
+                        if var+'i' not in c_declares['all']:
+
+                            Empha_info = f'imag of {var} in vector ' \
+                                       + f'{tensor_name}(line {vect_line_num})'
+                            error_type = not_declared(Empha_info, 'Error')
+
+                            vect_imag_not_found.append('\t'+error_type)
+
+            elif tensor.count('_') == 2:
+
+                if ( 'matrix' not in xde_dict \
+                    or ( 'matrix' in xde_dict \
+                        and tensor_name not in xde_dict['matrix'] ) ) \
+                or tensor_name in c_declares['array']['matrix']:
+
+                    matr_not_found.append(tensor)
+
+                else:
+
+                    matrix_list      = xde_dict['matrix'][tensor_name][2:].copy()
+                    matrix_line_nums = xde_addr['matrix'][tensor_name][1:].copy()
+
+                    for vars_list, matr_line_num in zip(matrix_list, matrix_line_nums):
+                        var_regx = re.compile(r'[a-z][a-z0-9]*',re.I)
+
+                        for var in set(var_regx.findall(' '.join(vars_list))):
+
+                            if var+'r' not in c_declares['all']:
+
+                                Empha_info = f'real of {var} in matrix ' \
+                                           + f'{tensor_name}(line {matr_line_num})'
+                                error_type = not_declared(Empha_info, 'Error')
+
+                                matr_real_not_found.append('\t'+error_type)
+
+                            if var+'i' not in c_declares['all']:
+
+                                Empha_info = f'imag of {var} in matrix ' \
+                                           + f'{tensor_name}(line {matr_line_num})'
+                                error_type = not_declared(Empha_info, 'Error')
+
+                                matr_imag_not_found.append('\t'+error_type)
+
+        # check all the vectors not declared
+        if len(vect_not_found) != 0:
+            error_type = not_declared(', '.join(set(vect_not_found)), 'Error')
+            sgest_info = "It must declared by 'VECT'.\n"
+            report_error('CND08', line_num, error_type + sgest_info)
+
+        # check all the matrices not declared
+        if len(matr_not_found) != 0:
+            error_type = not_declared(', '.join(set(matr_not_found)), 'Error')
+            sgest_info = "It must declared by 'matrix'.\n"
+            report_error('CND09', line_num, error_type + sgest_info)
+
+        if len(vect_real_not_found) != 0:
+            report_error('CND10', line_num, '\n' + '\n'.join(set(vect_real_not_found)) + '\n')
+
+        if len(vect_imag_not_found) != 0:
+            report_error('CND11', line_num, '\n' + '\n'.join(set(vect_imag_not_found)) + '\n')
+
+        if len(matr_real_not_found) != 0:
+            report_error('CND12', line_num, '\n' + '\n'.join(set(matr_real_not_found)) + '\n')
+
+        if len(matr_imag_not_found) != 0:
+            report_error('CND13', line_num, '\n' + '\n'.join(set(matr_imag_not_found)) + '\n')
+# end check_complex_assign()
+
+
 
 # --------------------------------------------------------------------------------------------------
 # ------------------------------------ report in terminal ------------------------------------------

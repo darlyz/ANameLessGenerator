@@ -14,23 +14,29 @@ Empha_color = Fore.GREEN
 import re
 import json
 from genxde import gen_obj, ifo_folder
+from check_xde import check_xde
 
-dict_check = {'pre':0, 'sec':1, 'fnl':0}
-addr_check = {'pre':0, 'sec':1, 'fnl':0}
+dict_check = {'pre':1, 'sec':1, 'fnl':0}
+addr_check = {'pre':1, 'sec':1, 'fnl':0}
 
 def parse_xde(ges_info, xde_dict, xde_addr, xdefile):
 
+    # parse xde to features and workflow features
+    # just push the sentence into dict
+    # report the meaningless sentence and paragraph declaration error
     pre_parse(xde_dict, xde_addr, xdefile)
 
+    # a simple parsing feature sentence to list
+    # and check the duplicated of some feature declaration
     sec_parse(xde_dict, xde_addr)
     
-    #if gen_obj['check'] > 0:
-    #    from check_xde import check_xde
-    #    error = check_xde(ges_info, xde_dict, xde_addr)
-    #    if error :
-    #        return error
-    # 
-    #sec_parse(ges_info, xde_dict, xde_addr)
+    # fully check all features 
+    if gen_obj['check'] > 0:
+        if check_xde(ges_info, xde_dict, xde_addr):
+            return True
+ 
+    # parse features into a readable and transable style
+    #fnl_parse(ges_info, xde_dict, xde_addr)
 
     return False
 
@@ -249,24 +255,36 @@ def sec_parse(xde_dict, xde_addr):
         if keyword in ['disp','coef','coor','gaus','mate']:
 
             if len(xde_dict[keyword]) > 1:
-                report_duplicated_declaration(keyword, xde_addr)
+                declared_linenum   = xde_addr[keyword][0]
+                duplicated_linenum = ','.join(map(str,xde_addr[keyword][1:]))
+                report_duplicated_declaration(keyword, declared_linenum, duplicated_linenum)
             
             xde_dict[keyword] = xde_dict[keyword][0].split()[1:]
+            xde_addr[keyword] = xde_addr[keyword][0]
 
         elif keyword == 'vect':
 
             vect_list = xde_dict['vect'].copy()
-            xde_dict['vect'].clear()
-            xde_dict['vect'] = {}
+            vect_addr = xde_addr['vect'].copy()
 
-            for vect in vect_list:
+            xde_dict['vect'].clear()
+            xde_addr['vect'].clear()
+            
+            xde_dict['vect'] = {}
+            xde_addr['vect'] = {}
+
+            for vect, line_num in zip(vect_list, vect_addr):
                 vect = re.sub(r'vect', '', vect,0,re.I)
+
                 if vect.find('=') != -1:
                     name, component = vect.split('=')
                     xde_dict['vect'][name.rstrip()] = component.lstrip().split()
+                    xde_addr['vect'][name.rstrip()] = line_num
+
                 else:
                     temp_list = vect.split()
                     xde_dict['vect'][temp_list[0]] = temp_list[1:]
+                    xde_addr['vect'][temp_list[0]] = line_num
 
         elif keyword == 'matrix':
 
@@ -338,7 +356,7 @@ def sec_parse(xde_dict, xde_addr):
 
             for func in func_list:
                 func = re.sub(r'func', '', func,0,re.I)
-                xde_dict['func'] += func.lstrip().split()
+                xde_dict['func'].append(func.lstrip().split())
 
         elif keyword == 'shap':
 
@@ -370,30 +388,72 @@ def sec_parse(xde_dict, xde_addr):
 
         elif keyword in ['mass', 'damp','stif']:
 
-            key_list = xde_dict[keyword].copy()
+            weak_list = xde_dict[keyword].copy()
+            addr_list = xde_addr[keyword].copy()
             xde_dict[keyword].clear()
+            xde_addr[keyword].clear()
+            weak_para_list = []
+            addr_para_list = []
 
-            if key_list[0].lower() == keyword \
-            and re.match(r'dist', key_list[1], re.I) != None:
+            # push duplicated weak paragraph into 
+            # [[],[]..] style of weak_para_list
+            # so as to addr_para_list
+            para_count = -1
+            for strs, line_num in zip(weak_list, addr_list):
+                if strs[:4].lower() == keyword:
+                    para_count += 1
+                    weak_para_list.append([])
+                    addr_para_list.append([])
+                weak_para_list[para_count].append(strs)
+                addr_para_list[para_count].append(line_num)
+
+            if len(weak_para_list) > 1:
+                declared_linenum = addr_para_list[0][0]
+                duplicated_linenum = ','.join(map(str,[x[0] for x in addr_para_list[1:]]))
+                report_duplicated_declaration(keyword, declared_linenum, duplicated_linenum)
+
+            # parse first declaration
+            weak_list = weak_para_list[0]
+            addr_list = addr_para_list[0]
+
+            # distributed weak form declaration
+            if weak_list[0].lower() == keyword \
+            and re.match(r'dist', weak_list[1], re.I) != None:
 
                 xde_dict[keyword].append('dist')
-                xde_dict[keyword].append(key_list[1].split('=')[1].lstrip())
+                
+                try:
+                    xde_dict[keyword].append(weak_list[1].split('=')[1].lstrip())
+                
+                except IndexError:
+                    print(f"{Error_color}Error SEC04: line {Empha_color}{addr_list[1]}, " \
+                          f"{Error_color}error form of {Empha_color}'{weak_list[1][:10]}...', " \
+                          f"{Error_color}missing '=' after '{weak_list[1][:4]}'.\n")
+                
+                xde_addr[keyword].append(addr_list[1])
 
-                if len(key_list) >2 :
-                    for strs in key_list[2:]:
-                        xde_dict[keyword].append(strs)
+                if len(weak_list) >2 :
+                    for line_str, line_num in zip(weak_list[2:], addr_list[2:]):
+                        xde_dict[keyword].append(line_str)
+                        xde_addr[keyword].append(line_num)
 
+            # lumped weak form declaration
             else:
                 xde_dict[keyword].append('lump')
-                xde_dict[keyword] += re.sub(keyword, '', key_list[0], 0, re.I).lstrip().split()
+                xde_dict[keyword] += re.sub(keyword, '', weak_list[0], 0, re.I).lstrip().split()
+                xde_addr[keyword] = addr_list[0]
 
         elif keyword == 'load':
+            for i,load_str in enumerate(xde_dict['load']):
+                if load_str[:4].lower() == 'load':
 
-            xde_dict['load'][0] = xde_dict['load'][0].split('=')[1]
+                    try:
+                        xde_dict['load'][i] = load_str.split('=')[1].lstrip()
 
-
-
-
+                    except IndexError:
+                        print(f"{Error_color}Error SEC05: line {Empha_color}{xde_addr['load'][i]}, " \
+                              f"{Error_color}error form of {Empha_color}'{load_str[:10]}...', " \
+                              f"{Error_color}missing '=' after '{load_str[:4]}'.\n")
 
     if dict_check['sec'] != 0:
         file = open(ifo_folder + 'sec_check.json', mode='w')
@@ -405,7 +465,10 @@ def sec_parse(xde_dict, xde_addr):
         file.close()
 # end pre_parse()
 
-def report_duplicated_declaration(keyword, xde_addr):
+def report_duplicated_declaration(keyword, declared_linenum, duplicated_linenum):
     print(f"{Error_color}Error SEC01: duplicated declaration of '{keyword}' at "\
-          f"line {Empha_color}{','.join(map(str,xde_addr[keyword][1:]))}, "\
-          f"{Error_color}it has been declared at line {Empha_color}{xde_addr[keyword][0]}.\n")
+          f"line {Empha_color}{duplicated_linenum}, {Error_color}it has been "\
+          f"declared at line {Empha_color}{declared_linenum}.\n")
+
+def fnl_parse(ges_info, xde_dict, xde_addr):
+    pass
