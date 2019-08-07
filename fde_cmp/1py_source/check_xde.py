@@ -66,7 +66,6 @@ def check_xde(ges_info, xde_dict, xde_addr):
     # check insert code and gether c code variable declaration
     c_declares = {}
     check_code(ges_info, xde_dict, xde_addr, c_declares)
-    print(c_declares)
 
     print('Error=',error)
     return error
@@ -429,6 +428,10 @@ def check_code(ges_info, xde_dict, xde_addr, c_declares):
 
             elif lower_key == '$cp':
                 check_complex_assign(code_strs, line_num, xde_dict, xde_addr, c_declares)
+
+            elif lower_key == '@l':
+                if check_operator(code_strs, line_num, xde_dict, xde_addr, c_declares):
+                    continue
 # end check_code()
 
 def gather_declare(code_strs, line_num, assist_dict, c_declares):
@@ -649,6 +652,7 @@ def check_complex_assign(code_strs, line_num, xde_dict, xde_addr, c_declares):
                 else:
                     continue
 
+                # gether vectors not declared by 'vect'
                 if ( 'vect' not in xde_dict \
                     or ( 'vect' in xde_dict \
                         and tensor_name not in xde_dict['vect'] ) ) \
@@ -659,6 +663,7 @@ def check_complex_assign(code_strs, line_num, xde_dict, xde_addr, c_declares):
                 else:
                     for var in xde_dict['vect'][tensor_name]: 
                         
+                        # gether real part of component of vector not declared
                         if var+'r' not in c_declares['all']:
 
                             Empha_info = f'real of {var} in vector ' \
@@ -667,6 +672,7 @@ def check_complex_assign(code_strs, line_num, xde_dict, xde_addr, c_declares):
 
                             vect_real_not_found.append('\t'+error_type)
 
+                        # gether iamge part of component of vector not declared
                         if var+'i' not in c_declares['all']:
 
                             Empha_info = f'imag of {var} in vector ' \
@@ -677,6 +683,7 @@ def check_complex_assign(code_strs, line_num, xde_dict, xde_addr, c_declares):
 
             elif tensor.count('_') == 2:
 
+                # gether matrics not declared by 'matrix'
                 if ( 'matrix' not in xde_dict \
                     or ( 'matrix' in xde_dict \
                         and tensor_name not in xde_dict['matrix'] ) ) \
@@ -694,6 +701,7 @@ def check_complex_assign(code_strs, line_num, xde_dict, xde_addr, c_declares):
 
                         for var in set(var_regx.findall(' '.join(vars_list))):
 
+                            # gether real part of component of matrix not declared
                             if var+'r' not in c_declares['all']:
 
                                 Empha_info = f'real of {var} in matrix ' \
@@ -702,6 +710,7 @@ def check_complex_assign(code_strs, line_num, xde_dict, xde_addr, c_declares):
 
                                 matr_real_not_found.append('\t'+error_type)
 
+                            # gether image part of component of matrix not declared
                             if var+'i' not in c_declares['all']:
 
                                 Empha_info = f'imag of {var} in matrix ' \
@@ -710,31 +719,170 @@ def check_complex_assign(code_strs, line_num, xde_dict, xde_addr, c_declares):
 
                                 matr_imag_not_found.append('\t'+error_type)
 
-        # check all the vectors not declared
+        # check all the vectors not declared by 'vect'
         if len(vect_not_found) != 0:
             error_type = not_declared(', '.join(set(vect_not_found)), 'Error')
             sgest_info = "It must declared by 'VECT'.\n"
             report_error('CND08', line_num, error_type + sgest_info)
 
-        # check all the matrices not declared
+        # check all the matrices not declared by 'matrix'
         if len(matr_not_found) != 0:
             error_type = not_declared(', '.join(set(matr_not_found)), 'Error')
             sgest_info = "It must declared by 'matrix'.\n"
             report_error('CND09', line_num, error_type + sgest_info)
 
+        # check all of real part of component of vector not declared
         if len(vect_real_not_found) != 0:
             report_error('CND10', line_num, '\n' + '\n'.join(set(vect_real_not_found)) + '\n')
 
+        # check all of image part of component of vector not declared
         if len(vect_imag_not_found) != 0:
             report_error('CND11', line_num, '\n' + '\n'.join(set(vect_imag_not_found)) + '\n')
 
+        # check all of real part of component of matrix not declared
         if len(matr_real_not_found) != 0:
             report_error('CND12', line_num, '\n' + '\n'.join(set(matr_real_not_found)) + '\n')
 
+        # check all of image part of component of matrix not declared
         if len(matr_imag_not_found) != 0:
             report_error('CND13', line_num, '\n' + '\n'.join(set(matr_imag_not_found)) + '\n')
 # end check_complex_assign()
 
+def check_operator(code_strs, line_num, xde_dict, xde_addr, c_declares):
+
+    code_list = code_strs.split()
+
+    try:
+        opr_name, opr_axis = code_list[0].split('.')
+
+    # code_list[0] has no '.'
+    except ValueError:
+        error_type  = unsuitable_form(code_list[0],'Error')
+        sgest_info  = "Suggested form as 'operator.axis', " \
+                    + "for isinstance 'grad.xyz'.\n"
+        report_error('OUF01', line_num, error_type + sgest_info)
+
+    # code_list is empty
+    except IndexError:
+        error_type  = unsuitable_form('', 'Error')
+        report_error('OUF02', line_num, 'Empty operator.\n')
+
+    else:
+
+        # check that operator.axis is in oprt_name_list
+        if code_list[0].lower() not in oprt_name_list:
+            error_type  = unsuitable_form(code_strs, 'Error')
+            sgest_info  = Empha_color + code_list[0] \
+                        + Error_color + " is not a default operator.\n"
+            report_error('OUF03', line_num, error_type + sgest_info)
+            return True
+
+        try:
+            opr_deed = code_list[1].lower()
+
+        # no following operator action
+        except IndexError:
+            error_type  = unsuitable_form(code_list[0],'Error')
+            sgest_info  = "No action and object definded after operator, " \
+                        + "for isinstance 'grad.xyz f dp'.\n"
+            report_error('OUF04', line_num, error_type + sgest_info)
+
+        else:
+
+            if opr_deed == 'n':
+
+                # redundancy for operator deed 'n'
+                if len(code_list[2:]) != 0:
+                    warn_type  = unsuitable_form(code_strs, 'Warn')
+                    sgest_info = "useless information after 'n'.\n"
+                    report_warn('OUF05', line_num, warn_type + sgest_info)
+
+            else:
+                try:
+                    opr_object = code_list[2]
+
+                # no following operator object
+                except IndexError:
+                    error_type  = unsuitable_form(code_list[0],'Error')
+                    sgest_info  = "No object definded after operator action, " \
+                                + "for isinstance 'grad.xyz f dp'.\n"
+                    report_error('OUF06', line_num, error_type + sgest_info)
+
+                opr_parameters = code_list[3:].copy()
+
+                # get default parameters of operator
+                if len(opr_parameters) == 0:
+
+                    opr_default_disp_paramater = operator_data[opr_name][opr_axis]['disp']
+                    opr_default_disp_length    = len(opr_default_disp_paramater)
+
+                    opr_parameters += list(opr_axis)
+
+                    if 'disp' in xde_dict \
+                    and opr_deed == 'f':
+                        opr_parameters += xde_dict['disp'][:opr_default_disp_length]
+
+                    elif 'coef' in xde_dict \
+                    and opr_deed in ['c','v','m']:
+                        opr_parameters += xde_dict['coef'][:opr_default_disp_length]
+
+                    if   opr_axis in ['oz', 'so']:
+                        opr_parameters.insert(0,'r')
+
+                    elif opr_axis == 's':
+                        opr_parameters[0] = 'r'
+                
+                # get provided parameters of operator
+                else:
+
+                    opr_parameters.clear()
+
+                    for strs in code_list[3:]:
+
+                        if   strs.find('_') == -1:
+                            opr_parameters.append(strs)
+
+                        elif strs.count('_') == 1:
+                            vector = strs.split('_')[0]
+
+                            if 'vect' not in xde_dict \
+                            or ( 'vect' in xde_dict \
+                                and vector not in xde_dict['vect'] ):
+
+                                error_type = not_declared(vector, 'Error')
+                                sgest_info = "It must be declared by 'VECT'.\n"
+                                report_error('OND07', line_num, error_type + sgest_info)
+
+                            else:
+                                opr_parameters += xde_dict['vect'][vector]
+
+                        else:
+                            error_type = unsuitable_form(strs, 'Error')
+                            sgest_info = "only vector or scalar can be operator's variable.\n"
+                            report_error('OND08', line_num, error_type + sgest_info)
+
+                # split axis and normal variables
+                opr_axis_list = []
+                for strs in opr_parameters:
+                
+                    if strs in list('xyzros') \
+                    or strs in xde_dict['coor']:
+                        opr_axis_list.append(strs)
+                    else:
+                        break
+
+                opr_disp_list = opr_parameters.copy()
+                for strs in opr_axis_list:
+                    opr_disp_list.remove(strs)
+
+                
+
+
+
+        
+
+
+# end check_operator()
 
 
 # --------------------------------------------------------------------------------------------------
