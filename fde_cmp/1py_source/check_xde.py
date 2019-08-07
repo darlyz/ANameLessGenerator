@@ -432,6 +432,9 @@ def check_code(ges_info, xde_dict, xde_addr, c_declares):
             elif lower_key == '@l':
                 if check_operator(code_strs, line_num, xde_dict, xde_addr, c_declares):
                     continue
+
+            elif lower_key in ['@w', '@s']:
+                check_ftensor_assign_1(code_strs, line_num, xde_dict, xde_addr, c_declares, lower_key)
 # end check_code()
 
 def gather_declare(code_strs, line_num, assist_dict, c_declares):
@@ -810,79 +813,451 @@ def check_operator(code_strs, line_num, xde_dict, xde_addr, c_declares):
 
                 opr_parameters = code_list[3:].copy()
 
-                # get default parameters of operator
-                if len(opr_parameters) == 0:
+                opr_features = {}
+                opr_features['name'] = opr_name
+                opr_features['axis'] = opr_axis
+                opr_features['deed'] = opr_deed
+                opr_features['objt'] = opr_object
+                opr_features['parameters'] = opr_parameters
 
-                    opr_default_disp_paramater = operator_data[opr_name][opr_axis]['disp']
-                    opr_default_disp_length    = len(opr_default_disp_paramater)
+                check_operator_content(opr_features, code_strs, line_num,  xde_dict, xde_addr, c_declares)
 
-                    opr_parameters += list(opr_axis)
-
-                    if 'disp' in xde_dict \
-                    and opr_deed == 'f':
-                        opr_parameters += xde_dict['disp'][:opr_default_disp_length]
-
-                    elif 'coef' in xde_dict \
-                    and opr_deed in ['c','v','m']:
-                        opr_parameters += xde_dict['coef'][:opr_default_disp_length]
-
-                    if   opr_axis in ['oz', 'so']:
-                        opr_parameters.insert(0,'r')
-
-                    elif opr_axis == 's':
-                        opr_parameters[0] = 'r'
-                
-                # get provided parameters of operator
-                else:
-
-                    opr_parameters.clear()
-
-                    for strs in code_list[3:]:
-
-                        if   strs.find('_') == -1:
-                            opr_parameters.append(strs)
-
-                        elif strs.count('_') == 1:
-                            vector = strs.split('_')[0]
-
-                            if 'vect' not in xde_dict \
-                            or ( 'vect' in xde_dict \
-                                and vector not in xde_dict['vect'] ):
-
-                                error_type = not_declared(vector, 'Error')
-                                sgest_info = "It must be declared by 'VECT'.\n"
-                                report_error('OND07', line_num, error_type + sgest_info)
-
-                            else:
-                                opr_parameters += xde_dict['vect'][vector]
-
-                        else:
-                            error_type = unsuitable_form(strs, 'Error')
-                            sgest_info = "only vector or scalar can be operator's variable.\n"
-                            report_error('OND08', line_num, error_type + sgest_info)
-
-                # split axis and normal variables
-                opr_axis_list = []
-                for strs in opr_parameters:
-                
-                    if strs in list('xyzros') \
-                    or strs in xde_dict['coor']:
-                        opr_axis_list.append(strs)
-                    else:
-                        break
-
-                opr_disp_list = opr_parameters.copy()
-                for strs in opr_axis_list:
-                    opr_disp_list.remove(strs)
-
-                
-
-
-
-        
-
-
+    return False
 # end check_operator()
+
+def check_operator_content(opr_features, code_strs, line_num, xde_dict, xde_addr, c_declares):
+
+    opr_name = opr_features['name']
+    opr_axis = opr_features['axis']
+    opr_deed = opr_features['deed']
+    opr_object = opr_features['objt']
+    opr_parameters = opr_features['parameters']
+
+    opr_default_disp_paramater = operator_data[opr_name][opr_axis]['disp']
+    opr_default_disp_length    = len(opr_default_disp_paramater)
+    opr_default_axis_paramater = operator_data[opr_name][opr_axis]['axis']
+    opr_default_axis_length    = len(opr_default_axis_paramater)
+
+    # get default parameters of operator
+    if len(opr_parameters) == 0:
+
+        opr_parameters += list(opr_axis)
+
+        if 'disp' in xde_dict \
+        and opr_deed == 'f':
+            opr_parameters += xde_dict['disp'][:opr_default_disp_length]
+
+        elif 'coef' in xde_dict \
+        and opr_deed in ['c','v','m']:
+            opr_parameters += xde_dict['coef'][:opr_default_disp_length]
+
+        if   opr_axis in ['oz', 'so']:
+            opr_parameters.insert(0,'r')
+
+        elif opr_axis == 's':
+            opr_parameters[0] = 'r'
+    
+    # get provided parameters of operator
+    else:
+
+        temp_list = opr_parameters.copy()
+        opr_parameters.clear()
+
+        for strs in temp_list:
+
+            if   strs.find('_') == -1:
+                opr_parameters.append(strs)
+
+            elif strs.count('_') == 1:
+                vector = strs.split('_')[0]
+
+                if 'vect' not in xde_dict \
+                or ( 'vect' in xde_dict \
+                    and vector not in xde_dict['vect'] ):
+
+                    error_type = not_declared(vector, 'Error')
+                    sgest_info = "It must be declared by 'VECT'.\n"
+                    report_error('OND07', line_num, error_type + sgest_info)
+
+                else:
+                    opr_parameters += xde_dict['vect'][vector]
+
+            else:
+                error_type = unsuitable_form(strs, 'Error')
+                sgest_info = "only vector or scalar can be operator's variable.\n"
+                report_error('OUF08', line_num, error_type + sgest_info)
+
+    # get axis variables
+    opr_axis_list = []
+    for strs in opr_parameters:
+    
+        if strs in list('xyzros') \
+        or strs in xde_dict['coor']:
+            opr_axis_list.append(strs)
+        else:
+            break
+
+    # get disp or coef variables
+    opr_disp_list = opr_parameters.copy()
+    for strs in opr_axis_list:
+        opr_disp_list.remove(strs)
+
+    opr_axis_list_length = len(opr_axis_list)
+    opr_disp_list_length = len(opr_disp_list)
+
+    # check the axis and disp or coef variables count of operator parameters
+    if opr_axis_list_length != opr_default_axis_length:
+        error_type  = unsuitable_form(code_strs, 'Error')
+        sgest_info  = f"need {opr_default_axis_length} axis " \
+                    + f"but provided {opr_axis_list_length}.\n"
+        report_error('OUF09', line_num, error_type + sgest_info)
+
+    if opr_disp_list_length != opr_default_disp_length:
+        error_type  = unsuitable_form(code_strs, 'Error')
+        sgest_info  = f"need {opr_default_disp_length} disp " \
+                    + f"but provided {opr_disp_list_length}.\n"
+        report_error('OUF10', line_num, error_type + sgest_info)
+
+    
+    # warning that operator's axis be not in accordance with 'coor' declaration
+    if 'coor' in xde_dict \
+    and opr_axis != ''.join(xde_dict['coor']):
+        warn_type   = unsuitable_form(opr_name+'.'+opr_axis, 'Warn')
+        sgest_info  = f"coordinate of operator {Empha_color}'{opr_axis}' " \
+                    + f"{Warnn_color}is not consistance with 'coor' declaration " \
+                    + f"{Empha_color}'{' '.join(xde_dict['coor'])}' {Warnn_color}in line " \
+                    + f"{Empha_color}{str(xde_addr['coor'])}, {Warnn_color}" \
+                    + "and please make sure that it is necessary to do so.\n"
+        report_warn('OUF11', line_num, warn_type + sgest_info)
+
+    # check operator actions
+    if opr_deed in ['c','v','m']:
+        
+        # normal variables of operator must be declared in 'COEF'
+        if 'coef' not in xde_dict:
+            diff_set = set(opr_disp_list)
+        else:
+            diff_set = set(opr_disp_list).difference(set(xde_dict['coef']))
+
+        if len(diff_set) != 0:
+            error_type = unsuitable_form(code_strs, 'Error')
+            sgest_info = f"'{', '.join(list(diff_set))}' must be declared in 'COEF'.\n"
+            report_error('OUF12', line_num, error_type + sgest_info)
+
+        # 'c' means resault of operator assigned to scalar (c code declared)
+        if opr_deed == 'c':
+            if opr_object not in c_declares['all']:
+                error_type = not_declared(opr_object, 'Error')
+                sgest_info = f'it must be declared before line {line_num}.\n'
+                report_error('OND13', line_num, error_type + sgest_info)
+
+        # 'v' means resault of operator assigned to vector (vect declared)
+        elif opr_deed == 'v':
+            if  'vect' in xde_dict \
+            and opr_object not in xde_dict['vect'] \
+            and opr_object not in c_declares['array']['vect']:
+                error_type = not_declared(opr_object, 'Error')
+                sgest_info = "it must be declared by 'VECT' or 'ARRAY'.\n"
+                report_error('OND14', line_num, error_type + sgest_info)
+
+        # 'm' means resault of operator assigned to matrix (matrix declared)
+        elif opr_deed == 'm':
+            if  'matrix' in xde_dict \
+            and opr_object not in xde_dict['matrix'] \
+            and opr_object not in c_declares['array']['matrix']:
+                error_type = not_declared(opr_object, 'Error')
+                sgest_info = "it must be declared by 'MATRIX' or 'ARRAY'.\n"
+                report_error('OND15', line_num, error_type + sgest_info)
+
+    # 'f' means resault of operator assigned to fvect or fmatr
+    elif opr_deed == 'f':
+
+        # normal variables of operator must be declared in 'DISP'
+        if 'disp' not in xde_dict:
+            diff_set = set(opr_disp_list)
+        else:
+            diff_set = set(opr_disp_list).difference(set(xde_dict['disp']))
+
+        if len(diff_set) != 0:
+            error_type = unsuitable_form(code_strs, 'Error')
+            sgest_info = f"'{' '.join(list(diff_set))}' must be declared in 'DISP'.\n"
+            report_error('OUF16', line_num, error_type + sgest_info)
+
+        # check object of operator is declared by 'FVECT' or 'FMATR'
+        fvect = 'fvect' in xde_dict and opr_object in xde_dict['fvect']
+        fmatr = 'fmatr' in xde_dict and opr_object in xde_dict['fmatr']
+
+        # object of operator not allowed to be declared by 'FVECT' or 'FMATR' at the same time
+        if  fvect and fmatr:
+            error_type  = faultly_declared(opr_object, 'Error')
+            sgest_info  = f"It not allowed to be declared by 'FVECT'" \
+                        + f"(line {Empha_color}{xde_addr['fvect'][opr_object]}" \
+                        + f"{Error_color}) and 'FMATR'" \
+                        + f"(line {Empha_color}{xde_addr['fmatr'][opr_object]}" \
+                        + f"{Error_color}) at the same time.\n"
+            report_error('OFD17', line_num, error_type + sgest_info)
+
+        elif not fvect and not fmatr:
+            error_type = not_declared(opr_object, 'Error')
+            sgest_info = "it must be declared by 'FVECT' or 'FMATR'.\n"
+            report_error('OND18', line_num, error_type + sgest_info)
+
+    else:
+        error_type = unsuitable_form(code_strs, 'Error')
+        sgest_info = "first variable of operator must be one of '[n, c, v, m, f]'.\n"
+        report_error('OUF19', line_num, error_type + sgest_info)
+# end check_operator_content()
+
+def check_ftensor_assign_1(code_strs, line_num, xde_dict, xde_addr, c_declares, atype):
+
+    code_list = code_strs.split()
+
+    try:
+        left_tensor = code_list[0]
+    
+    except IndexError:
+        error_type = unsuitable_form('*', 'Error')
+        report_error('FUF01', line_num, 'Empty assignment.\n')
+
+    else:
+        try:
+            righ_tensor = code_list[1]
+
+        except IndexError:
+            error_type = unsuitable_form('*', 'Error')
+            report_error('FUF02', line_num, 'No right tensor followed.\n')
+
+        else:
+            try:
+                righ_indexs = list(map(int, code_list[2:]))
+
+            except ValueError:
+
+                error_type = unsuitable_form(f"{' '.join(code_list[2:])}", 'Error')
+                report_error('FUF03', line_num, error_type + 'Have none digitals.\n')
+
+            else:
+                ftensor_features = {}
+                ftensor_features['left'] = left_tensor
+                ftensor_features['righ'] = righ_tensor
+                ftensor_features['indx'] = righ_indexs
+
+                check_ftensor_assign_1_content(ftensor_features, line_num, xde_dict, xde_addr, c_declares, atype)
+# end check_ftensor_assign_1()
+
+def check_ftensor_assign_1_content(ftensor_features, line_num, xde_dict, xde_addr, c_declares, atype):
+
+    left_tensor = ftensor_features['left']
+    righ_tensor = ftensor_features['righ']
+    righ_indexs = ftensor_features['indx']
+
+    left_size, righ_size = 0, 0
+
+    if   atype == '@w':
+        tvect, tmatr = 'vect', 'matrix'
+    else:
+        tvect, tmatr = 'fvect', 'fmatr'
+
+    left_judge_tag = 0
+    duplicate_declared_info = []
+    duplicate_declared_type = []
+    declared_type = f"'{tvect}', '{tmatr}'"
+
+    # gether left tensor declaration by 'vect' or 'fvect'
+    if tvect in xde_dict and left_tensor in xde_dict[tvect]:
+        left_judge_tag += 1
+
+        error_str   = f"{Error_color}declared by '{tvect}' at line " \
+                    + f"{Empha_color}{xde_addr[tvect][left_tensor]}"
+                    
+        duplicate_declared_info.append('\t' + error_str)
+        duplicate_declared_type.append(f'{tvect}')
+
+        # check the component of left vector declared by 'func'
+        if atype == '@w':
+
+            left_size = len(xde_dict[tvect][left_tensor])
+
+            component_not_func = []
+            for strs in xde_dict[tvect][left_tensor]:
+                break_tag = False
+                for func_list in xde_dict['func']:
+                    if break_tag:
+                        break
+                    for func in func_list:
+                        if strs == func:
+                            break_tag = True
+                            break
+                if not break_tag:
+                    component_not_func.append(strs)
+
+            if len(component_not_func) != 0:
+                error_type  = not_declared(f"{', '.join(component_not_func)}", 'Error')
+                sgest_info  = f"The component of {tvect} {left_tensor}(line " \
+                            + f"{Empha_color}{xde_addr[tvect][left_tensor]}" \
+                            + f"{Error_color}) must declared by 'func'.\n"
+                report_error('FND04',line_num, error_type + sgest_info)
+
+        else:
+
+            left_size = xde_dict[tvect][left_tensor][0]
+
+    # gether left tensor declaration by 'matrix' or 'fmatr'
+    if tmatr in xde_dict and left_tensor in xde_dict[tmatr]:
+        left_judge_tag += 1
+
+        if tmatr == 'matrix':
+            tmatr_line_num = xde_addr[tmatr][left_tensor][0]
+        else:
+            tmatr_line_num = xde_addr[tmatr][left_tensor]
+
+        error_str   = f"{Error_color}declared by '{tmatr}' at line " \
+                    + f"{Empha_color}{tmatr_line_num}"
+
+        duplicate_declared_info.append('\t' + error_str)
+        duplicate_declared_type.append(f'{tmatr}')
+
+        left_size = xde_dict[tmatr][left_tensor][0] \
+                  * xde_dict[tmatr][left_tensor][1]
+
+        # check the component of left matrix declared by 'func'
+        if atype == '@w':
+
+            component_not_func = []
+            for str_list in xde_dict[tmatr][left_tensor][2:]:
+                for strs in str_list:
+                    break_tag = False
+                    for func_list in xde_dict['func']:
+                        if break_tag:
+                            break
+                        for func in func_list:
+                            if strs == func:
+                                break_tag = True
+                                break
+                    if not break_tag:
+                        component_not_func.append(strs)
+
+            if len(component_not_func) != 0:
+                error_type  = not_declared(f"{', '.join(component_not_func)}", 'Error')
+                sgest_info  = f"The component of {tmatr} {left_tensor}(line " \
+                            + f"{Empha_color}{xde_addr[tmatr][left_tensor][0]}" \
+                            + f"{Error_color})must declared by 'func'.\n"
+                report_error('FND05',line_num, error_type + sgest_info)
+
+    ''' !! comment it because left tensor must be component by 'func' variable
+    if atype == '@w':
+
+        declared_type += f", 'array' vector form, 'array' matrix form"
+
+        # gether declaration by 'array' vector form
+        if left_tensor in c_declares['array']['vect']:
+            left_judge_tag += 1
+
+            error_str   = f"{Error_color}declared by 'array' vector form " \
+                        + f"at line {Empha_color}{str(xde_addr['array'])}"
+
+            duplicate_declared_info.append('\t' + error_str)
+            duplicate_declared_type.append("'array' vector form")
+
+        # gether declaration by 'array' matrix form
+        if left_tensor in c_declares['array']['matrix']:
+            left_judge_tag += 1
+
+            error_str   = f"{Error_color}declared by 'array' matrix form " \
+                        + f"at line {Empha_color}{str(xde_addr['array'])}"
+
+            duplicate_declared_info.append('\t' + error_str)
+            duplicate_declared_type.append("'array' matrix form")
+    '''
+
+    # check left tensor duplicated declaration
+    if left_judge_tag > 1:
+        error_type  = faultly_declared(left_tensor, 'Error')
+        sgest_info  = f"It has be duplicated declared by " \
+                    + f"{', '.join(duplicate_declared_type)}:\n"
+        report_error('FFD06', line_num, error_type + sgest_info \
+                    + '\n'.join(duplicate_declared_info)+ '\n')
+
+    # check left tensor not declared
+    elif left_judge_tag == 0:
+        error_type  = not_declared(left_tensor, 'Error')
+        sgest_info  = f"It must be declared by one of {declared_type}.\n"
+        report_error('FND07', line_num, error_type + sgest_info)
+
+    
+    righ_judge_tag = 0
+    duplicate_declared_info.clear()
+    duplicate_declared_type.clear()
+    declared_type = "'fvect', 'fmatr'"
+
+    # gether right tensor declaration by 'fvect'
+    if 'fvect' in xde_dict and righ_tensor in xde_dict['fvect']:
+        righ_judge_tag += 1
+
+        error_str   = f"{Error_color}declared by '{'fvect'}' at line " \
+                    + f"{Empha_color}{xde_addr['fvect'][righ_tensor]}"
+                    
+        duplicate_declared_info.append('\t' + error_str)
+        duplicate_declared_type.append('fvect')
+
+        righ_size = xde_dict['fvect'][righ_tensor][0]
+
+    # gether right tensor declaration by 'fmatr'
+    if 'fmatr' in xde_dict and righ_tensor in xde_dict['fmatr']:
+        righ_judge_tag += 1
+
+        error_str   = f"{Error_color}declared by '{'fmatr'}' at line " \
+                    + f"{Empha_color}{xde_addr['fmatr'][righ_tensor]}"
+
+        duplicate_declared_info.append('\t' + error_str)
+        duplicate_declared_type.append('fmatr')
+
+        righ_size = xde_dict['fmatr'][righ_tensor][0] \
+                  * xde_dict['fmatr'][righ_tensor][1]
+
+    # check right tensor duplicated declaration
+    if righ_judge_tag > 1:
+        error_type  = faultly_declared(righ_tensor, 'Error')
+        sgest_info  = f"It has be duplicated declared by " \
+                    + f"{', '.join(duplicate_declared_type)}:\n"
+        report_error('FFD08', line_num, error_type + sgest_info \
+                    + '\n'.join(duplicate_declared_info)+ '\n')
+
+    # check right tensor not declared
+    elif righ_judge_tag == 0:
+        error_type  = not_declared(righ_tensor, 'Error')
+        sgest_info  = f"It must be declared by one of {declared_type}.\n"
+        report_error('FND09', line_num, error_type + sgest_info)
+
+    # gether right indexs and check if out of range
+    max_righ_size = righ_size
+
+    if len(righ_indexs) != 0:
+        righ_size = len(righ_indexs)
+
+        out_range_index = []
+        for index in righ_indexs:
+            if index > max_righ_size:
+                out_range_index.append(str(index))
+
+        if len(out_range_index) != 0:
+            error_type  = unsuitable_form(righ_tensor, 'Error')
+            sgest_info  = f"the indexs '{', '.join(out_range_index)}' " \
+                        + f"of '{righ_tensor}' is out of range, " \
+                        + f"max size is {max_righ_size}.\n"
+            report_error('FUF10', line_num, error_type + sgest_info)
+
+    else:
+        pass # righ_indexs = list(map(lambda x: x+1, range(righ_size)))
+
+    # check size of left and right tensor
+    if left_size != righ_size:
+        error_type = unsuitable_form(left_tensor, 'Error')
+        sgest_info = f"the size of '{left_tensor}' " \
+                   + "is not consistent with the right indexs.\n"
+        report_error('FUF11', line_num, error_type + sgest_info)
+# end check_ftensor_assign_1_content()
+
 
 
 # --------------------------------------------------------------------------------------------------

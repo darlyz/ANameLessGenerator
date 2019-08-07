@@ -289,7 +289,7 @@ def sec_parse(xde_dict, xde_addr):
         elif keyword == 'matrix':
 
             matr_list = xde_dict['matrix'].copy()
-            addr_list = xde_addr['matrix'].copy()
+            matr_addr = xde_addr['matrix'].copy()
 
             xde_dict['matrix'].clear()
             xde_addr['matrix'].clear()
@@ -301,7 +301,7 @@ def sec_parse(xde_dict, xde_addr):
             addr_split_list = []
             matr_count = -1
 
-            for matr, line_num in zip(matr_list, addr_list):
+            for matr, line_num in zip(matr_list, matr_addr):
 
                 if re.match(r'matrix', matr, re.I) != None:
 
@@ -312,9 +312,9 @@ def sec_parse(xde_dict, xde_addr):
                 matr_split_list[matr_count].append(matr)
                 addr_split_list[matr_count].append(line_num)
 
-            for matr_list, addr_list in zip(matr_split_list, addr_split_list):
+            for matr_list, matr_addr in zip(matr_split_list, addr_split_list):
 
-                for (i, matr), line_num in zip(enumerate(matr_list), addr_list):
+                for (i, matr), line_num in zip(enumerate(matr_list), matr_addr):
 
                     if i == 0:
                         matr = re.sub(r'matrix', '', matr, 0, re.I).lstrip()
@@ -368,18 +368,24 @@ def sec_parse(xde_dict, xde_addr):
 
         elif keyword in ['fvect', 'fmatr']:
 
-            key_list = xde_dict[keyword].copy()
+            tnsr_list = xde_dict[keyword].copy()
+            tnsr_addr = xde_addr[keyword].copy()
+
             xde_dict[keyword].clear()
+            xde_addr[keyword].clear()
+
             xde_dict[keyword] = {}
+            xde_addr[keyword] = {}
 
-            for i,strs in enumerate(key_list):
+            for i,strs in enumerate(tnsr_list):
 
-                line_num = xde_addr[keyword][i]
+                line_num = tnsr_addr[i]
                 strs = re.sub(keyword, '', strs, 0, re.I)
                 temp_list = strs.split()
 
                 try:
                     xde_dict[keyword][temp_list[0]] = list(map(int,temp_list[1:]))
+                    xde_addr[keyword][temp_list[0]] = line_num
 
                 except ValueError:
                     print(f"{Error_color}Error SEC03: line {Empha_color}{line_num}, " \
@@ -389,9 +395,11 @@ def sec_parse(xde_dict, xde_addr):
         elif keyword in ['mass', 'damp','stif']:
 
             weak_list = xde_dict[keyword].copy()
-            addr_list = xde_addr[keyword].copy()
+            weak_addr = xde_addr[keyword].copy()
+
             xde_dict[keyword].clear()
             xde_addr[keyword].clear()
+
             weak_para_list = []
             addr_para_list = []
 
@@ -399,7 +407,7 @@ def sec_parse(xde_dict, xde_addr):
             # [[],[]..] style of weak_para_list
             # so as to addr_para_list
             para_count = -1
-            for strs, line_num in zip(weak_list, addr_list):
+            for strs, line_num in zip(weak_list, weak_addr):
                 if strs[:4].lower() == keyword:
                     para_count += 1
                     weak_para_list.append([])
@@ -414,7 +422,7 @@ def sec_parse(xde_dict, xde_addr):
 
             # parse first declaration
             weak_list = weak_para_list[0]
-            addr_list = addr_para_list[0]
+            weak_addr = addr_para_list[0]
 
             # distributed weak form declaration
             if weak_list[0].lower() == keyword \
@@ -426,14 +434,14 @@ def sec_parse(xde_dict, xde_addr):
                     xde_dict[keyword].append(weak_list[1].split('=')[1].lstrip())
                 
                 except IndexError:
-                    print(f"{Error_color}Error SEC04: line {Empha_color}{addr_list[1]}, " \
+                    print(f"{Error_color}Error SEC04: line {Empha_color}{weak_addr[1]}, " \
                           f"{Error_color}error form of {Empha_color}'{weak_list[1][:10]}...', " \
                           f"{Error_color}missing '=' after '{weak_list[1][:4]}'.\n")
                 
-                xde_addr[keyword].append(addr_list[1])
+                xde_addr[keyword].append(weak_addr[1])
 
                 if len(weak_list) >2 :
-                    for line_str, line_num in zip(weak_list[2:], addr_list[2:]):
+                    for line_str, line_num in zip(weak_list[2:], weak_addr[2:]):
                         xde_dict[keyword].append(line_str)
                         xde_addr[keyword].append(line_num)
 
@@ -441,7 +449,7 @@ def sec_parse(xde_dict, xde_addr):
             else:
                 xde_dict[keyword].append('lump')
                 xde_dict[keyword] += re.sub(keyword, '', weak_list[0], 0, re.I).lstrip().split()
-                xde_addr[keyword] = addr_list[0]
+                xde_addr[keyword] = weak_addr[0]
 
         elif keyword == 'load':
             for i,load_str in enumerate(xde_dict['load']):
