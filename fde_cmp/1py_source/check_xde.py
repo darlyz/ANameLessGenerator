@@ -435,6 +435,9 @@ def check_code(ges_info, xde_dict, xde_addr, c_declares):
 
             elif lower_key in ['@w', '@s']:
                 check_ftensor_assign_1(code_strs, line_num, xde_dict, xde_addr, c_declares, lower_key)
+
+            elif lower_key in ['@a', '@r']:
+                check_ftensor_assign_2(code_strs, line_num, xde_dict, xde_addr, c_declares, lower_key)
 # end check_code()
 
 def gather_declare(code_strs, line_num, assist_dict, c_declares):
@@ -1008,6 +1011,9 @@ def check_operator_content(opr_features, code_strs, line_num, xde_dict, xde_addr
         report_error('OUF19', line_num, error_type + sgest_info)
 # end check_operator_content()
 
+# @W (func_vect) (fvect|fmatr) * * *...
+# @S (fvect|fmatr) (fvect|fmatr) * * *...
+# * means digitals
 def check_ftensor_assign_1(code_strs, line_num, xde_dict, xde_addr, c_declares, atype):
 
     code_list = code_strs.split()
@@ -1257,6 +1263,98 @@ def check_ftensor_assign_1_content(ftensor_features, line_num, xde_dict, xde_add
                    + "is not consistent with the right indexs.\n"
         report_error('FUF11', line_num, error_type + sgest_info)
 # end check_ftensor_assign_1_content()
+
+# @A (fvect_i|fmatr_i_j) = [fvect_i|fmatr_i_j](/|*)(scal|vect_i|matr_i_j...) (+|-) ...
+#
+# @R (fvect_i|fmatr_i_j) = [disp(_i)(_j)(/coor(_i)(_j))](/|*)(scal|vect_i|matr_i_j...)
+#                    (+|-) [func(_i)(_j)](/|*)(scal|vect_i|matr_i_j...) (+|-) ...
+#
+# @R (fvect_i|fmatr_i_j) [disp(/coor)] [func] ... descprit in doc
+def check_ftensor_assign_2(code_strs, line_num, xde_dict, xde_addr, c_declares, atype):
+    
+    if code_strs.find('=') != -1:
+
+        left_var, righ_expr = code_strs.split('=')
+
+        var_dict = {}
+        var_dict['disp_scal']  = set()
+        var_dict['coor_scal']  = set()
+        var_dict['func_scal']  = set()
+        var_dict['disp_vect']  = set()
+        var_dict['coor_vect']  = set()
+        var_dict['func_vect']  = set()
+        var_dict['disp_matr']  = set()
+        var_dict['coor_matr']  = set()
+        var_dict['func_matr']  = set()
+        var_dict['scal']  = set()
+        var_dict['vect']  = set()
+        var_dict['matr']  = set()
+        var_dict['fvect'] = set()
+        var_dict['fmatr'] = set()
+        var_dict['error'] = set()
+
+        left_var_type = left_var.count('_')
+
+        if   left_var_type == 1:
+            var_dict['fvect'].add(left_var.strip().split('_')[0])
+
+        elif left_var_type == 2:
+            var_dict['fmatr'].add(left_var.strip().split('_')[0])
+
+        else:
+            error_type = unsuitable_form(left_var, 'Error')
+            sgest_info = 'It must be a vector or matrix.'
+            report_error('FUF01', line_num, error_type + sgest_info)
+
+        var_pattern = re.compile(r'\[?\w+(?:/\w+)?\]?')
+        var_list = var_pattern.findall(righ_expr)
+
+        for var in var_list:
+
+            if   var.count('/') == 0:
+                pass
+
+            elif var.count('/') > 2:
+                var_dict['error'].add(var)
+
+            else:
+
+                if not (var[0] == '[' and var[-1] == ']'):
+                    var_dict['error'].add(var)
+
+                sub_var_list = var.lstrip('[').rstrip(']').split('/')
+
+                for i,sub_var in enumerate(sub_var_list):
+
+                    if sub_var.count('_') == 0:
+
+                        if i == 0:
+                            var_dict['disp_scal'].add(sub_var)
+
+                        else:
+                            var_dict['coor_scal'].add(sub_var)
+
+                    elif sub_var.count('_') == 1:
+
+                        if i == 0:
+                            var_dict['disp_vect'].add(sub_var.split('_')[0])
+
+                        else:
+                            var_dict['coor_vect'].add(sub_var.split('_')[0])
+
+                    elif sub_var.count('_') == 2:
+
+                        if i == 0:
+                            var_dict['disp_matr'].add(sub_var.split('_')[0])
+
+                        else:
+                            var_dict['coor_matr'].add(sub_var.split('_')[0])
+
+                    else:
+                        var_dict['error'].add(var)
+
+
+# end def check_ftensor_assign_2()
 
 
 
