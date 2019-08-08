@@ -1271,21 +1271,21 @@ def check_ftensor_assign_1_content(ftensor_features, line_num, xde_dict, xde_add
 #
 # @R (fvect_i|fmatr_i_j) [disp(/coor)] [func] ... descprit in doc
 def check_ftensor_assign_2(code_strs, line_num, xde_dict, xde_addr, c_declares, atype):
-    
+
     if code_strs.find('=') != -1:
 
         left_var, righ_expr = code_strs.split('=')
 
         var_dict = {}
-        var_dict['disp_scal']  = set()
-        var_dict['coor_scal']  = set()
-        var_dict['func_scal']  = set()
-        var_dict['disp_vect']  = set()
-        var_dict['coor_vect']  = set()
-        var_dict['func_vect']  = set()
-        var_dict['disp_matr']  = set()
-        var_dict['coor_matr']  = set()
-        var_dict['func_matr']  = set()
+        var_dict['disp_scal'] = set()
+        var_dict['disp_vect'] = set()
+        var_dict['disp_matr'] = set()
+        var_dict['coor_scal'] = set()
+        var_dict['coor_vect'] = set()
+        var_dict['coor_matr'] = set()
+        var_dict['valu_scal'] = set()
+        var_dict['valu_vect'] = set()
+        var_dict['valu_matr'] = set()
         var_dict['scal']  = set()
         var_dict['vect']  = set()
         var_dict['matr']  = set()
@@ -1311,8 +1311,45 @@ def check_ftensor_assign_2(code_strs, line_num, xde_dict, xde_addr, c_declares, 
 
         for var in var_list:
 
+            if var.isnumeric(): 
+                continue
+
             if   var.count('/') == 0:
-                pass
+
+                var_type = var.count('_')
+                
+                if var[0] == '[' or var[-1] == ']':
+
+                    if not (var[0] == '[' and var[-1] == ']'):
+                        var_dict['error'].add(var)
+
+                    var = var.lstrip('[').rstrip(']')
+
+                    if   var_type == 0:
+                        var_dict['scal'].add(var)
+
+                    elif var_type == 1:
+                        var_dict['vect'].add(var.split('_')[0])
+
+                    elif var_type == 2:
+                        var_dict['matr'].add(var.split('_')[0])
+
+                    else:
+                        var_dict['error'].add(var)
+
+                else:
+
+                    if   var_type == 0:
+                        var_dict['valu_scal'].add(var)
+
+                    elif var_type == 1:
+                        var_dict['valu_vect'].add(var.split('_')[0])
+
+                    elif var_type == 2:
+                        var_dict['valu_matr'].add(var.split('_')[0])
+
+                    else:
+                        var_dict['error'].add(var)
 
             elif var.count('/') > 2:
                 var_dict['error'].add(var)
@@ -1326,7 +1363,9 @@ def check_ftensor_assign_2(code_strs, line_num, xde_dict, xde_addr, c_declares, 
 
                 for i,sub_var in enumerate(sub_var_list):
 
-                    if sub_var.count('_') == 0:
+                    sub_var_type = sub_var.count('_')
+
+                    if   sub_var_type == 0:
 
                         if i == 0:
                             var_dict['disp_scal'].add(sub_var)
@@ -1334,7 +1373,7 @@ def check_ftensor_assign_2(code_strs, line_num, xde_dict, xde_addr, c_declares, 
                         else:
                             var_dict['coor_scal'].add(sub_var)
 
-                    elif sub_var.count('_') == 1:
+                    elif sub_var_type == 1:
 
                         if i == 0:
                             var_dict['disp_vect'].add(sub_var.split('_')[0])
@@ -1342,7 +1381,7 @@ def check_ftensor_assign_2(code_strs, line_num, xde_dict, xde_addr, c_declares, 
                         else:
                             var_dict['coor_vect'].add(sub_var.split('_')[0])
 
-                    elif sub_var.count('_') == 2:
+                    elif sub_var_type == 2:
 
                         if i == 0:
                             var_dict['disp_matr'].add(sub_var.split('_')[0])
@@ -1353,9 +1392,104 @@ def check_ftensor_assign_2(code_strs, line_num, xde_dict, xde_addr, c_declares, 
                     else:
                         var_dict['error'].add(var)
 
+        error_report_list = []
+
+        for vtype in ['disp', 'coor', 'valu']:
+
+            for ttype in ['scal', 'vect', 'matr']:
+
+                if vtype == 'valu':
+                    search_list = c_declares['all']
+                else:
+                    search_list = xde_dict[vtype]
+
+                error_report_list += \
+                gether_error_report(vtype, '_', ttype, var_dict, search_list, xde_dict, xde_addr, line_num)
+
+        if len(error_report_list) != 0:
+            strs = '\t'+'\t'.join(error_report_list)
+            report_error('FXX12', line_num, f"error descript as:\n{strs}")
 
 # end def check_ftensor_assign_2()
 
+def gether_error_report(var_type, tie_str, tensor_type, var_dict, search_list, xde_dict, xde_addr, line_num):
+
+    var_key = var_type + tie_str + tensor_type
+
+    error_report_list = []
+    add_error_type = ''
+    add_sgest_info = ''
+
+    if var_type == 'valu':
+        var_type = 'c code'
+        add_sgest_info = f"before {Empha_color}{line_num}."
+
+    if   tensor_type == 'scal':
+
+        var_not_declare = set()
+
+        for var in var_dict[var_key]:
+            if var not in search_list:
+                var_not_declare.add(var)
+
+        if len(var_not_declare) != 0:
+            error_type  = not_declared(','.join(var_not_declare), 'Error')
+            sgest_info  = f"Must be declared by '{var_type}' " + add_sgest_info
+            error_report_list.append(error_type + sgest_info + '\n')
+
+    elif tensor_type == 'vect':
+
+        for tensor in var_dict[var_key]:
+
+            if tensor not in xde_dict[tensor_type]:
+
+                error_type  = not_declared(tensor, 'Error')
+                sgest_info  = f"It must be declared by '{tensor_type}'"
+                error_report_list.append(error_type + sgest_info + '\n')
+
+                continue
+            
+            var_not_declare = set()
+
+            for var in xde_dict[tensor_type][tensor]:
+                if var not in search_list:
+                    var_not_declare.add(var)
+
+            add_error_type = f" of {tensor}({xde_addr[tensor_type][tensor]})"
+            if len(var_not_declare) != 0:
+                error_type  = not_declared(','.join(var_not_declare) + add_error_type, 'Error')
+                sgest_info  = f"Must be declared by '{var_type}' "   + add_sgest_info
+                error_report_list.append(error_type + sgest_info + '\n')
+
+    elif tensor_type == 'matr':
+
+        tensor_type = 'matrix'
+        
+        for tensor in var_dict[var_key]:
+
+            if tensor not in xde_dict[tensor_type]:
+
+                error_type  = not_declared(tensor, 'Error')
+                sgest_info  = f"It must be declared by '{tensor_type}'"
+                error_report_list.append(error_type + sgest_info + '\n')
+
+                continue
+
+            var_not_declare = set()
+
+            for row in xde_dict[tensor_type][tensor][2:]:
+                for var in row:
+                    if var not in search_list:
+                        var_not_declare.add(var)
+
+            add_error_type = f" of {tensor}({xde_addr[tensor_type][tensor]})"
+            if len(var_not_declare) != 0:
+                error_type  = not_declared(','.join(var_not_declare) + add_error_type, 'Error')
+                sgest_info  = f"Must be declared by '{var_type}' "   + add_sgest_info
+                error_report_list.append(error_type + sgest_info + '\n')
+
+    return error_report_list
+# end gether_error_report()
 
 
 # --------------------------------------------------------------------------------------------------
