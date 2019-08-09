@@ -67,6 +67,49 @@ def check_xde(ges_info, xde_dict, xde_addr):
     c_declares = {}
     check_code(ges_info, xde_dict, xde_addr, c_declares)
 
+    # check mate
+    if 'mate' in xde_dict:
+        var_not_declare = set()
+        for var in xde_dict['mate']:
+            if re.match(r'\^?[a-z]\w*(?:\[\d\])*', var, re.I) != None :
+                add_var_not_declared(var, c_declares['BFmate'], var_not_declare)
+        if len(var_not_declare) != 0:
+            line_num   = xde_addr['mate']
+            error_type = not_declared(','.join(var_not_declare), 'Error')
+            sgest_info = f"Must be declared befor {line_num}.\n"
+            report_error('MND01', line_num, error_type + '\n')
+    else:
+        error_type  = not_declared('MATE', 'Error')
+        sgest_info  = "Material may be declared as " \
+                    + "'MATE aa bb ... 1.0 2e2 ...' in the first garaph, "\
+                    + "and don't forget insert '$CC double aa,bb,...;' before 'MATE'.\n"
+        report_error('MATND', '*', error_type + sgest_info)
+
+    # check vect
+    if 'vect' in xde_dict:
+        for vect in xde_dict['vect'].keys():
+            var_not_declare = set()
+            for strs in xde_dict['vect'][vect]:
+                for var in re.findall(r'\^?[a-z]\w*(?:\[\d\])*', strs, re.I):
+                    add_var_not_declared(var, c_declares['all'], var_not_declare)
+            if len(var_not_declare) != 0:
+                line_num   = xde_addr['vect'][vect]
+                error_type = not_declared(','.join(var_not_declare), 'Error')
+                report_error('VND01', line_num, error_type + '\n')
+
+    # check matrix
+    if 'matrix' in xde_dict:
+        for matr in xde_dict['matrix'].keys():
+            var_not_declare = set()
+            for row in xde_dict['matrix'][matr][2:]:
+                for strs in row:
+                    for var in re.findall(r'\^?[a-z]\w*(?:\[\d\])*', strs, re.I):
+                        add_var_not_declared(var, c_declares['all'], var_not_declare)
+            if len(var_not_declare) != 0:
+                line_num   = xde_addr['matrix'][matr]
+                error_type = not_declared(','.join(var_not_declare), 'Error')
+                report_error('VND01', line_num, error_type + '\n')
+
     print('Error=',error)
     return error
 # end check_xde()
