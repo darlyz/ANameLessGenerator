@@ -1306,8 +1306,63 @@ def check_ftensor_assign_2(code_strs, line_num, xde_dict, xde_addr, c_declares, 
             report_error('FXX12', line_num, f"error descript as:\n{strs}")
 
     else:
-        pass
+        if atype == '@r':
 
+            temp_list = code_strs.split()
+            try:
+                left_var  = temp_list[0]
+                righ_list = temp_list[1:]
+            except IndexError:
+                error_type  = unsuitable_form('', 'Error')
+                sgest_info  = ["\tForm as a tensor expression: 'f_i = [a_i]*b_j + ...', \n", \
+                               "\tor form as tensor assignment: 'f [a] [b] ...'.\n"]
+                report_error('FUF13', line_num, error_type + '\n' + ''.join(sgest_info))
+
+            else:
+
+                left_len = 0
+
+                if 'fvect' in xde_dict and left_var in xde_dict['fvect']:
+
+                    left_len = xde_dict['fvect'][left_var][0]
+
+                elif 'matr' in xde_dict and left_var in xde_dict['matr']:
+
+                    left_len = xde_dict['fmatr'][left_var][0] \
+                             * xde_dict['fmatr'][left_var][1]
+
+                else:
+
+                    error_type  = not_declared(left_var, 'Error')
+                    sgest_info  = "It must be declared by 'fvect' or 'fmatr'.\n"
+                    report_error('FND14', line_num, error_type + sgest_info)
+
+                if left_len != 0 and left_len != len(righ_list):
+
+                    error_type  = unsuitable_form('', 'Error')
+                    sgest_info  = f"The following items must counted equals to the length of {left_var}.\n"
+                    report_error('FUF15', line_num, error_type + sgest_info)
+
+                else:
+
+                    error_report_list = []
+
+                    for item in righ_list:
+                        var_dict = {}
+                        classify_var_in_fassign(item, var_dict)
+
+                        error_report_list += \
+                        check_fassign_right_expression_var(var_dict, line_num, xde_dict, xde_addr, c_declares)
+
+                    if len(error_report_list) != 0:
+                        strs = '\t'+'\t'.join(error_report_list)
+                        report_error('FXX16', line_num, f"error descript as:\n{strs}")
+
+        else:
+
+            error_type  = unsuitable_form('', 'Error')
+            report_error('FUF17', line_num, "Missing '=', it must be a tensor expression.\n")
+# end check_ftensor_assign_2()
         
 def add_var_not_declared(var, search_list, var_not_declare):
     if var.find('[') != -1:
