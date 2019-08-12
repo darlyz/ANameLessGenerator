@@ -85,30 +85,55 @@ def check_xde(ges_info, xde_dict, xde_addr):
                     + "and don't forget insert '$CC double aa,bb,...;' before 'MATE'.\n"
         report_error('MATND', '*', error_type + sgest_info)
 
+    # check fvect
+    if 'fvect' in xde_dict:
+        for name, lists in xde_dict['fvect'].items():
+            if len(lists) != 1:
+                line_num   = xde_addr['fvect'][name]
+                error_type = faultly_declared(name, 'Error')
+                sgest_info = f'sugest declare as \'FVECT {name} [len]\'.\n'
+                report_error('VFD01', line_num,  error_type + sgest_info)
+
+    # check fmatr
+    if 'fmatr' in xde_dict:
+        for name, lists in xde_dict['fmatr'].items():
+            if len(lists) != 2:
+                line_num   = xde_addr['fmatr'][name]
+                error_type = faultly_declared(name, 'Error')
+                sgest_info = f'sugest declare as \'FMATR {name} [row] [clm]\'.\n'
+                report_error('MFD01', line_num, error_type + sgest_info)
+
+    # check stif, mass, damp
+    for weak in ['stif','mass','damp']:
+        if weak in xde_dict:
+            check_weak(weak, xde_dict, xde_addr, c_declares)
+
+    # check load
+    if 'load' in xde_dict:
+        check_load(xde_dict, xde_addr, c_declares)
+
+
     # check vect
     if 'vect' in xde_dict:
-        for vect in xde_dict['vect'].keys():
-            var_not_declare = set()
-            for strs in xde_dict['vect'][vect]:
-                for var in re.findall(r'\^?[a-z]\w*(?:\[\d\])*', strs, re.I):
-                    add_var_not_declared(var, c_declares['all'], var_not_declare)
-            if len(var_not_declare) != 0:
-                line_num   = xde_addr['vect'][vect]
-                error_type = not_declared(','.join(var_not_declare), 'Error')
-                report_error('VND01', line_num, error_type + '\n')
+
+        vect_not_used = set(xde_dict['vect'].keys()).difference(c_declares['tnsr_used']['vect'])
+        vect_not_used_addr = set()
+        for vect in vect_not_used:
+            vect_not_used_addr.add(str(xde_addr['vect'][vect]))
+
+        if len( vect_not_used )!= 0:
+            report_warn('VND01', ','.join(vect_not_used_addr), ','.join(vect_not_used) + ' not used\n')
 
     # check matrix
     if 'matrix' in xde_dict:
-        for matr in xde_dict['matrix'].keys():
-            var_not_declare = set()
-            for row in xde_dict['matrix'][matr][2:]:
-                for strs in row:
-                    for var in re.findall(r'\^?[a-z]\w*(?:\[\d\])*', strs, re.I):
-                        add_var_not_declared(var, c_declares['all'], var_not_declare)
-            if len(var_not_declare) != 0:
-                line_num   = xde_addr['matrix'][matr]
-                error_type = not_declared(','.join(var_not_declare), 'Error')
-                report_error('VND01', line_num, error_type + '\n')
+        matr_not_used = set(xde_dict['matrix'].keys()).difference(c_declares['tnsr_used']['matrix'])
+        matr_not_used_addr = set()
+        for matr in matr_not_used:
+            matr_not_used_addr.add(str(xde_addr['matrix'][matr][0]))
+
+        if len( matr_not_used )!= 0:
+            report_warn('VND01', ','.join(matr_not_used_addr), ','.join(matr_not_used) + ' not used\n')
+
 
     print('Error=',error)
     return error
@@ -405,7 +430,7 @@ def check_shap(ges_info, xde_dict, xde_addr):
 def check_code(ges_info, xde_dict, xde_addr, c_declares):
 
     # the inner declaration
-    inner_declares  = {'tmax','dt','nstep','itnmax','time'} \
+    inner_declares  = {'tmax','dt','nstep','itnmax','time','vol'} \
                     | {'tolerance','dampalfa','dampbeta'} \
                     | {'it','stop','itn','end'} \
                     | {'imate','nmate','nelem','nvar','nnode'} \
@@ -417,6 +442,10 @@ def check_code(ges_info, xde_dict, xde_addr, c_declares):
     c_declares['array']  = {}
     c_declares['array']['vect'] = set()
     c_declares['array']['matrix'] = set()
+    c_declares['tnsr_used'] = {}
+    c_declares['tnsr_used']['vect'] = set()
+    c_declares['tnsr_used']['matrix'] = set()
+
 
     for strs in ["disp","coef","coor"]:
         if strs in xde_dict:
@@ -601,6 +630,9 @@ def check_tensor_assign(code_strs, line_num, xde_dict, c_declares, complex_tag =
 
             # find all the vectors not declared
             if tensor.count('_') == 1:
+
+                c_declares['tnsr_used']['vect'].add(tensor_name)
+
                 if ( 'vect' not in xde_dict \
                     or ( 'vect' in xde_dict \
                         and tensor_name not in xde_dict['vect'] ) ) \
@@ -610,6 +642,9 @@ def check_tensor_assign(code_strs, line_num, xde_dict, c_declares, complex_tag =
 
             # find all the matrices not declared
             elif tensor.count('_') == 2:
+
+                c_declares['tnsr_used']['matrix'].add(tensor_name)
+
                 if ( 'matrix' not in xde_dict \
                     or ( 'matrix' in xde_dict \
                         and tensor_name not in xde_dict['matrix'] ) ) \
@@ -695,6 +730,8 @@ def check_complex_assign(code_strs, line_num, xde_dict, xde_addr, c_declares):
 
             if tensor.count('_') == 1:
 
+                c_declares['tnsr_used']['vect'].add(tensor_name)
+
                 if 'vect' in xde_addr \
                 and tensor_name in xde_addr['vect']:
                     vect_line_num = xde_addr['vect'][tensor_name]
@@ -731,6 +768,8 @@ def check_complex_assign(code_strs, line_num, xde_dict, xde_addr, c_declares):
                             vect_imag_not_found.append('\t'+error_type)
 
             elif tensor.count('_') == 2:
+
+                c_declares['tnsr_used']['matrix'].add(tensor_name)
 
                 # gether matrics not declared by 'matrix'
                 if ( 'matrix' not in xde_dict \
@@ -915,7 +954,9 @@ def check_operator_content(opr_features, code_strs, line_num, xde_dict, xde_addr
                 opr_parameters.append(strs)
 
             elif strs.count('_') == 1:
+
                 vector = strs.split('_')[0]
+                c_declares['tnsr_used']['vect'].add(vector)
 
                 if 'vect' not in xde_dict \
                 or ( 'vect' in xde_dict \
@@ -1339,7 +1380,7 @@ def check_ftensor_assign_2(code_strs, line_num, xde_dict, xde_addr, c_declares, 
             error_report_list.append(error_type + sgest_info)
 
         var_dict = {}
-        classify_var_in_fassign(righ_expr, var_dict)
+        classify_var_in_fassign(righ_expr, var_dict, c_declares, xde_dict)
 
         error_report_list += \
         check_fassign_right_expression_var(var_dict, line_num, xde_dict, xde_addr, c_declares)
@@ -1392,7 +1433,7 @@ def check_ftensor_assign_2(code_strs, line_num, xde_dict, xde_addr, c_declares, 
 
                     for item in righ_list:
                         var_dict = {}
-                        classify_var_in_fassign(item, var_dict)
+                        classify_var_in_fassign(item, var_dict, c_declares, xde_dict)
 
                         error_report_list += \
                         check_fassign_right_expression_var(var_dict, line_num, xde_dict, xde_addr, c_declares)
@@ -1428,7 +1469,7 @@ def check_tensor_not_declared(tensor, search_list, declaration, error_report_lis
         return False
 # end check_tensor_not_declared()
 
-def classify_var_in_fassign(righ_expr, var_dict):
+def classify_var_in_fassign(righ_expr, var_dict, c_declares, xde_dict):
     
     var_dict['error'] = set()
 
@@ -1436,12 +1477,12 @@ def classify_var_in_fassign(righ_expr, var_dict):
         for tensor_type in ['scal', 'vect', 'matr']:
             var_dict[var_type+tensor_type] = set()
 
-    var_pattern = re.compile(r'\[\w+(?:/\w+)?\]?|\[?\w+(?:/\w+)?\]|\w+')
+    var_pattern = re.compile(r'\[\w+(?:/\w+)?\]?|\[?\w+(?:/\w+)?\]|\^?\w+')
     var_list = var_pattern.findall(righ_expr)
 
     for var in var_list:
 
-        if var.isnumeric(): 
+        if is_number(var): 
             continue
 
         tensor_type = var.count('_')
@@ -1454,7 +1495,7 @@ def classify_var_in_fassign(righ_expr, var_dict):
             var = var.lstrip('[').rstrip(']')
 
             if   var.count('/') == 0:
-                classify_variable(var, var_dict, '', tensor_type)
+                classify_variable(var, var_dict, '', tensor_type, c_declares, xde_dict)
 
             elif var.count('/')  > 2:
                 var_dict['error'].add(var)
@@ -1468,27 +1509,34 @@ def classify_var_in_fassign(righ_expr, var_dict):
                     sub_var_type = sub_var.count('_')
 
                     if i == 0:
-                        classify_variable(sub_var, var_dict, 'disp', sub_var_type)
+                        classify_variable(sub_var, var_dict, 'disp', sub_var_type, c_declares, xde_dict)
 
                     else:
-                        classify_variable(sub_var, var_dict, 'coor', sub_var_type)
+                        classify_variable(sub_var, var_dict, 'coor', sub_var_type, c_declares, xde_dict)
 
         else:
-            classify_variable(var, var_dict, 'valu', tensor_type)
+            classify_variable(var, var_dict, 'valu', tensor_type, c_declares, xde_dict)
 # end classify_var_in_fassign()
 
-def classify_variable(var, var_dict, var_type, tensor_type):
+def classify_variable(var, var_dict, var_type, tensor_type, c_declares, xde_dict):
     scalar = 0
     vector = 1
     matrix = 2
+    tensor = var.split('_')[0]
     if   tensor_type == scalar:
         var_dict[var_type+'scal'].add(var)
 
     elif tensor_type == vector:
-        var_dict[var_type+'vect'].add(var.split('_')[0])
+        var_dict[var_type+'vect'].add(tensor)
+
+        if var_type != 'f' and 'fvect' in xde_dict and tensor not in xde_dict['fvect']:
+            c_declares['tnsr_used']['vect'].add(var.split('_')[0])
 
     elif tensor_type == matrix:
-        var_dict[var_type+'matr'].add(var.split('_')[0])
+        var_dict[var_type+'matr'].add(tensor)
+
+        if var_type != 'f' and 'fvect' in xde_dict and tensor not in xde_dict['fmatr']:
+            c_declares['tnsr_used']['matrix'].add(var.split('_')[0])
 
     else:
         var_dict['error'].add(var)
@@ -1506,9 +1554,32 @@ def check_fassign_right_expression_var(var_dict, line_num, xde_dict, xde_addr, c
             if var_type == 'valu':
                 declaration_type = 'C code'
                 var_search_list = c_declares['all']
+
+                if tensor_type == 'vect':
+                    tensor_search_list = list(c_declares['array']['vect'])
+
+                    if 'vect' in xde_dict:
+                        tensor_search_list += list(xde_dict['vect'].keys())
+
+                elif tensor_type == 'matr':
+                    tensor_search_list = list(c_declares['array']['matrix'])
+
+                    if 'matrix' in xde_dict:
+                        tensor_search_list += list(xde_dict['matrix'].keys())
+
             else:
                 declaration_type = var_type
                 var_search_list = xde_dict[var_type]
+
+                tensor_search_list = []
+
+                if tensor_type == 'vect':
+                    if 'vect' in xde_dict:
+                        tensor_search_list += list(xde_dict['vect'].keys())
+
+                elif tensor_type == 'matr':
+                    if 'matrix' in xde_dict:
+                        tensor_search_list += list(xde_dict['matrix'].keys())
 
             var_key = var_type + tensor_type
 
@@ -1525,8 +1596,12 @@ def check_fassign_right_expression_var(var_dict, line_num, xde_dict, xde_addr, c
 
                 for tensor in var_dict[var_key]:
 
-                    if check_tensor_not_declared(tensor, xde_dict[tensor_type], tensor_type, error_report_list):
+                    if check_tensor_not_declared(tensor, tensor_search_list, tensor_type, error_report_list):
                         continue
+
+                    if var_type == 'valu':
+                        if tensor in c_declares['array']['vect']:
+                            continue
                     
                     var_not_declare = set()
         
@@ -1542,8 +1617,12 @@ def check_fassign_right_expression_var(var_dict, line_num, xde_dict, xde_addr, c
 
                 for tensor in var_dict[var_key]:
 
-                    if check_tensor_not_declared(tensor, xde_dict[tensor_type], tensor_type, error_report_list):
+                    if check_tensor_not_declared(tensor, tensor_search_list, tensor_type, error_report_list):
                         continue
+
+                    if var_type == 'valu':
+                        if tensor in c_declares['array']['matrix']:
+                            continue
 
                     var_not_declare = set()
 
@@ -1630,7 +1709,429 @@ def add_not_declare_report(var_not_declare, belong_descript, declaration_type, e
         sgest_info  = f"Must be declared by '{declaration_type}'.\n"
         error_report_list.append( error_type + sgest_info )
 # end not_declare_report()
+
+def check_weak(weak, xde_dict, xde_addr, c_declares):
+
+    if   xde_dict[weak][0].lower() == 'null':
+        return
+
+    elif xde_dict[weak][0].lower() == 'dist':
+
+        for weak_strs, line_num in zip(xde_dict[weak][1:], xde_addr[weak]):
+
+            error_report_list = []
+
+            for weak_item in split_bracket_expr(weak_strs):
+
+                weak_pattern_str = r'\[?\w+(?:/\w+)?;?\w+(?:/\w+)?\]|\[\w+(?:/\w+)?;?\w+(?:/\w+)?\]?'
+                weak_pattern = re.compile(weak_pattern_str, re.I)
+                weak_form = set(weak_pattern.findall(weak_item))
+                
+                if len(weak_form) != 1:
+                    error_type = unsuitable_form(weak_item, 'Error')
+                    sgest_info = "one and only one '[*;*]' form in " \
+                               + "a lowest priority expression.\n"
+                    error_report_list.append(error_type + sgest_info)
+                
+                else:
+                
+                    miss_opr = [weak_opr for weak_opr in ['[',';',']'] \
+                                    if weak_item.find(weak_opr) == -1]
+                
+                    if len(miss_opr) != 0:
+                        error_type = unsuitable_form(weak_item, 'Error')
+                        sgest_info = f"It miss {Empha_color}'{' '.join(miss_opr)}'.\n"
+                        error_report_list.append(error_type + sgest_info)
+                    
+                weak_var_set = set()
+                    
+                for wset in weak_form:
+                    weak_var_set |= set(map(lambda x:x.lstrip('[').rstrip(']') ,\
+                                             wset.split(';')))
+
+                var_dict = {}
+                var_dict['error'] = set()
+
+                for var_type in ['disp', 'coor', 'valu', '']:
+                    for tensor_type in ['scal', 'vect', 'matr']:
+                        var_dict[var_type+tensor_type] = set()
+
+                weak_factor = re.sub(weak_pattern_str, '', weak_item,0, re.I)
+                classify_var_in_weak_factor(weak_factor, var_dict, c_declares, xde_dict)
+
+                classify_var_in_weak_item(weak_var_set, var_dict, c_declares, xde_dict)
+            
+            error_report_list += \
+            check_var_in_weak_forms(var_dict, line_num, xde_dict, xde_addr, c_declares)
+
+            if len(error_report_list) != 0:
+                error_type = unsuitable_form(weak_item, 'Error')
+                report_error('WUF01', line_num, 'errors descript:\n\t' + '\t'.join(error_report_list))
+
+    else:
+
+        if weak == 'stif':
+            error_type = unsuitable_form(' '.join(xde_dict[weak]), 'Error')
+            sgest_info = "'STIF' must be declared as paragraph, it is distributed.\n"
+            report_error('WUF02', xde_addr[weak][0], error_type + sgest_info)
+
+        error_report_list = []
+        line_num   = xde_addr[weak]
+        coeff_len = len(xde_dict[weak]) - 1
+
+        if 'disp' in xde_dict \
+        and coeff_len > 1 \
+        and coeff_len < len(xde_dict['disp']):
+
+            no_coeff_var = xde_dict['disp'][coeff_len:]
+            no_mass_list = ['0' for i in range(len(no_coeff_var))]
+
+            error_type = unsuitable_form(' '.join(xde_dict[weak]), 'Error')
+            sgest_info = f"Not enough '{weak}' coefficient for 'disp' " \
+                       + f"declaration at {Empha_color}{xde_addr['disp']}. " \
+                       + f"{Error_color}If '{' '.join(no_coeff_var)}' have no " \
+                       + f"'{weak}', it's better declared as {Empha_color}'{weak} " \
+                       + f"{' '.join(xde_dict[weak] + no_mass_list)}'.\n"
+            report_error('WUF03', line_num, error_type + sgest_info)
+
+        error_report_list += \
+        check_assignment_weak_form(xde_dict[weak], c_declares)
+
+        if len(error_report_list) != 0:
+            error_type = unsuitable_form('', 'Error')
+            report_error('WUF07', line_num, 'errors descript:\n\t' + '\t'.join(error_report_list))
+# end check_weak()
+
+def classify_var_in_weak_factor(weak_factor, var_dict, c_declares, xde_dict):
+    
+    var_list = re.findall(r'\^?\w+', weak_factor)
+
+    for var in var_list:
+
+        if is_number(var):
+            continue
+
+        tensor_type = var.count('_')
+
+        classify_variable(var, var_dict, 'valu', tensor_type, c_declares, xde_dict)
+# end classify_var_in_weak()
+
+def classify_var_in_weak_item(weak_var_set, var_dict, c_declares, xde_dict):
+
+    for var in weak_var_set:
+
+        if var.count('/') == 0:
+
+            tensor_type = var.count('_')
+
+            classify_variable(var, var_dict, '', tensor_type, c_declares, xde_dict)
+
+        elif var.count('/')  > 2:
+            var_dict['error'].add(var)
+
+        else:
+
+            sub_var_list = var.lstrip('[').rstrip(']').split('/')
+
+            for i,sub_var in enumerate(sub_var_list):
+
+                sub_var_type = sub_var.count('_')
+
+                if i == 0:
+                    classify_variable(sub_var, var_dict, 'disp', sub_var_type, c_declares, xde_dict)
+
+                else:
+                    classify_variable(sub_var, var_dict, 'coor', sub_var_type, c_declares, xde_dict)
+# end classify_var_in_weak_item() 
+
+def check_var_in_weak_forms(var_dict, line_num, xde_dict, xde_addr, c_declares):
+
+    error_report_list = []
+
+    # check func, coor, normal type of tensor
+    for var_type in ['disp', 'coor', 'valu']:
+
+        for tensor_type in ['scal', 'vect', 'matr']:
+
+            if var_type == 'valu':
+                declaration_type = 'C code'
+                var_search_list = c_declares['all']
+
+                if tensor_type == 'vect':
+                    tensor_search_list = list(c_declares['array']['vect'])
+
+                    if 'vect' in xde_dict:
+                        tensor_search_list += list(xde_dict['vect'].keys())
+
+                elif tensor_type == 'matr':
+                    tensor_search_list = list(c_declares['array']['matrix'])
+
+                    if 'matrix' in xde_dict:
+                        tensor_search_list += list(xde_dict['matrix'].keys())
+                        
+            else:
+                declaration_type = var_type
+                var_search_list = xde_dict[var_type]
+
+                tensor_search_list = []
+
+                if tensor_type == 'vect':
+                    if 'vect' in xde_dict:
+                        tensor_search_list += list(xde_dict['vect'].keys())
+
+                elif tensor_type == 'matr':
+                    if 'matrix' in xde_dict:
+                        tensor_search_list += list(xde_dict['matrix'].keys())
+
+            var_key = var_type + tensor_type
+
+            if   tensor_type == 'scal':
+
+                var_not_declare = set()
+
+                for var in var_dict[var_key]:
+                    add_var_not_declared(var, var_search_list, var_not_declare)
+
+                add_not_declare_report(var_not_declare, '', declaration_type, error_report_list)
+
+            elif tensor_type == 'vect':
+
+                for tensor in var_dict[var_key]:
+
+                    if check_tensor_not_declared(tensor, tensor_search_list, tensor_type, error_report_list):
+                        continue
+
+                    if var_type == 'valu':
+                        if tensor in c_declares['array']['vect']:
+                            continue
+                    
+                    var_not_declare = set()
         
+                    for var in xde_dict[tensor_type][tensor]:
+                        add_var_not_declared(var, var_search_list, var_not_declare)
+
+                    belong_descript = f" of {tensor}({xde_addr[tensor_type][tensor]})"
+                    add_not_declare_report(var_not_declare, belong_descript, declaration_type, error_report_list)
+
+            elif tensor_type == 'matr':
+
+                tensor_type = 'matrix'
+
+                for tensor in var_dict[var_key]:
+
+                    if check_tensor_not_declared(tensor, tensor_search_list, tensor_type, error_report_list):
+                        continue
+
+                    if var_type == 'valu':
+                        if tensor in c_declares['array']['matrix']:
+                            continue
+
+                    var_not_declare = set()
+
+                    for row in xde_dict[tensor_type][tensor][2:]:
+                        for var in row:
+                            add_var_not_declared(var, var_search_list, var_not_declare)
+
+                    belong_descript = f" of {tensor}({xde_addr[tensor_type][tensor]})"
+                    add_not_declare_report(var_not_declare, belong_descript, declaration_type, error_report_list)
+
+    # check unknown type of tensor
+    solv_var_search_list = []
+    if 'disp' in xde_dict:
+        solv_var_search_list += xde_dict['disp']
+    if 'func' in xde_dict:
+        for func_list in xde_dict['func']:
+            solv_var_search_list += func_list
+
+    vect_search_list = xde_dict['vect'].keys()
+
+    matr_search_list = xde_dict['matrix'].keys()
+
+    if len(var_dict['scal']) != 0:
+
+        var_not_declare = set()
+
+        for var in var_dict['scal']:
+            add_var_not_declared(var, solv_var_search_list, var_not_declare)
+
+        add_not_declare_report(var_not_declare, '', 'disp or func', error_report_list)
+
+    if len(var_dict['vect']) != 0:
+
+        for tensor in var_dict['vect']:
+
+            if check_tensor_not_declared(tensor, vect_search_list, 'vect', error_report_list):
+                continue
+
+            var_not_declare = set()
+
+            for var in xde_dict['vect'][tensor]:
+                add_var_not_declared(var, solv_var_search_list, var_not_declare)
+
+            belong_descript = f" of {tensor}({xde_addr['vect'][tensor]})"
+            add_not_declare_report(var_not_declare, belong_descript, 'disp or func', error_report_list)
+
+    if len(var_dict['matr']) != 0:
+
+        for tensor in var_dict['matr']:
+
+            if check_tensor_not_declared(tensor, matr_search_list, 'matrix', error_report_list):
+                continue
+
+            var_not_declare = set()
+
+            for row in xde_dict[tensor_type][tensor][2:]:
+                for var in row:
+                    add_var_not_declared(var, solv_var_search_list, var_not_declare)
+
+            belong_descript = f" of {tensor}({xde_addr['matr'][tensor]})"
+            add_not_declare_report(var_not_declare, belong_descript, 'disp or func', error_report_list)
+
+    # check error items
+    if len(var_dict['error']) != 0:
+        error_type = unsuitable_form(','.join(var_dict['error']), 'Error')
+        error_report_list.append(error_type + '\n')
+
+    return error_report_list
+# end check_weak_item()
+
+def check_assignment_weak_form(weak_factor_list, c_declares):
+    
+    error_report_list = []
+
+    for weak_factor in weak_factor_list:
+
+        if is_number(weak_factor):
+            continue
+
+        fucntion_list = re.findall(r'\w+\([\w,]+\)?', weak_factor)
+
+        for strs in fucntion_list:
+
+            weak_factor = weak_factor.replace(strs,'')
+
+            var_list = strs.rstrip(')').split('(')[1].split(',')
+
+            if len(var_list) != 0:
+
+                for var in var_list:
+
+                    if is_number(weak_factor):
+                        continue
+
+                    if var not in c_declares['all']:
+
+                        error_type = not_declared(var, 'Error')
+                        error_report_list.append(error_type + 'It must be declared in C code.\n')
+
+
+        for var in re.findall(r'\w+', weak_factor):
+
+            if is_number(var):
+                continue
+
+            if var.find('_') != -1:
+
+                error_type = unsuitable_form(var, 'Error')
+                error_report_list.append(error_type + 'No tensor allowed in this form.\n')
+
+            else:
+
+                if var not in c_declares['all']:
+
+                    error_type = not_declared(var, 'Error')
+                    error_report_list.append(error_type + 'It must be declared in C code.\n')
+
+    return error_report_list
+# end check_assignment_weak_form()
+
+def check_load(xde_dict, xde_addr, c_declares):
+
+    if xde_dict['load'][0].find('_') != -1:
+
+        for weak_strs, line_num in zip(xde_dict['load'], xde_addr['load']):
+
+            error_report_list = []
+
+            for weak_item in split_bracket_expr(weak_strs):
+
+                weak_pattern_str = r'\[\w+(?:/\w+)?\]?|\[?\w+(?:/\w+)?\]'
+                weak_pattern = re.compile(weak_pattern_str, re.I)
+                weak_form = set(weak_pattern.findall(weak_item))
+
+                if len(weak_form) != 1:
+                    error_type = unsuitable_form(weak_item, 'Error')
+                    sgest_info = "one and only one '[*]' form in " \
+                               + "a lowest priority expression.\n"
+                    error_report_list.append(error_type + sgest_info)
+
+                else:
+
+                    miss_opr = [weak_opr for weak_opr in ['[',']'] \
+                                    if weak_item.find(weak_opr) == -1]
+
+                    if len(miss_opr) != 0:
+                        error_type = unsuitable_form(weak_item, 'Error')
+                        sgest_info = f"It miss {Empha_color}'{' '.join(miss_opr)}'.\n"
+                        error_report_list.append(error_type + sgest_info)
+
+                weak_var_set = set(map(lambda x: x.lstrip('[').rstrip(']'), weak_form))
+
+                var_dict = {}
+                var_dict['error'] = set()
+
+                for var_type in ['disp', 'coor', 'valu', '']:
+                    for tensor_type in ['scal', 'vect', 'matr']:
+                        var_dict[var_type+tensor_type] = set()
+
+                weak_factor = re.sub(weak_pattern_str, '', weak_item,0, re.I)
+                classify_var_in_weak_factor(weak_factor, var_dict, c_declares, xde_dict)
+
+                classify_var_in_weak_item(weak_var_set, var_dict, c_declares, xde_dict)
+
+            error_report_list += \
+            check_var_in_weak_forms(var_dict, line_num, xde_dict, xde_addr, c_declares)
+
+            if len(error_report_list) != 0:
+                error_type = unsuitable_form(weak_item, 'Error')
+                report_error('WUF04', line_num, 'errors descript:\n\t' + '\t'.join(error_report_list))
+    
+    else :
+        error_report_list = []
+        line_num   = xde_addr['load'][0]
+        coeff_len = len(xde_dict['load'])
+
+        if 'disp' in xde_dict \
+        and coeff_len > 1 \
+        and coeff_len < len(xde_dict['disp']):
+
+            no_coeff_var = xde_dict['disp'][coeff_len:]
+            no_mass_list = ['0' for i in range(len(no_coeff_var))]
+
+            error_type = unsuitable_form(' '.join(xde_dict['load']), 'Error')
+            sgest_info = f"Not enough 'load' coefficient for 'disp' " \
+                       + f"declaration at {Empha_color}{xde_addr['disp']}. " \
+                       + f"{Error_color}If '{' '.join(no_coeff_var)}' have no " \
+                       + f"'load', it's better declared as {Empha_color}'load " \
+                       + f"{' '.join(xde_dict['load'] + no_mass_list)}'.\n"
+            report_error('WUF05', line_num, error_type + sgest_info)
+
+        error_report_list += \
+        check_assignment_weak_form(xde_dict['load'], c_declares)
+
+        if len(error_report_list) != 0:
+            error_type = unsuitable_form('', 'Error')
+            report_error('WUF06', line_num, 'errors descript:\n\t' + '\t'.join(error_report_list))
+# end check_load()
+
+def is_number(strs):
+
+    pattern = re.compile(r'^[-+]?(?:\d+(\.\d*)?|\.\d+)(e\d+)?$')
+    matched = pattern.match(strs)
+    if matched:
+        return True
+    else:
+        return False        
 # --------------------------------------------------------------------------------------------------
 # ------------------------------------ report in terminal ------------------------------------------
 # --------------------------------------------------------------------------------------------------

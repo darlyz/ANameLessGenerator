@@ -424,7 +424,7 @@ def sec_parse(xde_dict, xde_addr):
             weak_list = weak_para_list[0]
             weak_addr = addr_para_list[0]
 
-            # distributed weak form declaration
+            # distributed weak form as 'dist = +[a;a]*c + ...'
             if weak_list[0].lower() == keyword \
             and re.match(r'dist', weak_list[1], re.I) != None:
 
@@ -445,13 +445,67 @@ def sec_parse(xde_dict, xde_addr):
                         xde_dict[keyword].append(line_str)
                         xde_addr[keyword].append(line_num)
 
-            # lumped weak form declaration
+            # lumped weak form as '%1 rho ... '
             else:
-                xde_dict[keyword].append('lump')
                 xde_dict[keyword] += re.sub(keyword, '', weak_list[0], 0, re.I).lstrip().split()
                 xde_addr[keyword] = weak_addr[0]
 
         elif keyword == 'load':
+
+            weak_list = xde_dict[keyword].copy()
+            weak_addr = xde_addr[keyword].copy()
+
+            xde_dict[keyword].clear()
+            xde_addr[keyword].clear()
+
+            weak_para_list = []
+            addr_para_list = []
+
+            # push duplicated weak paragraph into 
+            # [[],[]..] style of weak_para_list
+            # so as to addr_para_list
+            para_count = -1
+            for strs, line_num in zip(weak_list, weak_addr):
+                if strs[:4].lower() == keyword:
+                    para_count += 1
+                    weak_para_list.append([])
+                    addr_para_list.append([])
+                weak_para_list[para_count].append(strs)
+                addr_para_list[para_count].append(line_num)
+
+            if len(weak_para_list) > 1:
+                declared_linenum = addr_para_list[0][0]
+                duplicated_linenum = ','.join(map(str,[x[0] for x in addr_para_list[1:]]))
+                report_duplicated_declaration(keyword, declared_linenum, duplicated_linenum)
+
+            # parse first declaration
+            weak_list = weak_para_list[0]
+            weak_addr = addr_para_list[0]
+
+            # expression form as 'load = +[a]*b + ...'
+            if re.search(r'[=\[\]]',weak_list[0]) != None:
+
+                try:
+                    xde_dict[keyword].append(weak_list[0].split('=')[1].lstrip())
+                
+                except IndexError:
+                    print(f"{Error_color}Error SEC04: line {Empha_color}{weak_addr[1]}, " \
+                          f"{Error_color}error form of {Empha_color}'{weak_list[1][:10]}...', " \
+                          f"{Error_color}missing '=' after '{weak_list[1][:4]}'.\n")
+                
+                xde_addr[keyword].append(weak_addr[0])
+
+                if len(weak_list) >1 :
+                    for line_str, line_num in zip(weak_list[1:], weak_addr[1:]):
+                        xde_dict[keyword].append(line_str)
+                        xde_addr[keyword].append(line_num)
+
+            # assignment form as 'load fx fy ...'
+            else:
+                xde_dict[keyword] = weak_list[0].split()[1:]
+                xde_addr[keyword].append(weak_addr[0])
+
+            '''
             for i,load_str in enumerate(xde_dict['load']):
                 if load_str[:4].lower() == 'load':
 
@@ -462,6 +516,7 @@ def sec_parse(xde_dict, xde_addr):
                         print(f"{Error_color}Error SEC05: line {Empha_color}{xde_addr['load'][i]}, " \
                               f"{Error_color}error form of {Empha_color}'{load_str[:10]}...', " \
                               f"{Error_color}missing '=' after '{load_str[:4]}'.\n")
+            '''
 
     if dict_check['sec'] != 0:
         file = open(ifo_folder + 'sec_check.json', mode='w')
