@@ -430,11 +430,16 @@ def check_shap(ges_info, xde_dict, xde_addr):
 def check_code(ges_info, xde_dict, xde_addr, c_declares):
 
     # the inner declaration
-    inner_declares  = {'tmax','dt','nstep','itnmax','time','vol'} \
+    inner_declares  = {'tmax','dt','nstep','itnmax','time'} \
                     | {'tolerance','dampalfa','dampbeta'} \
                     | {'it','stop','itn','end'} \
                     | {'imate','nmate','nelem','nvar','nnode'} \
-                    | {'ngaus','igaus','det','ndisp','nrefc','ncoor'}
+                    | {'ngaus','igaus','ndisp','nrefc','ncoor'} \
+                    | {'vol','det','weigh','stif','fact','shear','r0'} \
+                    | {'*nvard','*kdord','*kvord','*refc','*gaus'} \
+                    | {'*coor','*coorr','*rctr','*crtr'} \
+                    | {'*coora','*coefa','*prmt','*estif','*emass','*edamp','*eload'} \
+                    | {'num','ibegin'}
 
     # gather C declares and check code
     c_declares['all']    = inner_declares.copy()
@@ -1166,6 +1171,7 @@ def check_ftensor_assign_1_content(ftensor_features, line_num, xde_dict, xde_add
         # check the component of left vector declared by 'func'
         if atype == '@w':
 
+            c_declares['tnsr_used'][tvect].add(left_tensor)
             left_size = len(xde_dict[tvect][left_tensor])
 
             component_not_func = []
