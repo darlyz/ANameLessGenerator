@@ -16,8 +16,8 @@ import json
 from genxde import gen_obj, ifo_folder
 from check_xde import check_xde
 
-dict_check = {'pre':1, 'sec':1, 'fnl':0}
-addr_check = {'pre':1, 'sec':1, 'fnl':0}
+dict_check = {'pre':1, 'sec':1, 'fnl':1}
+addr_check = {'pre':1, 'sec':1, 'fnl':1}
 
 def parse_xde(ges_info, xde_dict, xde_addr, xdefile):
 
@@ -36,7 +36,7 @@ def parse_xde(ges_info, xde_dict, xde_addr, xdefile):
             return True
  
     # parse features into a readable and transable style
-    #fnl_parse(ges_info, xde_dict, xde_addr)
+    fnl_parse(ges_info, xde_dict, xde_addr)
 
     return False
 
@@ -206,14 +206,7 @@ def pre_parse(xde_dict, xde_addr, xdefile):
                 print(f'{Warnn_color}Warn PRE03: redundant information ' \
                      + 'or wrong declare, line {line_i}: ' + line)
 
-    if dict_check['pre'] != 0:
-        file = open(ifo_folder + 'pre_check.json', mode='w')
-        file.write(json.dumps(xde_dict,indent=4))
-        file.close()
-    if addr_check['pre'] != 0:
-        file = open(ifo_folder + 'pre_addr.json',  mode='w')
-        file.write(json.dumps(xde_addr,indent=4))
-        file.close()
+    check_parsing_result('pre', xde_dict, xde_addr)
 # end pre_parse()
 
 def push_keyword_declaration(xde_dict, xde_addr, keyword, line_str, line_num):
@@ -518,14 +511,7 @@ def sec_parse(xde_dict, xde_addr):
                               f"{Error_color}missing '=' after '{load_str[:4]}'.\n")
             '''
 
-    if dict_check['sec'] != 0:
-        file = open(ifo_folder + 'sec_check.json', mode='w')
-        file.write(json.dumps(xde_dict,indent=4))
-        file.close()
-    if addr_check['sec'] != 0:
-        file = open(ifo_folder + 'sec_addr.json',  mode='w')
-        file.write(json.dumps(xde_addr,indent=4))
-        file.close()
+    check_parsing_result('sec', xde_dict, xde_addr)
 # end pre_parse()
 
 def report_duplicated_declaration(keyword, declared_linenum, duplicated_linenum):
@@ -534,4 +520,158 @@ def report_duplicated_declaration(keyword, declared_linenum, duplicated_linenum)
           f"declared at line {Empha_color}{declared_linenum}.\n")
 
 def fnl_parse(ges_info, xde_dict, xde_addr):
-    pass
+
+    keyword_list = list(xde_dict.keys())
+
+    for keyword in keyword_list:
+
+        # parse disp and func for complex
+        if keyword in ['disp', 'func']:
+            if 'cmplx_tag' in xde_dict and xde_dict['cmplx_tag'] == 1:
+
+                xde_dict[f'cmplx_{keyword}'] = xde_dict[keyword].copy()
+                xde_dict[keyword].clear()
+
+                for var in xde_dict[f'cmplx_{keyword}']:
+                    xde_dict[keyword].append(var+'r')
+                    xde_dict[keyword].append(var+'i')
+
+        if 'shap' == keyword:
+            parse_shap_declaration(ges_info, xde_dict)
+
+    check_parsing_result('fnl', xde_dict, xde_addr)
+# end fnl_parse()
+
+def parse_shap_declaration(ges_info, xde_dict):
+    
+    shap_dict = {}
+
+    # 3.1.1 common shap (maybe user declare twice or more, so the first active)
+    base_shap_dclr_times = 0
+    for shap_list in xde_dict['shap']:
+
+        base_shap_dclr_times += 1
+        if base_shap_dclr_times > 1:
+            break
+
+        if len(shap_list) == 2:
+
+            if  shap_list[0] == '%1': 
+                shap_list[0] = ges_info['shap_form']
+
+            if  shap_list[1] == '%2': 
+                shap_list[1] = ges_info['shap_nodn']
+
+            base_shap_type = shap_list[0] + shap_list[1]
+            shap_dict[base_shap_type] = xde_dict['disp'].copy()
+
+            if 'coef' in xde_dict:
+                xde_dict['coef_shap'] = {}
+                xde_dict['coef_shap'][base_shap_type] = xde_dict['coef'].copy()
+    '''
+    # 3.1.2 penalty or mix shap
+    for shap_list in xde_dict['shap']:
+
+        if len(shap_list) >= 3:
+
+            if  shap_list[0] == '%1':
+                shap_list[0] = ges_info['shap_form']
+
+            if  shap_list[1] == '%4' \
+            or  shap_list[1].isnumeric():
+
+                var_list  = shap_list[2:]
+                disp_find_n = len(set(var_list)&set(xde_dict['disp']))
+                
+                coef_find_n = 0
+                if 'coef' in xde_dict:
+                    coef_find_n = len(set(var_list)&set(xde_dict['coef']))
+
+                if (disp_find_n > 0 or coef_find_n > 0) \
+                and shap_list[1] == '%4':
+
+                    if   base_shap_type == 't6' : 
+                        shap_list[1] = '3'
+
+                    elif base_shap_type == 'q9' : 
+                        shap_list[1] = '4'
+
+                    elif base_shap_type == 'w10': 
+                        shap_list[1] = '4'
+
+                    elif base_shap_type == 'c27': 
+                        shap_list[1] = '8'
+
+                    subs_shap_type = shap_list[0] + shap_list[1]
+
+                if disp_find_n > 0:
+                    if subs_shap_type not in shap_dict:
+                        shap_dict[subs_shap_type] = []
+
+                if coef_find_n > 0:
+                    if subs_shap_type not in xde_dict['coef_shap']:
+                        xde_dict['coef_shap'][subs_shap_type] = []
+
+                for var_name in var_list:
+
+                    if var_name.isnumeric():
+                        continue
+
+                    if 'coef' not in xde_dict:
+                        if var_name not in xde_dict['disp'] :
+                            continue
+
+                    else:
+                        if  var_name not in xde_dict['disp'] \
+                        and var_name not in xde_dict['coef'] :
+                            continue
+
+                    if var_name in shap_dict[base_shap_type]:
+                        shap_dict[base_shap_type].remove(var_name)
+                        shap_dict[subs_shap_type].append(var_name)
+
+                    if 'coef_shap' in xde_dict:
+
+                        if var_name in xde_dict['coef_shap'][base_shap_type]:
+                            xde_dict['coef_shap'][base_shap_type].remove(var_name)
+                            xde_dict['coef_shap'][subs_shap_type].append(var_name)
+
+            elif shap_list[1] == '%2c' \
+            or  (shap_list[1][-1].lower() == 'c' \
+                and shap_list[1][:-1].isnumeric) :
+
+                var_list = shap_list[2:]
+
+                pena_vars = {}
+                for var_name in var_list:
+
+                    if var_name.isnumeric(): 
+                        continue
+
+                    if var_name.find('_'):
+                        var_name, pan_name = var_name.split('_')[:2]
+
+                    pena_vars[var_name] = pan_name
+
+                shap_list[1]   = shap_list[1].replace('%2',ges_info['shap_nodn'])
+                subs_shap_type = shap_list[0] + shap_list[1]
+
+                if subs_shap_type not in shap_dict:
+                    shap_dict[subs_shap_type] = pena_vars
+
+                for pena_var in pena_vars.keys() :
+                    shap_dict[base_shap_type].remove(pena_var)
+    '''
+    #xde_dict['shap'] = shap_dict
+# end parse_shap_declaration()
+
+def check_parsing_result(stage, xde_dict, xde_addr):
+    if dict_check[stage] != 0:
+        file = open(ifo_folder + stage + '_check.json', mode='w')
+        file.write(json.dumps(xde_dict,indent=4))
+        file.close()
+    if addr_check[stage] != 0:
+        file = open(ifo_folder + stage + '_addr.json',  mode='w')
+        file.write(json.dumps(xde_addr,indent=4))
+        file.close()
+# end check_parsing_result()
