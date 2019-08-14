@@ -107,6 +107,8 @@ def pre_parse(xde_dict, xde_addr, xdefile):
                         + "key word 'DEFI' should not be ommited before " \
                         + "'MATE' line and C insertion for 'MATE'.\n")
 
+                line = re.sub(r'[\;\,]',' ',line)
+
                 push_keyword_declaration(xde_dict, xde_addr, key_lower, line, line_i)
 
                 keywd_tag['paragraph'] = 'AFmate'
@@ -206,7 +208,7 @@ def pre_parse(xde_dict, xde_addr, xdefile):
                 print(f'{Warnn_color}Warn PRE03: redundant information ' \
                      + 'or wrong declare, line {line_i}: ' + line)
 
-    check_parsing_result('pre', xde_dict, xde_addr)
+    export_parsing_result('pre', xde_dict, xde_addr)
 # end pre_parse()
 
 def push_keyword_declaration(xde_dict, xde_addr, keyword, line_str, line_num):
@@ -511,8 +513,8 @@ def sec_parse(xde_dict, xde_addr):
                               f"{Error_color}missing '=' after '{load_str[:4]}'.\n")
             '''
 
-    check_parsing_result('sec', xde_dict, xde_addr)
-# end pre_parse()
+    export_parsing_result('sec', xde_dict, xde_addr)
+# end sec_parse()
 
 def report_duplicated_declaration(keyword, declared_linenum, duplicated_linenum):
     print(f"{Error_color}Error SEC01: duplicated declaration of '{keyword}' at "\
@@ -523,6 +525,10 @@ def fnl_parse(ges_info, xde_dict, xde_addr):
 
     keyword_list = list(xde_dict.keys())
 
+    # parsing workflow features
+    parse_workflow_code(xde_dict)
+
+    # parsing non-workflow features
     for keyword in keyword_list:
 
         # parse disp and func for complex
@@ -536,10 +542,59 @@ def fnl_parse(ges_info, xde_dict, xde_addr):
                     xde_dict[keyword].append(var+'r')
                     xde_dict[keyword].append(var+'i')
 
-        if 'shap' == keyword:
+        elif 'shap' == keyword:
             parse_shap_declaration(ges_info, xde_dict)
 
-    check_parsing_result('fnl', xde_dict, xde_addr)
+        elif 'mate' == keyword:
+            parse_mate_declaration(xde_dict)
+
+        elif 'gaus' == keyword:
+
+            if xde_dict['gaus'][0] == '%3':
+                xde_dict['gaus'] = ges_info['gaus_type']
+
+            else:
+                xde_dict['gaus'] = xde_dict['gaus'][0]
+
+        elif keyword in ['mass','damp']:
+
+            if  xde_dict[keyword][0] == '%1':
+                xde_dict[keyword][0] = 'lump'
+
+            if  len(xde_dict[keyword]) == 1:
+                xde_dict[keyword].append('1.0')
+
+        # initial to empty fvect
+        elif 'fvect' == keyword:
+
+            for lists in xde_dict['fvect'].values():
+
+                if len(lists) == 0:
+                    lists.clear()
+                    lists += [""]
+
+                elif len(lists) == 1:
+                    length = int(lists[0])
+                    lists.clear()
+                    lists += ['' for ii in range(length)]
+
+        # initial to empty fmatr
+        elif 'fmatr' == keyword:
+
+            for lists in xde_dict['fmatr'].values():
+
+                if len(lists) == 0:
+                    lists += ['1','1']
+
+                elif len(lists) == 2:
+                    lists += [['' for ii in range(int(lists[1]))] \
+                                  for ii in range(int(lists[0]))]
+
+        # transform array declaration
+        elif 'array' == keyword:
+            complete_array_info(xde_dict, xde_addr)
+
+    export_parsing_result('fnl', xde_dict, xde_addr)
 # end fnl_parse()
 
 def parse_shap_declaration(ges_info, xde_dict):
@@ -568,7 +623,7 @@ def parse_shap_declaration(ges_info, xde_dict):
             if 'coef' in xde_dict:
                 xde_dict['coef_shap'] = {}
                 xde_dict['coef_shap'][base_shap_type] = xde_dict['coef'].copy()
-    '''
+    
     # 3.1.2 penalty or mix shap
     for shap_list in xde_dict['shap']:
 
@@ -661,11 +716,193 @@ def parse_shap_declaration(ges_info, xde_dict):
 
                 for pena_var in pena_vars.keys() :
                     shap_dict[base_shap_type].remove(pena_var)
-    '''
-    #xde_dict['shap'] = shap_dict
+    
+    xde_dict['shap'] = shap_dict
 # end parse_shap_declaration()
 
-def check_parsing_result(stage, xde_dict, xde_addr):
+def parse_mate_declaration(xde_dict):
+
+    mate_dict = {}
+    mate_dict['default'] = {}
+    mate_var = []
+    mate_val = []
+
+    from check_xde import is_number
+    for strs in xde_dict['mate']:
+
+        if is_number(strs) :
+            mate_val.append(strs)
+
+        else:
+            mate_var.append(strs)
+
+    len_val = len(mate_val)
+    for var_i, var in enumerate(mate_var):
+
+        if var_i < len_val:
+            mate_dict['default'][var] = mate_val[var_i]
+
+        else:
+            mate_dict['default'][var] = '0.0'
+
+    xde_dict['mate'] = mate_dict
+# end parse_mate_declaration()
+
+def parse_workflow_code(xde_dict):
+
+    regx_key = r'\$C[CPV6]|@[LAWSR]|ARRAY'
+
+    for code_place in xde_dict['code'].keys():
+        for code_i, code_line in enumerate(xde_dict['code'][code_place]):
+            code_regx = re.match(regx_key,code_line,re.I)
+
+            if code_regx == None:
+                # say something
+                continue
+
+            code_key = code_regx.group()
+            code_key_lower = code_key.lower()
+
+            if   code_key_lower == '$cc' \
+            or   code_key_lower == '$c6':
+                xde_dict['code'][code_place][code_i] \
+                    = 'Insr_Code: ' + code_line.replace(code_key,'').lstrip()
+
+            elif code_key_lower == '$cv':
+                xde_dict['code'][code_place][code_i] \
+                    = 'Tnsr_Asgn: ' + code_line.replace(code_key,'').lstrip()
+
+            elif code_key_lower == '$cp':
+                xde_dict['code'][code_place][code_i] \
+                    = 'Cplx_Asgn: ' + code_line.replace(code_key,'').lstrip()
+
+            # 3.6.2 parsing operator
+            elif code_key_lower == '@l':
+
+                opr_list = code_line.replace(code_key,'').lstrip().split()
+                opr_expr = opr_list[0]
+                opr_name = opr_expr.split('.')[0]
+                asgn_type = opr_list[1].lower()
+
+                var_prefxs = ['',  '',   '',     '[']
+                var_posfxs = ['',  '_i', '_i_j', ']']
+                asgn_types = ['c', 'v',  'm',    'f']
+
+                if asgn_type == 'n':
+
+                    if   opr_name.lower() == 'singular':
+                        xde_dict['code'][code_place][code_i] \
+                            = 'Oprt_Asgn: '+opr_expr
+
+                    elif opr_name.lower() == 'vol':
+                        xde_dict['code'][code_place][code_i] \
+                            = 'Oprt_Asgn: '+opr_expr
+
+                elif asgn_type in asgn_types:
+
+                    type_indx = asgn_types.index(asgn_type)
+                    prefx_str = var_prefxs[type_indx]
+                    posfx_str = var_posfxs[type_indx]
+
+                    if asgn_type == 'f':
+
+                        if   'fvect' in xde_dict \
+                        and opr_list[2] in xde_dict['fvect']:
+                            posfx_str = '_i'   + posfx_str
+
+                        elif 'fmatr' in xde_dict \
+                        and opr_list[2] in xde_dict['fmatr']:
+                            posfx_str = '_i_j' + posfx_str
+
+                    temp_str  = 'Oprt_Asgn: ' \
+                              + prefx_str + opr_list[2] + posfx_str \
+                              + '=' + opr_expr + '(' \
+                              + ','.join(opr_list[3:]) + ')'
+
+                    xde_dict['code'][code_place][code_i] = temp_str
+
+            # 3.6.3 parsing assignment
+            elif code_key_lower == '@a':
+                expr = code_line.replace(code_key,'').lstrip().split('=')
+                xde_dict['code'][code_place][code_i] \
+                    = 'Func_Asgn: [' + expr[0].rstrip() \
+                    + ']=' + expr[1].lstrip()
+
+            elif code_key_lower == '@r':
+                expr = code_line.replace(code_key,'').lstrip().split('=')
+                xde_dict['code'][code_place][code_i] \
+                    = 'Func_Asgn: [' + expr[0].rstrip() \
+                    + ']=' + expr[1].lstrip().replace('[','').replace(']','')
+
+            elif code_key_lower in ['@w','@s']:
+                opr_list = code_line.replace(code_key,'').lstrip().split()
+                temp_str = 'Func_Asgn: '
+
+                for strs, prefx, posfx \
+                in zip(['vect', 'matrix', 'fvect', 'fmatr' ], \
+                       ['',     '',       '[',     '['     ],
+                       ['_i=',  '_i_j=',  '_i]=',  '_i_j]=']) :
+
+                    if strs in xde_dict \
+                    and opr_list[0] in xde_dict[strs]:
+                        prefx_str, posfx_str = prefx, posfx
+
+                temp_str += prefx_str + opr_list[0] + posfx_str
+
+                temp_str += opr_list[1] + '[' + ','.join(opr_list[2:]) + ']'
+
+                xde_dict['code'][code_place][code_i] = temp_str
+# end parse_workflow_code()
+
+def complete_array_info(xde_dict, xde_addr):
+
+    vector = 1
+    matrix = 2
+
+    for strs, line_num in zip( xde_dict['array'], xde_addr['array']):
+
+        strs = re.sub(r'array', '', strs, 0, re.I).lstrip()
+
+        for array in strs.split(','):
+
+            index_list = list (map( lambda x: int(x.lstrip('[').rstrip(']')), \
+                                    re.findall(r'\[\d+\]',array) ))
+            array_var  = array.split('[')[0]
+
+            tensor_type = len(index_list)
+
+            if tensor_type == vector:
+
+                vect_len = index_list[0]
+
+                if 'array_vect' not in xde_dict:
+                    xde_dict['array_vect'] = {}
+                    xde_addr['array_vect'] = {}
+
+                xde_dict['array_vect'][array_var] = \
+                    [array_var + '[' + str(ii+1) + ']' \
+                        for ii in range(vect_len)]
+
+                xde_addr['array_vect'][array_var] = line_num
+
+            elif tensor_type == matrix:
+
+                matr_row = index_list[0]
+                matr_clm = index_list[1]
+
+                if 'array_matrix' not in xde_dict:
+                    xde_dict['array_matrix'] = {}
+                    xde_addr['array_matrix'] = {}
+
+                xde_dict['array_matrix'][array_var] = [matr_row, matr_clm] \
+                    + [[array_var + '[' + str(ii+1) + '][' + str(jj+1) + ']' \
+                        for jj in range(matr_clm)] \
+                            for ii in range(matr_row)]
+
+                xde_addr['array_matrix'][array_var] = [line_num]
+# end complete_array_info()
+
+def export_parsing_result(stage, xde_dict, xde_addr):
     if dict_check[stage] != 0:
         file = open(ifo_folder + stage + '_check.json', mode='w')
         file.write(json.dumps(xde_dict,indent=4))
@@ -674,4 +911,4 @@ def check_parsing_result(stage, xde_dict, xde_addr):
         file = open(ifo_folder + stage + '_addr.json',  mode='w')
         file.write(json.dumps(xde_addr,indent=4))
         file.close()
-# end check_parsing_result()
+# end export_parsing_result()
