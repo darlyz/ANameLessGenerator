@@ -238,7 +238,7 @@ def get_felac_data():
 
 def prepare_to_genxde(gesname, coortype, ges_info):
 
-    ges_shap_type = re.search(r'[ltqwc][1-9][0-9]*',gesname,re.I).group()
+    ges_shap_type = re.search(r'[a-z][1-9][0-9]*',gesname,re.I).group()
     ges_gaus_type = re.search(r'g[1-9][0-9]*',gesname,re.I)
 
     if ges_gaus_type != None:

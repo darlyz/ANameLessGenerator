@@ -83,7 +83,7 @@ def genxde(xdename, gesname, coortype):
     error = parse_xde(ges_info, xde_dict, xde_addr, xdefile)
     xdefile.close()
     if error: return
-
+    '''
     # parse ges
     from xde2ges import xde2ges_dict
     error = xde2ges_dict(ges_info, xde_dict, xde_addr, ges_dict)
@@ -126,7 +126,7 @@ def genxde(xdename, gesname, coortype):
     file = open(ifo_folder + gesname+'.json', mode='w')
     file.write(json.dumps(xde_dict,indent=4))
     file.close()
-
+    '''
     end   = time()
     print ('parsing time: {}s'.format(end-start))
 
