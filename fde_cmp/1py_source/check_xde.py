@@ -23,6 +23,9 @@ from felac_data import operator_data, oprt_name_list,\
 from expr import split_bracket_expr
 
 error = False
+scalar = 0
+vector = 1
+matrix = 2
 
 def check_xde(ges_info, xde_dict, xde_addr):
 
@@ -960,19 +963,19 @@ def check_operator_content(opr_features, code_strs, line_num, xde_dict, xde_addr
 
             elif strs.count('_') == 1:
 
-                vector = strs.split('_')[0]
-                c_declares['tnsr_used']['vect'].add(vector)
+                vect = strs.split('_')[0]
+                c_declares['tnsr_used']['vect'].add(vect)
 
                 if 'vect' not in xde_dict \
                 or ( 'vect' in xde_dict \
-                    and vector not in xde_dict['vect'] ):
+                    and vect not in xde_dict['vect'] ):
 
-                    error_type = not_declared(vector, 'Error')
+                    error_type = not_declared(vect, 'Error')
                     sgest_info = "It must be declared by 'VECT'.\n"
                     report_error('OND07', line_num, error_type + sgest_info)
 
                 else:
-                    opr_parameters += xde_dict['vect'][vector]
+                    opr_parameters += xde_dict['vect'][vect]
 
             else:
                 error_type = unsuitable_form(strs, 'Error')
@@ -1367,8 +1370,6 @@ def check_ftensor_assign_2(code_strs, line_num, xde_dict, xde_addr, c_declares, 
         left_var, righ_expr = code_strs.split('=')
 
         left_var_type = left_var.count('_')
-        vector = 1
-        matrix = 2
 
         error_report_list = []
 
@@ -1525,9 +1526,6 @@ def classify_var_in_fassign(righ_expr, var_dict, c_declares, xde_dict):
 # end classify_var_in_fassign()
 
 def classify_variable(var, var_dict, var_type, tensor_type, c_declares, xde_dict):
-    scalar = 0
-    vector = 1
-    matrix = 2
     tensor = var.split('_')[0]
     if   tensor_type == scalar:
         var_dict[var_type+'scal'].add(var)

@@ -83,14 +83,14 @@ def genxde(xdename, gesname, coortype):
     error = parse_xde(ges_info, xde_dict, xde_addr, xdefile)
     xdefile.close()
     if error: return
-    '''
+    
     # parse ges
     from xde2ges import xde2ges_dict
     error = xde2ges_dict(ges_info, xde_dict, xde_addr, ges_dict)
     if error: return
 
     # ----------------------------------------------------------
-
+    '''
     # generate ges by ges_dict
     if gen_obj['ges'] > 0:
         from xde2ges import xde2ges

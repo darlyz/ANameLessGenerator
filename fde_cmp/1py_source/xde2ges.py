@@ -20,6 +20,10 @@ from genxde import gen_obj, ifo_folder
 
 ges_dict_check = 1
 
+scalar = 0
+vector = 1
+matrix = 2
+
 def xde2ges_dict(ges_info, xde_dict, xde_addr, ges_dict):
 
     pfelacpath = os.environ['pfelacpath']
@@ -94,7 +98,7 @@ def xde2ges_dict(ges_info, xde_dict, xde_addr, ges_dict):
         elif 'load' == key_word:
             parse_load(xde_dict, ges_dict)
 
-    if ges_dict_check == 1:
+    if ges_dict_check != 0:
         import json
         file = open(ifo_folder+'ges_dict.json',mode='w')
         file.write(json.dumps(ges_dict,indent=4))
@@ -139,10 +143,10 @@ def release_tensor_code(code_strs, code_place, xde_dict, ges_dict):
 
     vect_expr = code_strs.replace('Tnsr_Asgn: ','')
 
-    left_vara, righ_expr = vect_expr.split('=')[:2]
-    left_vara, righ_expr = left_vara.strip(), righ_expr.strip().strip(';')
+    left_var, righ_expr = vect_expr.split('=')[:2]
+    left_var, righ_expr = left_var.strip(), righ_expr.strip().strip(';')
 
-    expr_list = idx_summation(left_vara, righ_expr, xde_dict)
+    expr_list = idx_summation(left_var, righ_expr, xde_dict)
 
     for expres in expr_list:
         if  expres.find('{') != -1 \
@@ -155,14 +159,14 @@ def release_tensor_code(code_strs, code_place, xde_dict, ges_dict):
 def release_complex_code(code_strs, code_place, xde_dict, ges_dict):
 
     cplx_expr = code_strs.replace('Cplx_Asgn: ','')
-    left_vara, righ_expr = cplx_expr.split('=')[:2]
-    left_vara, righ_expr = left_vara.strip(), righ_expr.strip().strip(';')
+    left_var, righ_expr = cplx_expr.split('=')[:2]
+    left_var, righ_expr = left_var.strip(), righ_expr.strip().strip(';')
 
     # if complex expres is a tensor expres, make summation first
-    if left_vara.find('_') != -1 \
+    if left_var.find('_') != -1 \
     or righ_expr.find('_') != -1 :
 
-        expr_list = idx_summation(left_vara, righ_expr, xde_dict)
+        expr_list = idx_summation(left_var, righ_expr, xde_dict)
 
         for expres in expr_list:
 
@@ -178,10 +182,11 @@ def release_complex_code(code_strs, code_place, xde_dict, ges_dict):
 
         for ri,cmplexpr in zip(['r','i'], cplx_objt.complex_list):
             ges_dict['code'][code_place] \
-                .append(f'$cc {left_vara}{ri}={cmplexpr};\n')
+                .append(f'$cc {left_var}{ri}={cmplexpr};\n')
 # end release_complex_code()
 
 def release_operator_code(code_strs, code_place, pfelacpath, xde_dict, ges_dict):
+
     oprt_expr = code_strs.replace('Oprt_Asgn: ','')
     oprt_name, oprt_axis = oprt_expr.split('.')
 
@@ -195,37 +200,47 @@ def release_operator_code(code_strs, code_place, pfelacpath, xde_dict, ges_dict)
     and oprt_expr.find('vol') == -1 :
 
         # split aa=grad.xy(x,y,u) to aa, grad.xy, [x,y,u]
-        left_vara, righ_expr = oprt_expr.split('=')[:2]
+        left_var,  righ_expr = oprt_expr.split('=')[:2]
         oprt_name, oprt_vars = righ_expr.split('(')[:2]
         oprt_name, oprt_axis = oprt_name.split('.')
         oprt_vars = oprt_vars.replace(' ','')
+
         if oprt_vars == ')':
             oprt_vars = []
+
         else:
             oprt_vars = oprt_vars.rstrip(')').split(',')
 
         # expand vector variable list [x_i,a_i...] --> [x,y,z,a1,a2,...]
         if len(oprt_vars) != 0:
+
             temp_vars = []
-            for vara in oprt_vars:
-                if vara.count('_') == 0:
-                    temp_vars.append(vara)
-                elif vara.count('_') == 1:
-                    vect_name = vara.split('_')[0]
-                    temp_vars += xde_dict['vect'][vect_name][1:]
-                elif vara.count('_') == 2:
-                    matr_name = vara.split('_')[0]
+            for var in oprt_vars:
+                var_type = var.count('_')
+
+                if var_type == scalar:
+                    temp_vars.append(var)
+
+                elif var_type == vector:
+                    vect_name = var.split('_')[0]
+                    temp_vars += xde_dict['vect'][vect_name]
+
+                elif var_type == matrix:
+                    matr_name = var.split('_')[0]
                     for matr_row in xde_dict['matrix'][matr_name][2:]:
                         temp_vars += matr_row
+
             oprt_vars = temp_vars.copy()
 
         # replenish default variables
         else:
+
             # to deal with oprt_axis of [oz、so、s]
-            if   'disp' in xde_dict and left_vara[0] == '[' and left_vara[-1] == ']':
+            if   'disp' in xde_dict and left_var[0] == '[' and left_var[-1] == ']':
                 oprt_vars += xde_dict['coor'] \
                     + xde_dict['disp'][:len(operator_data[oprt_name][oprt_axis]['disp'])]
-            elif 'coef' in xde_dict and left_vara[0] != '[' and left_vara[-1] != ']':
+
+            elif 'coef' in xde_dict and left_var[0] != '[' and left_var[-1] != ']':
                 oprt_vars += xde_dict['coor'] \
                     + xde_dict['coef'][:len(operator_data[oprt_name][oprt_axis]['disp'])]
 
@@ -237,285 +252,292 @@ def release_operator_code(code_strs, code_place, pfelacpath, xde_dict, ges_dict)
             for oprt_var, dflt_var in zip(oprt_vars, oprt_dfvr):
                 oprt_strs = oprt_strs.replace(dflt_var,oprt_var)
 
+        left_vara_type = left_var.count('_')
+        left_vara_name = left_var.lstrip('[').rstrip(']').split('_')[0]
         # assign to a temporary list type of 'fvect' or 'fmatr' 
         # used for derivative of 'disp' variables in Func_Asgn step
         # Oprt_Asgn: [a] = opr(*,*) ----------- @L opr f a * *
-        if  left_vara[0]  == '[' and left_vara[-1] == ']' :
+        if  left_var[0]  == '[' and left_var[-1] == ']' :
             expr_list = oprt_strs.rstrip().split('\n')
 
-            if left_vara.count('_') == 0: # may be fault tackle
-                expres = left_vara.lstrip('[').rstrip(']') + '=' + ''.join(expr_list)
+            if left_vara_type == scalar: # may be fault tackle
+                expres = left_vara_name + '=' + ''.join(expr_list)
                 ges_dict['code'][code_place].append(expres)
 
-            elif left_vara.count('_') == 1:
-                var = left_vara.lstrip('[').rstrip(']').split('_')[0]
+            elif left_vara_type == vector:
                 for ii in range(len(expr_list)):
-                    xde_dict['fvect'][var][ii+1] = expr_list[ii]
+                    xde_dict['fvect'][left_vara_name][ii+1] = expr_list[ii]
 
-            elif left_vara.count('_') == 2:
-                var = left_vara.lstrip('[').rstrip(']').split('_')[0]
-                row, clm = list(map(int,xde_dict['fmatr'][var][:2]))
+            elif left_vara_type == matrix:
+                row, clm = xde_dict['fmatr'][left_vara_name][:2]
                 for ii in range(row):
                     for jj in range(clm):
-                        xde_dict['fmatr'][var][ii+2][jj] = expr_list[ii*row+jj]
+                        xde_dict['fmatr'][left_vara_name][ii+2][jj] = expr_list[ii*row+jj]
 
         # assign to derivative of distributed known variables such as last step 'disp' resault
         # Oprt_Asgn: a = opr(*,*) ----------- @L opr [svm] a * *
-        elif left_vara[0]  != '[' and  left_vara[-1] != ']' :
+        elif left_var[0]  != '[' and  left_var[-1] != ']' :
             oprt_strs = oprt_strs.replace('[','{').replace(']','}')
             expr_list = oprt_strs.rstrip().split('\n')
 
-            if left_vara.count('_') == 0:
-                expres = left_vara.lstrip('[').rstrip(']') + '=' + ''.join(expr_list)
+            if left_vara_type == scalar:
+                expres = left_vara_name + '=' + ''.join(expr_list)
                 ges_dict['code'][code_place].append('$cv '+expres)
 
-            elif left_vara.count('_') == 1:
-                expres = left_vara.lstrip('[').rstrip(']').split('_')[0]
-                if len(xde_dict['vect'][expres]) == len(expr_list)+1:
-                    for ii in range(len(expr_list)):
-                        ges_dict['code'][code_place] \
-                            .append(f"$cv {xde_dict['vect'][expres][ii+1]}={expr_list[ii]}")
+            elif left_vara_type == vector:
+                for keyword in ['vect','array_vect']:
+                    if keyword in xde_dict and left_vara_name in xde_dict[keyword]:
+                        if len(xde_dict[keyword][left_vara_name]) == len(expr_list):
+                            for ii in range(len(expr_list)):
+                                ges_dict['code'][code_place] \
+                                    .append(f"$cv {xde_dict[keyword][left_vara_name][ii]}={expr_list[ii]}")
 
-            elif left_vara.count('_') == 2:
-                expres = left_vara.lstrip('[').rstrip(']').split('_')[0]
-                matr_len = int(xde_dict['matrix'][expres][0]) \
-                         * int(xde_dict['matrix'][expres][1])
-                if matr_len == len(expr_list):
-                    ii = 0
-                    for lists in xde_dict['matrix'][expres][2:]:
-                        for strs in lists:
-                            ges_dict['code'][code_place].append(f'$cv {strs}={expr_list[ii]}\n')
-                            ii += 1
+            elif left_vara_type == matrix:
+                for keyword in ['matrix','array_matrix']:
+                    if keyword in xde_dict and left_vara_name in xde_dict[keyword]:
+                        matr_len = xde_dict[keyword][left_vara_name][0] \
+                                 * xde_dict[keyword][left_vara_name][1]
+                        if matr_len == len(expr_list):
+                            ii = 0
+                            for lists in xde_dict[keyword][left_vara_name][2:]:
+                                for strs in lists:
+                                    ges_dict['code'][code_place].append(f'$cv {strs}={expr_list[ii]}\n')
+                                    ii += 1
 # end release_operator_code()
 
 def release_funcasgn_code(code_strs, code_place, xde_dict, ges_dict):
 
     tnsr_expr = code_strs.replace('Func_Asgn: ','')
-    left_vara, righ_expr = tnsr_expr.split('=')[:2]
-    left_vara, righ_expr = left_vara.strip(), righ_expr.strip()
+    left_var, righ_expr = tnsr_expr.split('=')[:2]
+    left_var, righ_expr = left_var.strip(), righ_expr.strip()
+
+    left_var_type = left_var.count('_')
 
     # assign the temporary list type of 'fvect' or 'fmatr'
     # to the list type of 'vect' or 'matrix'
-    if  left_vara[0]  != '[' and left_vara[-1] != ']' :
+    if  left_var[0]  != '[' \
+    and left_var[-1] != ']' :
+
+        left_var_name = left_var.split('_')[0]
 
         # Func_Asgn: a = b[*,*] --------- @W a b * *
-        if re.search(r'[a-z]+[0-9a-z]*\[([0-9],)*[0-9]?\]',righ_expr,re.I) != None \
-        and righ_expr[-1] == ']':
+        if re.search(r'[a-z]+[0-9a-z]*\[([0-9],)*[0-9]?\]$',righ_expr,re.I) != None:
 
             # read right variable index list
-            righ_vara = righ_expr.split('[')[0]
+            righ_var = righ_expr.split('[')[0]
 
-            if righ_expr[-1] == ']' and righ_expr[-2] == '[':
+            if  righ_expr[-1] == ']' \
+            and righ_expr[-2] == '[':
                 
                 if   'fvect' in xde_dict \
-                and righ_vara in xde_dict['fvect']:
-                    righ_idxs = list(range(int(xde_dict['fvect'][righ_vara][0])))
+                and righ_var in xde_dict['fvect']:
+                    righ_idxs = list(range(len(xde_dict['fvect'][righ_var])))
                 
                 elif 'fmatr' in xde_dict \
-                and righ_vara in xde_dict['fmatr']:
-                    righ_idxs = list(range(int(xde_dict['fvect'][righ_vara][0]) \
-                                          *int(xde_dict['fvect'][righ_vara][1])))
+                and righ_var in xde_dict['fmatr']:
+                    righ_idxs = list(range(xde_dict['fvect'][righ_var][0] \
+                                          *xde_dict['fvect'][righ_var][1]))
                 
-                righ_idxs = [x + 1 for x in righ_idxs]
             else:
-                righ_idxs = righ_expr.split('[')[1].rstrip(']').split(',')
+                righ_idxs = list(map(lambda x: int(x)-1 , \
+                                    righ_expr.split('[')[1].rstrip(']').split(',') ))
 
-            if left_vara.count('_') == 0:
-                expres = left_vara + '='
+            if left_var_type == scalar:
+                expres = left_var + '='
 
                 if   'fvect' in xde_dict \
-                and righ_vara in xde_dict['fvect']:
+                and righ_var in xde_dict['fvect']:
                     for idx in righ_idxs:
-                        expres += xde_dict['fvect'][righ_vara][int(idx)]
+                        expres += xde_dict['fvect'][righ_var][idx]
                 
                 elif 'fmatr' in xde_dict \
-                and righ_vara in xde_dict['fmatr']:
+                and righ_var in xde_dict['fmatr']:
 
-                    row, clm = list(map(int,xde_dict['fmatr'][righ_vara][:2]))
-                    fmatr = xde_dict['fmatr'][righ_vara][2:]
+                    row, clm = xde_dict['fmatr'][righ_var][:2]
+                    fmatr    = xde_dict['fmatr'][righ_var][2:]
 
                     for idx in righ_idxs:
-                        expres += fmatr[math.ceil(int(idx)/clm)-1][int(idx)%clm-1]
+                        expres += fmatr[int(idx/clm)][idx%clm]
                 
                 ges_dict['code'][code_place].append(expres+'\n\n')
             
-            elif left_vara.count('_') == 1: 
+            elif left_var_type == vector:
 
-                left_name = left_vara.split('_')[0]
                 expr_list = []
-                temp_list = xde_dict['vect'][left_name][1:].copy()
+
+                for keyword in ['vect', 'array_vect']:
+                    if keyword in xde_dict and left_var_name in xde_dict[keyword]:
+                        temp_list = xde_dict[keyword][left_var_name]
 
                 if len(temp_list) == len(righ_idxs):
 
-                    if   'fvect' in xde_dict and righ_vara in xde_dict['fvect']:
-                        for vara, idx in zip(temp_list, righ_idxs):
-                            expr_list.append( vara + '=' + \
-                                xde_dict['fvect'][righ_vara][int(idx)] + '\n\n')
+                    if   'fvect' in xde_dict and righ_var in xde_dict['fvect']:
+                        for var, idx in zip(temp_list, righ_idxs):
+                            expr_list.append( var + '=' + \
+                                xde_dict['fvect'][righ_var][idx] + '\n\n')
                     
-                    elif 'fmatr' in xde_dict and righ_vara in xde_dict['fmatr']:
+                    elif 'fmatr' in xde_dict and righ_var in xde_dict['fmatr']:
 
-                        row,clm = list(map(int,xde_dict['fmatr'][righ_vara][:2]))
-                        fmatr   = xde_dict['fmatr'][righ_vara][2:]
+                        row,clm = xde_dict['fmatr'][righ_var][:2]
+                        fmatr   = xde_dict['fmatr'][righ_var][2:]
 
-                        for vara,idx in zip(temp_list,righ_idxs):
-                            expr_list.append(vara + '=' + \
-                                fmatr[math.ceil(int(idx)/clm)-1][int(idx)%clm-1] + '\n\n')
+                        for var,idx in zip(temp_list,righ_idxs):
+                            expr_list.append(var + '=' + \
+                                fmatr[int(idx/clm)][idx%clm] + '\n\n')
                 
                 ges_dict['code'][code_place] += expr_list
 
-            elif left_vara.count('_') == 2:
+            elif left_var_type == matrix:
 
-                left_name = left_vara.split('_')[0]
                 expr_list = []
-                matr_len = int(xde_dict['matrix'][left_name][0]) \
-                         * int(xde_dict['matrix'][left_name][1])
+                for keyword in ['matrix', 'array_matrix']:
+                    if keyword in xde_dict and left_var_name in xde_dict[keyword]:
+                        matr_len = xde_dict[keyword][left_var_name][0] \
+                                 * xde_dict[keyword][left_var_name][1]
 
-                temp_list = xde_dict['matrix'][left_name][2:].copy()
+                temp_list = xde_dict['matrix'][left_var_name][2:]
 
                 if matr_len == len(righ_idxs):
 
                     if 'fvect' in xde_dict \
-                        and righ_vara in xde_dict['fvect']:
+                        and righ_var in xde_dict['fvect']:
 
                         idx = 0
                         for lists in temp_list:
-                            for vara in lists:
+                            for var in lists:
                                 idx+=1
-                                expr_list.append( vara + '=' + \
-                                    xde_dict['fvect'][righ_vara][idx] + '\n\n')
+                                expr_list.append( var + '=' + \
+                                    xde_dict['fvect'][righ_var][idx] + '\n\n')
 
-                elif 'fmatr' in xde_dict and righ_vara in xde_dict['fmatr']:
+                elif 'fmatr' in xde_dict and righ_var in xde_dict['fmatr']:
 
-                    row,clm = list(map(int,xde_dict['fmatr'][righ_vara][:2]))
-                    fmatr = xde_dict['fmatr'][righ_vara][2:]
+                    row,clm = xde_dict['fmatr'][righ_var][:2]
+                    fmatr   = xde_dict['fmatr'][righ_var][2:]
 
                     i = 0
                     for matr_row in temp_list:
                         for matr_vara in matr_row:
                             idx = righ_idxs[i]
                             expr_list.append( matr_vara + '=' + \
-                                fmatr[math.ceil(int(idx)/clm)-1][int(idx)%clm-1] + '\n\n')
+                                fmatr[int(idx/clm)][idx%clm] + '\n\n')
                             i += 1
 
                 ges_dict['code'][code_place] += expr_list
 
     # assign the temporary list type of 'fvect' or 'fmatr'
     # to the list type of 'fvect' or 'fmatr'
-    elif left_vara[0]  == '[' \
-    and  left_vara[-1] == ']' :
+    elif left_var[0]  == '[' \
+    and  left_var[-1] == ']' :
 
-        left_vara = left_vara.lstrip('[').rstrip(']')
+        left_var = left_var.lstrip('[').rstrip(']')
+        left_var_name = left_var.split('_')[0]
 
         # Func_Asgn: [a] = b[*,*] --------- @S a b * *
-        if re.search(r'[a-z]+[0-9a-z]*\[([0-9],)*[0-9]?\]',righ_expr,re.I) != None \
-        and righ_expr[-1] == ']':
+        if re.search(r'[a-z]+[0-9a-z]*\[([0-9],)*[0-9]?\]$',righ_expr,re.I) != None:
 
             # read right variable index list
-            righ_vara = righ_expr.split('[')[0]
+            righ_var = righ_expr.split('[')[0]
 
-            if righ_expr[-1] == ']' \
+            if  righ_expr[-1] == ']' \
             and righ_expr[-2] == '[':
 
                 if 'fvect' in xde_dict \
-                and righ_vara in xde_dict['fvect']:
-                    righ_idxs = list(range(int(xde_dict['fvect'][righ_vara][0])))
+                and righ_var in xde_dict['fvect']:
+                    righ_idxs = list(range(len(xde_dict['fvect'][righ_var])))
 
                 elif 'fmatr' in xde_dict \
-                and righ_vara in xde_dict['fmatr']:
-                    righ_idxs = list(range(int(xde_dict['fvect'][righ_vara][0]) \
-                                          *int(xde_dict['fvect'][righ_vara][1])))
-
-                righ_idxs = [x + 1 for x in righ_idxs]
+                and righ_var in xde_dict['fmatr']:
+                    righ_idxs = list(range(xde_dict['fvect'][righ_var][0] \
+                                          *xde_dict['fvect'][righ_var][1]))
 
             else:
-                righ_idxs = righ_expr.split('[')[1].rstrip(']').split(',')
+                righ_idxs = list(map(lambda x: int(x)-1 , \
+                                    righ_expr.split('[')[1].rstrip(']').split(',') ))
 
-            if left_vara.count('_') == 0:       
-                expres = left_vara + '='
+            if left_var_type == scalar:       
+                expres = left_var_name + '='
 
                 if   'fvect' in xde_dict \
-                and righ_vara in xde_dict['fvect']:
+                and righ_var in xde_dict['fvect']:
                     for idx in righ_idxs:
-                        expres += xde_dict['fvect'][righ_vara][int(idx)]
+                        expres += xde_dict['fvect'][righ_var][idx]
 
                 elif 'fmatr' in xde_dict \
-                and righ_vara in xde_dict['fmatr']:
+                and righ_var in xde_dict['fmatr']:
 
-                    row, clm = list(map(int,xde_dict['fmatr'][righ_vara][:2]))
-                    fmatr = xde_dict['fmatr'][righ_vara][2:]
+                    row, clm = xde_dict['fmatr'][righ_var][:2]
+                    fmatr    = xde_dict['fmatr'][righ_var][2:]
 
                     for idx in righ_idxs:
-                        expres += fmatr[math.ceil(int(idx)/clm)-1][int(idx)%clm-1]
+                        expres += fmatr[int(idx/clm)][idx%clm]
 
                 ges_dict['code'][code_place].append(expres+'\n\n')
 
-            elif left_vara.count('_') == 1: 
-                left_name = left_vara.split('_')[0]
-                vect_len  = len(xde_dict['fvect'][left_name])
+            elif left_var_type == vector:
 
-                if vect_len == len(righ_idxs) + 1:
+                vect_len  = len(xde_dict['fvect'][left_var_name])
+
+                if vect_len == len(righ_idxs):
 
                     if   'fvect' in xde_dict \
-                    and righ_vara in xde_dict['fvect']:
+                    and righ_var in xde_dict['fvect']:
 
                         for idx,ii in zip(righ_idxs,range(vect_len)):
-                            xde_dict['fvect'][left_name][ii+1] = \
-                            xde_dict['fvect'][righ_vara][int(idx)]
+                            xde_dict['fvect'][left_var_name][ii] = \
+                            xde_dict['fvect'][left_var_name][idx]
 
                     elif 'fmatr' in xde_dict \
-                    and righ_vara in xde_dict['fmatr']:
+                    and righ_var in xde_dict['fmatr']:
 
-                        row, clm = list(map(int,xde_dict['fmatr'][righ_vara][:2]))
+                        row, clm = xde_dict['fmatr'][righ_var][:2]
                         for idx,ii in zip(righ_idxs,range(vect_len)):
-                            xde_dict['fvect'][left_name][ii+1] = \
-                            xde_dict['fmatr'][righ_vara][math.ceil(int(idx)/clm)+1][int(idx)%clm-1]
+                            xde_dict['fvect'][left_var_name][ii] = \
+                            xde_dict['fmatr'][righ_var][2:][int(idx/clm)][idx%clm]
             
-            elif left_vara.count('_') == 2:
+            elif left_var_type == matrix:
 
-                left_name = left_vara.split('_')[0]
-                expr_list = []
-                matr_len = int(xde_dict['fmatr'][left_name][0]) \
-                         * int(xde_dict['fmatr'][left_name][1])
-                lrow, lclm = list(map(int,xde_dict['fmatr'][left_name][:2]))
+                matr_len = xde_dict['fmatr'][left_var_name][0] \
+                         * xde_dict['fmatr'][left_var_name][1]
+                lclm     = xde_dict['fmatr'][left_var_name][1]
 
                 if matr_len == len(righ_idxs):
                     if   'fvect' in xde_dict \
-                    and righ_vara in xde_dict['fvect']:
+                    and righ_var in xde_dict['fvect']:
 
                         for ii,idx in zip(range(matr_len),righ_idxs):
-                            xde_dict['fmatr'][left_name][math.ceil(ii/lclm)+1][ii%lclm-1] = \
-                                xde_dict['fvect'][righ_vara][int(idx)]
+                            xde_dict['fmatr'][left_var_name][2:][int(idx/clm)][ii%lclm] = \
+                                xde_dict['fvect'][righ_var][idx]
 
                     elif 'fmatr' in xde_dict \
-                    and righ_vara in xde_dict['fmatr']:
+                    and righ_var in xde_dict['fmatr']:
 
-                        row, clm = list(map(int,xde_dict['fmatr'][righ_vara][:2]))
+                        row, clm = xde_dict['fmatr'][righ_var][:2]
                         for ii,idx in zip(range(matr_len),righ_idxs):
-                            xde_dict['fmatr'][left_name][math.ceil(ii/lclm)+1][ii%lclm-1] = \
-                                xde_dict['fmatr'][righ_vara][math.ceil(int(idx)/clm)+1][int(idx)%clm-1]
+                            xde_dict['fmatr'][left_var_name][2:][int(idx/clm)][ii%lclm-1] = \
+                                xde_dict['fmatr'][righ_var][2:][int(idx/clm)][idx%clm]
 
         else:
             righ_expr = righ_expr.replace('[','').replace(']','')
 
-            expr_list = idx_summation(left_vara,righ_expr,xde_dict)
+            expr_list = idx_summation(left_var,righ_expr,xde_dict)
 
-            if left_vara.count('_') == 1:
+            left_var_name = left_var.split('_')[0]
 
-                left_vara = left_vara.split('_')[0]
-                row = int(xde_dict['fvect'][left_vara][0])
+            if left_var_type == vector:
+
+                row = len(xde_dict['fvect'][left_var_name])
 
                 for ii in range(row):
-                    xde_dict['fvect'][left_vara][ii+1] = \
+                    xde_dict['fvect'][left_var_name][ii] = \
                         expr_list[ii].split('=')[1].replace('++','+').replace('-+','-')
 
-            elif left_vara.count('_') == 2:
+            elif left_var_type == matrix:
 
-                left_vara = left_vara.split('_')[0]
-                row,clm = list(map(int,xde_dict['fmatr'][left_vara][:2]))
+                row,clm = xde_dict['fmatr'][left_var_name][:2]
 
                 for ii in range(row):
                     for jj in range(clm):
-                        xde_dict['fmatr'][left_vara][ii+2][jj] = \
+                        xde_dict['fmatr'][left_var_name][ii+2][jj] = \
                             expr_list[ii*row+jj].split('=')[1].replace('++','+').replace('-+','-')
 # end release_funcasgn_code()
 
@@ -787,9 +809,9 @@ def write_func(ges_dict, xde_dict, gesfile):
                 
                 if 'cmplx_tag' in xde_dict and xde_dict['cmplx_tag'] == 1:
 
-                    left_vara, righ_expr = strs.rstrip('\n').split('=')
+                    left_var, righ_expr = strs.rstrip('\n').split('=')
                     cmplx_var = []
-                    cmplx_var.append(left_vara.strip())
+                    cmplx_var.append(left_var.strip())
                     vara_list = re.findall(r'\[\w+/?\w*\]', righ_expr, re.I)
 
                     for var in vara_list:
@@ -823,13 +845,13 @@ def parse_weak(weak, xde_dict, ges_dict):
 
     if xde_dict[weak][0] == 'dist':
 
-        left_vara = xde_dict[weak][0]
+        left_var = xde_dict[weak][0]
         righ_expr = ''
 
         for weak_strs in xde_dict[weak][1:]:
             righ_expr += weak_strs
 
-        expr_list = idx_summation(left_vara,righ_expr,xde_dict)
+        expr_list = idx_summation(left_var,righ_expr,xde_dict)
         expr_list = split_bracket_expr(expr_list[0])
         ges_dict[weak].append(expr_list[0].replace('=',''))
 
@@ -883,18 +905,18 @@ def parse_weak(weak, xde_dict, ges_dict):
         for shaps in xde_dict['shap']:
             nodn = re.search(r'\d+',shaps,re.I).group()
 
-            for vara in xde_dict['shap'][shaps]:
+            for var in xde_dict['shap'][shaps]:
                 for ii in range(int(nodn)):
-                    ges_dict[weak].append(f'+[{xde_dict[weak][1]}]{vara}{ii+1}')
+                    ges_dict[weak].append(f'+[{xde_dict[weak][1]}]{var}{ii+1}')
 # end parse_weak()
 
 def parse_load(xde_dict, ges_dict):
 
     ges_dict['load'] = []
 
-    left_vara = 'load'
+    left_var = 'load'
     righ_expr = ''.join(xde_dict['load'])
-    expr_list = idx_summation(left_vara,righ_expr,xde_dict)
+    expr_list = idx_summation(left_var,righ_expr,xde_dict)
     expr_list = split_bracket_expr(expr_list[0])
 
     for strs in expr_list[1:]:

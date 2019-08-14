@@ -16,8 +16,12 @@ import json
 from genxde import gen_obj, ifo_folder
 from check_xde import check_xde
 
-dict_check = {'pre':1, 'sec':1, 'fnl':1}
-addr_check = {'pre':1, 'sec':1, 'fnl':1}
+dict_check = {'pre':0, 'sec':0, 'fnl':1}
+addr_check = {'pre':0, 'sec':0, 'fnl':1}
+
+scalar = 0
+vector = 1
+matrix = 2
 
 def parse_xde(ges_info, xde_dict, xde_addr, xdefile):
 
@@ -855,9 +859,6 @@ def parse_workflow_code(xde_dict):
 # end parse_workflow_code()
 
 def complete_array_info(xde_dict, xde_addr):
-
-    vector = 1
-    matrix = 2
 
     for strs, line_num in zip( xde_dict['array'], xde_addr['array']):
 
