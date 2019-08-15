@@ -7,6 +7,7 @@
 '''
 import re
 
+tab = ' '*4
 def ges2c(ges_info, ges_dict, cfile):
 
     disp_num = len(ges_dict['disp'])
@@ -21,6 +22,7 @@ def ges2c(ges_info, ges_dict, cfile):
     if 'coef' in ges_dict:
         coef_num = len(ges_dict['coef'])
 
+    # -------------------------------- write head ---------------------------------------
     cfile.write('#include "felac.h"\n')
     cfile.write('double nx,ny,nz;\n')
     cfile.write('int nnode,ngaus,ndisp,nrefc,ncoor,nvar;\n')
@@ -30,89 +32,174 @@ def ges2c(ges_info, ges_dict, cfile):
 
     cfile.write(f'double refc[{dim*node_num}],gaus[{gaus_num+1}];\n')
 
+    cfile.write('/* .... nnode ---- the number of nodes\n')
+    cfile.write('   .... ngaus ---- the number of numerical integral points\n')
+    cfile.write('   .... ndisp ---- the number of unknown functions\n')
+    cfile.write('   .... nrefc ---- the number of reference coordinates\n')
+    cfile.write('   .... nvar ---- the number of unknown varibles var\n')
+    cfile.write('   .... refc ---- reference coordinates at integral points\n')
+    cfile.write('   .... gaus ---- weight number at integral points\n')
+    cfile.write('   .... nvard ---- the number of var for each unknown\n')
+    cfile.write('   .... kdord ---- the highest differential order for each unknown\n')
+    cfile.write('   .... kvord ---- var number at integral points for each unknown */\n')
+
     cfile.write(f'double coor[{dim+1}];\n')
 
     cfile.write(f'double coorr[{dim*node_num}];\n')
 
+    if 'coef' in ges_dict:
+        cfile.write(f'double coefr[{dim*node_num}];\n')
+
     cfile.write(f'double rctr[{dim*dim}],crtr[{dim*dim}];\n')
+
+    cfile.write("/*   .... rctr ---- jacobi's matrix\n")
+    cfile.write("     .... crtr ---- inverse matrix of jacobi's matrix */\n")
 
     cfile.write('void dshap(double (*shap)(double *,int),\n')
     cfile.write('           double *,double *,int,int,int);\n')
+
     cfile.write('void dcoor(double (*shap)(double *,int),\n')
     cfile.write('           double *,double *,double *,int,int,int);\n')
+
     cfile.write('double invm(int,double *,double *);\n')
+
     cfile.write('double inver_rc(int,int,double *,double *);\n')
+
     if 'coef' in ges_dict:
         cfile.write('void dcoef(double (*shap)(double *,int),\n')
         cfile.write('           double *,double *, double *,int,int,int);\n')
+
     cfile.write('static void initial();\n')
+
     cfile.write('static void tran_coor(double *,double *,double *,double *);\n')
+
     cfile.write('static double ftran_coor(double *,int);\n')
+
     for disp in ges_dict['disp']:
         cfile.write(f'static void shap_{disp}(double *,double *);\n')
         cfile.write(f'static double fshap_{disp}(double *,int);\n')
+
+    if 'coef' in ges_dict:
+        cfile.write('static void coef_shap(double *,double *,double *,double *);\n')
+        cfile.write('static double fcoef_shap(double *,int);\n')
+
     cfile.write('void shapn(int,int,int,double *,double *,double *,int,int,int);\n')
+
     if 'coef' in ges_dict:
         cfile.write('void shapc(int,int,int,double *,double *,double *,int,int,int);\n')
 
+    cfile.write('/* subroutine */\n')
+
+    # ------------------------------------ begin write func -------------------------------------------
+    if 'coef' in ges_dict:
+        coefa = f'coefa[{dim*node_num}]'
+    else:
+        coefa = '*coefa'
+
     cfile.write(f'void {ges_info["name"]}(coora,coefa,prmt,estif,emass,edamp,eload,num,ibegin)\n')
-    cfile.write(f'double coora[{dim*node_num}],*coefa,*prmt,estif[{dim*node_num*dim*node_num}],*emass,*edamp,*eload;\n')
+    cfile.write(f'double coora[{dim*node_num}],{coefa},*prmt,estif[{dim*node_num*dim*node_num}],*emass,*edamp,*eload;\n')
 
     cfile.write('int num,ibegin;\n')
+
+    cfile.write('/* .... coora ---- nodal coordinate value\n')
+    cfile.write('   .... coefa ---- nodal coef value\n')
+    cfile.write('   .... estif ---- element stiffness\n')
+    cfile.write('   .... emass ---- element mass matrix\n')
+    cfile.write('   .... edamp ---- element damping matrix\n')
+    cfile.write('   .... eload ---- element load vector\n')
+    cfile.write('   .... num   ---- element no. */\n')
+
+    # ------------------------------------- func body -----------------------------------------------
     cfile.write('{\n')
 
-    cfile.write('\tdouble refcoor[4]= {0.0,0.0,0.0,0.0};\n')
+    cfile.write(tab+'double refcoor[4]= {0.0,0.0,0.0,0.0};\n')
 
     if 'coef' in ges_dict:
-        cfile.write(f'\tdouble coef[{coef_num+1}];\n')
+        cfile.write(f'{tab}double coef[{coef_num+1}];\n')
+        cfile.write(f"{tab}double {','.join(ges_dict['coef'])};\n")
+        cfile.write(f'{tab}double coefd[{coef_num*dim*dim}],coefc[{coef_num*dim*dim}];\n')
 
-    cfile.write('\tdouble ')
-    cfile.write(','.join([f'e{func}[{dim*node_num+1}]' for func in ges_dict['func']]) + ';\n')
+    func = []
+    cfile.write(f'{tab}double ')
+    for func_list in ges_dict['func']:
+        func.append(','.join([f'e{strs}[{dim*node_num+1}]' for strs in func_list]))
+    cfile.write(','.join(func) + ';\n')
 
-    if 'coef' in ges_dict:
-        cfile.write(f'\tdouble coefd[{node_num}],coefc[{node_num}];\n')
-
-    cfile.write('\tdouble ')
+    cfile.write(f'{tab}double ')
     cfile.write(','.join(ges_dict['coor']) + ',' + ','.join(ges_dict['refc']) + ';\n')
 
-    cfile.write(f'\tdouble elump[{dim*node_num+1}];\n')
+    cfile.write(f'{tab}double elump[{dim*node_num+1}];\n')
 
-    cfile.write('\tstatic double ')
+    cfile.write(f'{tab}static double ')
     cfile.write(','.join([f'r{disp}[{gaus_num*(dim+1)*node_num}]' for disp in ges_dict['disp']]) + ',')
     cfile.write(','.join([f'c{disp}[{(dim+1)*node_num}]' for disp in ges_dict['disp']]) + ';\n')
 
-    cfile.write('\tint i,j,igaus;\n')
+    cfile.write(f'{tab}/* .... store shape functions and their partial derivatives\n')
+    cfile.write(f'{tab}     .... for all integral points */\n')
 
-    cfile.write('\tint ')
+    cfile.write(f'{tab}int i,j,igaus;\n')
+
+    cfile.write(f'{tab}int ')
     cfile.write(','.join(['ig_'+disp for disp in ges_dict['disp']]) + ',iv,jv;\n')
 
+    # ----------------------------------- write code before mate -------------------------------------------
     if 'BFmate' in ges_dict['code']:
-        release_code('\t', 'BFmate', ges_dict, ges_info, cfile)
+        release_code(tab, 'BFmate', ges_dict, ges_info, cfile)
 
+    # --------------------------------------- write initialize ---------------------------------------------
+    cfile.write(tab+ f"// .... initialize the basic data\n")
+    cfile.write(tab+ f"if (num==ibegin) initial();\n")
+
+    cfile.write(tab+ f"for (i=1; i<={dim}; ++i)\n")
+    cfile.write(tab+ f"    for (j=1; j<={node_num}; ++j)\n")
+    cfile.write(tab+ f"        coorr[(i-1)*({node_num})+j-1]=coora[(i-1)*({node_num})+j-1];\n")
+
+    if 'coef' in ges_dict:
+        cfile.write(tab+ f"for (i=1; i<={dim}; ++i)\n")
+        cfile.write(tab+ f"    for (j=1; j<={node_num}; ++j)\n")
+        cfile.write(tab+ f"        coefr[(i-1)*({node_num})+j-1]=coefa[(i-1)*({node_num})+j-1];\n")
+
+    cfile.write(tab+ f"for (i=1; i<={disp_num*node_num}; ++i)\n")
+    cfile.write(tab+  "{\n")
+
+    if 'mass' in ges_dict:
+        cfile.write(tab+ f"    emass[i]=0.0;\n")
+
+    if 'damp' in ges_dict:
+        cfile.write(tab+ f"    edamp[i]=0.0;\n")
+
+    if 'mass' in ges_dict and ges_dict['mass'][0] == 'lump' \
+    or 'damp' in ges_dict and ges_dict['damp'][0] == 'lump' :
+        cfile.write(tab+ f"    elump[i]=0.0;\n")
+
+    cfile.write(tab+ f"    eload[i]=0.0;\n")
+
+    cfile.write(tab+ f"    for (j=1; j<={disp_num*node_num}; ++j)\n")
+    cfile.write(tab+  "    {\n")
+    cfile.write(tab+ f"        estif[(i-1)*({disp_num*node_num})+j-1]=0.0;\n")
+    cfile.write(tab+  "    }\n")
+
+    cfile.write(tab+  "}\n")
+
+    # -------------------------------------- write $I code ------------------------------------------------
+    init_find = 0
+    for code_strs in ges_dict['code']['BFmate']:
+        if re.match(r'\$I', code_strs, re.I) != None:
+            init_find = 1 
+            continue
+        if init_find == 1:
+            cfile.write(tab+code_strs.replace('$cc','').lstrip())
+
+    # -------------------------------------- write material -----------------------------------------------
     if 'mate' in ges_dict:
         for i,mate in enumerate(ges_dict['mate']['default'].keys()):
-            cfile.write(f'\t{mate}=prmt[{i+1}];\n')
+            cfile.write(f'{tab}{mate}=prmt[{i+1}];\n')
 
-    cfile.write(f'\tif (num==ibegin) initial();\n')
-
-    cfile.write(f'\tfor (i=1; i<={dim}; ++i)\n')
-    cfile.write(f'\t\tfor (j=1; j<={node_num}; ++j)\n')
-    cfile.write(f'\t\t\tcoorr[(i-1)*({node_num})+j-1]=coora[(i-1)*({node_num})+j-1];\n')
-
-    cfile.write(f'\tfor (i=1; i<={disp_num*node_num}; ++i)\n')
-    cfile.write( '\t{\n')
-    cfile.write(f'\t\teload[i]=0.0;\n')
-    cfile.write(f'\t\tfor (j=1; j<={disp_num*node_num}; ++j)\n')
-    cfile.write( '\t\t{\n')
-    cfile.write(f'\t\t\testif[(i-1)*({disp_num*node_num})+j-1]=0.0;\n')
-    cfile.write( '\t\t}\n')
-    cfile.write( '\t}\n')
-
+    # ----------------------------------- write code after mate -------------------------------------------
     if 'AFmate' in ges_dict['code']:
-        release_code('\t', 'AFmate', ges_dict, ges_info, cfile)
+        release_code(tab, 'AFmate', ges_dict, ges_info, cfile)
 
-    # to release $I
-
+    # --------------------------------- begin loop gaussain node ------------------------------------------
     cfile.write( '\tfor (igaus=1; igaus<=ngaus; ++igaus)\n')
     cfile.write( '\t{\n')
     cfile.write(f'\t    for (i=1; i<=nrefc; ++i)\n\t\t\trefcoor[i]=refc[(i-1)*({node_num})+igaus-1];\n')
@@ -344,6 +431,10 @@ def release_code(indentation, keywd, ges_dict, ges_info, cfile):
     ges_disp = ges_dict["disp"]
 
     for code_strs in ges_dict['code'][keywd]:
+
+        if keywd == 'BFmate' \
+        and re.match(r'\$I', code_strs, re.I) != None :
+            break
 
         if re.match(r'\$c[cv]', code_strs, re.I) != None:
 
