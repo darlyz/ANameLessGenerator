@@ -38,7 +38,7 @@ def xde2ges_dict(ges_info, xde_dict, xde_addr, ges_dict):
     for code_key in ['BFmate','AFmate','func','stif','mass','damp']:
         if code_key in xde_dict['code']:
             ges_dict['code'][code_key] = []
-            release_code(xde_dict, code_key, pfelacpath, ges_dict)
+            release_code(xde_dict, code_key, pfelacpath, ges_info, ges_dict)
 
     for key_word in xde_dict.keys():
 
@@ -107,13 +107,17 @@ def xde2ges_dict(ges_info, xde_dict, xde_addr, ges_dict):
     return False
 # end xde2ges()
 
-def release_code(xde_dict, code_place, pfelacpath, ges_dict):
+def release_code(xde_dict, code_place, pfelacpath, ges_info, ges_dict):
     
     for code_strs in xde_dict['code'][code_place]:
 
-        code_regx = re.match(r'Insr|Tnsr|Cplx|Oprt|Func',code_strs,re.I)
+        code_regx = re.match(r'Insr|Tnsr|Cplx|Oprt|Func|ARRAY',code_strs,re.I)
 
-        if code_regx == None: 
+        if code_regx == None:
+            if code_strs.find('%') != -1:
+                code_strs = code_strs \
+                            .replace('%1', ges_info['shap_form']) \
+                            .replace('%2', ges_info['shap_nodn'])
             ges_dict['code'][code_place].append(code_strs+'\n')
             continue
 
@@ -121,6 +125,10 @@ def release_code(xde_dict, code_place, pfelacpath, ges_dict):
 
         # Insert C code
         if  code_key == 'Insr':
+            if code_strs.find('%') != -1:
+                code_strs = code_strs \
+                            .replace('%1', ges_info['shap_form']) \
+                            .replace('%2', ges_info['shap_nodn'])
             ges_dict['code'][code_place].append(code_strs.replace('Insr_Code:','$cc')+'\n')
 
         # Tensor expres summation
@@ -137,6 +145,9 @@ def release_code(xde_dict, code_place, pfelacpath, ges_dict):
 
         elif code_key == 'Func':
             release_funcasgn_code(code_strs, code_place, xde_dict, ges_dict)
+        
+        elif code_key == 'ARRAY':
+            release_array_code(code_strs, code_place, ges_dict)
 # end release_code()
 
 def release_tensor_code(code_strs, code_place, xde_dict, ges_dict):
@@ -540,6 +551,19 @@ def release_funcasgn_code(code_strs, code_place, xde_dict, ges_dict):
                         xde_dict['fmatr'][left_var_name][ii+2][jj] = \
                             expr_list[ii*row+jj].split('=')[1].replace('++','+').replace('-+','-')
 # end release_funcasgn_code()
+
+def release_array_code(code_strs, code_place, ges_dict):
+
+    def mdfy_indx(matched):
+        vect = matched.group('index')
+        vect_name,  vect_indx = vect.split('[')
+        vect_indx = vect_indx.rstrip(']')
+        return f"{vect_name}[{int(vect_indx)+1}]"
+
+    code_strs = re.sub(r'(?P<index>\w+\[\d+\](?!\[\d+\]))', mdfy_indx, code_strs)
+
+    ges_dict['code'][code_place].append(code_strs.replace('ARRAY', '$cc double') + ';\n')
+# end release_array_code()
 
 def parse_disp_var(ges_info, xde_dict, ges_dict):
 
@@ -977,8 +1001,9 @@ def xde2ges(ges_info, xde_dict, ges_dict, gesfile):
     # 3 write func declare
     if 'func' in ges_dict:
         gesfile.write('\nfunc = ')
-        for strs in ges_dict['func']: 
-            gesfile.write(strs+',')
+        for lists in ges_dict['func']:
+            for strs in lists:
+                gesfile.write(strs+',')
 
     # 4 write dord and node declare
     if 'dord' in ges_dict:

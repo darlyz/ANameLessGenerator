@@ -126,6 +126,8 @@ def pre_parse(xde_dict, xde_addr, xdefile):
 
             elif key_lower in ['common','array']:
 
+                line = re.sub(key_lower, key_lower.upper(), line, 0, re.I)
+
                 push_workflow_code(xde_dict, xde_addr, keywd_tag, line, line_i)
 
                 if key_lower == 'array':

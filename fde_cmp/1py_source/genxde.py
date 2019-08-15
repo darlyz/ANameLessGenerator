@@ -90,7 +90,7 @@ def genxde(xdename, gesname, coortype):
     if error: return
 
     # ----------------------------------------------------------
-    '''
+
     # generate ges by ges_dict
     if gen_obj['ges'] > 0:
         from xde2ges import xde2ges
@@ -108,7 +108,7 @@ def genxde(xdename, gesname, coortype):
     # generate html by xde element to preview
     if gen_obj['html'] > 0:
         from xde2html import xde2html
-        htmlfile = open(ls + xdename + '.html', mode='w')
+        htmlfile = open(ifo_folder + xdename + '.html', mode='w')
         xde2html(ges_info, xde_dict, xde_addr, htmlfile)
         htmlfile.close()
 
@@ -126,7 +126,7 @@ def genxde(xdename, gesname, coortype):
     file = open(ifo_folder + gesname+'.json', mode='w')
     file.write(json.dumps(xde_dict,indent=4))
     file.close()
-    '''
+
     end   = time()
     print ('parsing time: {}s'.format(end-start))
 
