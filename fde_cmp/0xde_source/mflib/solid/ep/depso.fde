@@ -1,0 +1,151 @@
+\ 2d elasto_plastic model for displacement
+\ s .... denote stres
+\ sn .... denote the iteration value of s
+\ q .... denote inner variable
+\ qn .... denote the iteration value of q
+\ e .... denote strain
+\ ep .... denote plastic strain
+\ D .... denote elastic constitutive matrix
+\ f = f(s,q) .... denote yield function
+\ de .... denote the increment of e
+\ or the virtual of e
+\ du .... denote the virtual of displacement u
+\ ds .... denote the increment of s
+\ dep .... denote the increment of ep
+\ df/ds .... denote the derivative of f with respect s
+\ df/dq .... denote the derivative of f with respect q
+\ dep = dlumda*df/ds
+\ dq = dlumda*m(s,q)
+\ s = D*(e-ep)
+\ f(s,q) = 0 or dnumda = 0 and
+\ dnumda>=0 & f(s,q)<=0
+\ ds = D*(de-dep) = D*(de - dlumda*df/ds)
+\ f(s,q) = fn + df/ds*D*de + (df/dq*m-df/ds*D*df/ds)*dlumda
+\ .......................................
+\ yield equation
+\ (df/ds*D*df/ds - df/dq*m)*dlumda - df/ds*D*de = fn
+\ where fn = f(sn,qn)
+\ .......................................
+\ (-div(s),du) = (F,du)
+\ (s,de) = (F,du) + stress boundary condition
+\ (ds,de) = (F,du) - (sn,de) + stress boundary condition
+\ .......................................
+\ displacement equation
+\ (D*de,de) - (df/ds*D*dlumda,de) = (F,du) - (sn,de)
+\ + stress boundary condition
+\ .......................................
+\ by Newton raphson scheme
+\ dnumda = (df/ds*D*de + fn)/A
+\ where A = (df/ds*D*df/ds - df/dq*m) + alpha
+\ alpha = 2.5*df/ds*D*df/ds  if df/dq*m <= -df/ds*D*df/ds
+\ alpha = -2*df/ds*D*df/ds   if df/dq*m  > -df/ds*D*df/ds
+\ substitute to the displacement equation
+\ .......................................
+\ new displacement equation
+\ (D*de,de) + (1/A*df/ds*D*de,df/ds*D*de) =
+\ (F,du) - (sn,de) + (fn/A,df/ds*D*de)
+\ .......................................
+DISP u v
+COOR s o
+COEF un vn
+FUNC exx eyy exy exz eyz plast
+COMMON double *inelm%1%2
+VECT evp exx eyy exy exz eyz
+VECT ev exx eyy
+VECT ep exy exz eyz
+VECT plast plast
+\ .... where ddf denote d*df/ds
+VECT ddfv ddf[1] ddf[2]
+VECT ddfp ddf[3] ddf[4] ddf[5]
+VECT str  str[1] str[2] str[3] str[4] str[5]
+VECT strv str[1] str[2]
+VECT strp str[3] str[4] str[5]
+VECT ds ds[1] ds[2] ds[3] ds[4] ds[5]
+VECT dsv ds[1] ds[2]
+VECT dsp ds[3] ds[4] ds[5]
+SHAP %1 %2
+GAUS %3
+MASS %1 rou*vol rou*vol
+DAMP %1 0.0 0.0
+$CC double r,pe,pv,fx,fy,qnn,rou,alpha,t0,time1,a,b,prag,dln;
+$CC int kq,ntime,ialpha;
+$CC extern double getyield(double *,double *,double *,double,double *,
+$CC int,double (*f)(),int);
+$CC extern double %4(double *,double *);
+ARRAY dev[2],dep[3],e[6],^d[2][2]
+$CC double df[6],ddf[6],ds[6],p[5],str[6];
+$CC static int init=0;
+$CC int m;
+$I
+$CC m = ngaus*5;
+$CC if (init==0) {
+$CC inelm%1%2 = (double *) calloc(nelem*m+1,sizeof(double));
+$CC for (i=1; i<=nelem*m; ++i) inelm%1%2[i]=0.0;
+$CC init = 1; }
+@L singular.so n
+MATE r,pe pv fx fy p[1] p[2] p[4] qnn rou alpha \
+1.0e10;0.3;0;0;0.2;1000;0;2;3000;0.6;
+$CC t0 = 0.0;
+$CC ntime=(tmax-t0)/dt;
+$CC time1=time_now/ntime;
+$CC kq=qnn+0.5;
+$CC p[3]=pv;
+VECT u u v
+VECT f fx fy
+MATRIX sm 2 2
+(1.0-pv) pv
+pv (1.0-pv)
+
+
+FUNC
+$CC fact=pe/(1.0+pv)/(1.0-2.0*pv);
+$CC shear=(0.5-pv)*fact;
+$CV ^d_i_j=+sm_i_j*fact
+@L vol.so n
+$CC j = (num-1)*ngaus*5+(igaus-1)*5;
+$CC for (i=1; i<=5; ++i) str[i]=inelm%1%2[j+i];
+@L gradv.so v e r s o un vn
+$CC dev[1]=+e[1];
+$CC dev[2]=+e[5];
+$CC dep[1]=e[2]+e[4];
+$CC dep[2]=+e[3];
+$CC dep[3]=+e[6];
+$CV dsv_i=+^d_i_j*dev_j
+$CV dsp_i=shear*dep_i
+$CV str_i=str_i+ds_i
+$CC ialpha=1;
+$CC a=getyield(p,str,d,shear,ddf,kq,%4,ialpha);
+$CC prag=%4(p,str);
+$CC dln=ddf[1]*dev[1]+ddf[2]*dev[2]+ddf[3]*dev[3]+ddf[4]*dep[1]+prag;
+$CC if (dln>0.0) {
+$CC  b=1.0/a;
+$CV dsv_i=+b*ddfv_i*ddfv_j*dev_j
+$CV dsp_i=+b*ddfp_i*ddfp_i*dep_i
+$CV strv_i=strv_i-dsv_i-ddfv_i*prag*b
+$CV strp_i=strp_i-dsp_i-ddfp_i*prag*b
+$CC ialpha=1;
+$CC a=getyield(p,str,d,shear,ddf,kq,%4,ialpha);
+$CC prag=%4(p,str);
+$CC } else {
+$CC  b=0.0;
+$CC }
+FMATR fe 2 3
+FMATR ft 3 3
+@L gradv.so f fe
+FVECT fev 2
+@S fev fe 1 5
+@W ev fe 1 5
+@A ft_i_j = +[fe_i_j ]+[fe_j_i]
+FVECT fep 3
+@S fep ft 2 3 4
+@W ep ft 2 3 4
+FVECT fp 1
+@A fp_1=+[fev_i]*ddfv_i+[fep_j]*ddfp_j
+@W plast fp 1
+
+STIF
+DIST=+[ev_i;ev_j]*^d_i_j*vol+[ep_i;ep_i]*shear*vol-[plast;plast]*b*vol
+
+LOAD=+[u_i]*f_i*time1*vol-[evp_i]*str_i*vol+[plast]*b*prag*vol
+
+END

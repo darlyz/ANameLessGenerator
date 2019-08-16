@@ -1,0 +1,35 @@
+\ ------------------------------- equation --------------------------------------
+\ For harmonic field in 2dxy(two dimensional cartesian coordinate system).
+\ Convect the differential form of Maxwell equations:
+\            -omega*epsilon*Ez +i*sigma*Ez +curl(1/(fmu*omega)*curl(Ez))
+\            = -i*Js
+\ --------------------------- weak form of PDE ----------------------------------
+\         (sigma-i*omega*epsilon)*<Ez;Ez>+i/(fmu*omega)*<curl(Ez);curl(Ez)>
+\         = -<Js;Ez> +|n¡ÁH;Ez|
+\ PS: Find electric field fist, magnetic field second.
+\ -------------------------------------------------------------------------------
+DISP ez
+COOR x y
+FUNC curlezx curlezy
+VECT curlez curlezx curlezy
+SHAP %1 %2
+GAUS %3
+$CC double sigma,epsilon,omega,fmu,fjzr,fjzi,ar,ai,b;
+MATE sigma epsilon omega fmu fjzr fjzi 5.96e7 8.8541878e-12 3.14159e2 12.56637e-7 0.0 0.0
+$CC ar=sigma;
+$CC ai=-omega*epsilon;
+$CC b=1.0/(fmu*omega);
+@L singular.xy n
+
+FUNC
+@L vol.xy n
+FVECT fe 2
+@L vcurl.xy f fe x y ez
+@W curlez fe
+
+STIF
+DIST=+[curlez_i;curlez_i]*vol*|0;b|+[ez;ez]*vol*|ar;ai|
+
+LOAD=-[ez]*vol*|fjzr;fjzi|
+
+END

@@ -8,6 +8,9 @@
 import re
 
 tab = ' '*4
+scalar = 0
+vector = 1
+matrix = 2
 def ges2c(ges_info, ges_dict, cfile):
 
     disp_num = len(ges_dict['disp'])
@@ -119,11 +122,8 @@ def ges2c(ges_info, ges_dict, cfile):
         cfile.write(f"{tab}double {','.join(ges_dict['coef'])};\n")
         cfile.write(f'{tab}double coefd[{coef_num*dim*dim}],coefc[{coef_num*dim*dim}];\n')
 
-    func = []
     cfile.write(f'{tab}double ')
-    for func_list in ges_dict['func']:
-        func.append(','.join([f'e{strs}[{dim*node_num+1}]' for strs in func_list]))
-    cfile.write(','.join(func) + ';\n')
+    cfile.write(','.join([f'e{strs}[{dim*node_num+1}]' for strs in ges_dict['func']]) + ';\n')
 
     cfile.write(f'{tab}double ')
     cfile.write(','.join(ges_dict['coor']) + ',' + ','.join(ges_dict['refc']) + ';\n')
@@ -200,103 +200,114 @@ def ges2c(ges_info, ges_dict, cfile):
         release_code(tab, 'AFmate', ges_dict, ges_info, cfile)
 
     # --------------------------------- begin loop gaussain node ------------------------------------------
-    cfile.write( '\tfor (igaus=1; igaus<=ngaus; ++igaus)\n')
-    cfile.write( '\t{\n')
-    cfile.write(f'\t    for (i=1; i<=nrefc; ++i)\n\t\t\trefcoor[i]=refc[(i-1)*({node_num})+igaus-1];\n')
+    cfile.write(f'{tab}for (igaus=1; igaus<=ngaus; ++igaus)\n')
+    cfile.write(tab +'{\n')
+    cfile.write(f'{tab}{tab}for (i=1; i<=nrefc; ++i)\n{tab*3}refcoor[i]=refc[(i-1)*({node_num})+igaus-1];\n')
 
-    cfile.write( '\t    tran_coor(refcoor,coor,coorr,rctr);\n')
-    cfile.write( '\t\t// det = invm(ncoor,rctr,crtr);\n')
-    cfile.write( '\t\tdet = inver_rc(nrefc,ncoor,rctr,crtr);\n')
+    cfile.write(f'{tab}{tab}tran_coor(refcoor,coor,coorr,rctr);\n')
+    cfile.write(f'{tab}{tab}// .... coordinate caculation by reference coordinates\n')
+    cfile.write(f'{tab}{tab}// det = invm(ncoor,rctr,crtr);\n')
+    cfile.write(f'{tab}{tab}det = inver_rc(nrefc,ncoor,rctr,crtr);\n')
+
+    cfile.write(f"{tab}{tab}/* .... coordinate transfer from reference to original system\n")
+    cfile.write(f"{tab}{tab}   .... rctr ---- jacobi's matrix\n")
+    cfile.write(f"{tab}{tab}   .... crtr ---- inverse matrix of jacobi's matrix */\n")
 
     for i,coor in enumerate(ges_dict['coor']):
-        cfile.write(f'\t\t{coor}=coor[{i+1}];\n')
+        cfile.write(f'{tab}{tab}{coor}=coor[{i+1}];\n')
 
     for i,refc in enumerate(ges_dict['refc']):
-        cfile.write(f'\t\t{refc}=refcoor[{i+1}];\n')
+        cfile.write(f'{tab}{tab}{refc}=refcoor[{i+1}];\n')
 
     if 'coef' in ges_dict:
-        cfile.write('\t\tcoef_shap(refcoor,coef,coefr,coefd);\n')
+        cfile.write(f'{tab}{tab}coef_shap(refcoor,coef,coefr,coefd);\n')
+        cfile.write(f"{tab}{tab}// .... compute coef functions and their partial derivatives\n")
         for i,coef in enumerate(ges_dict['coef']):
-            cfile.write(f'\t\t{coef}=coef[{i+1}];\n')
+            cfile.write(f'{tab}{tab}{coef}=coef[{i+1}];\n')
 
     for disp in ges_dict['disp']:
-        cfile.write(f'\t\tig_{disp}=(igaus-1)*{node_num}*{dim+1};\n')
+        cfile.write(f'{tab}{tab}ig_{disp}=(igaus-1)*{node_num}*{dim+1};\n')
 
-    cfile.write('\t\tif (num>ibegin)\n\t\t\tgoto l2;\n')
+    cfile.write(f'{tab}{tab}if (num>ibegin)\n{tab}{tab}{tab}goto l2;\n')
 
+    cfile.write(f"{tab}{tab}// .... the following is the shape function caculation\n")
     for disp in ges_dict['disp']:
-        cfile.write(f'\t\tshap_{disp}(refcoor,&r{disp}[ig_{disp}]);\n')
+        cfile.write(f'{tab}{tab}shap_{disp}(refcoor,&r{disp}[ig_{disp}]);\n')
 
-    cfile.write('l2:')
+    cfile.write('l2:\n')
 
+    cfile.write(f'{tab}{tab}/* .... the following is the shape function transformation\n')
+    cfile.write(f'{tab}{tab}      .... from reference coordinates to original coordinates */\n')
     for disp in ges_dict['disp']:
-        cfile.write(f'\t\tshapn(nrefc,ncoor,{node_num},&r{disp}[ig_{disp}],c{disp},crtr,{1},{4},{4});\n') # need to certify '1 4 4' means
+        cfile.write(f'{tab}{tab}shapn(nrefc,ncoor,{node_num},&r{disp}[ig_{disp}],c{disp},crtr,{1},{4},{4});\n') # need to certify '1 4 4' means
 
     if 'coef' in ges_dict:
-        cfile.write(f'\t\tshapc(nrefc,ncoor,{coef_num},coefd,coefc,crtr,{2},{9},{9});\n') # need to certify '2 9 9' means
+        cfile.write(f'{tab}{tab}/* .... the coef function transformation\n')
+        cfile.write(f'{tab}{tab}  .... from reference coordinates to original coordinates */\n')
+        cfile.write(f'{tab}{tab}shapc(nrefc,ncoor,{coef_num},coefd,coefc,crtr,{2},{9},{9});\n') # need to certify '2 9 9' means
 
-    cfile.write( '\t\tweigh=det*gaus[igaus];\n')
+    cfile.write( f'{tab}{tab}weigh=det*gaus[igaus];\n')
 
-    cfile.write(f'\t\tfor (i=1; i<={disp_num*node_num}; ++i)\n')
-    cfile.write( '\t\t{\n')
+    cfile.write(f'{tab}{tab}for (i=1; i<={disp_num*node_num}; ++i)\n')
+    cfile.write( tab*2 + '{\n')
     for func in ges_dict['func']:
-        cfile.write(f'\t\t\te{func}[i] = 0.0;\n')
-    cfile.write( '\t\t}\n')
+        cfile.write(f'{tab}{tab}{tab}e{func}[i] = 0.0;\n')
+    cfile.write( tab*2 + '}\n')
 
     # write func paragraph
     if 'vol' in ges_dict:
-        cfile.write('\t\t' + re.sub(r'\$cc', '', ges_dict['vol'], 0, re.I).lstrip())
+        cfile.write(tab*2 + re.sub(r'\$cc', '', ges_dict['vol'], 0, re.I).lstrip())
 
     if 'func' in ges_dict['code']:
-        release_code('\t\t', 'func', ges_dict, ges_info, cfile)
+        release_code(tab*2, 'func', ges_dict, ges_info, cfile)
 
     # write stif, mass, damp paragraph
     for key_word in ges_dict.keys():
 
         if key_word in ['stif', 'mass', 'damp']:
 
-            cfile.write(f'\t\t// the following is the {key_word} matrix computation\n')
+            cfile.write(f'{tab}{tab}// the following is the {key_word} matrix computation\n')
 
             if key_word in ges_dict['code'].keys():
 
-                release_code('\t\t', key_word, ges_dict, ges_info, cfile)
+                release_code(tab*2, key_word, ges_dict, ges_info, cfile)
 
-            release_weak('\t\t', key_word, ges_dict, ges_info, cfile)
+            release_weak(tab*2, key_word, ges_dict, ges_info, cfile)
 
     # write load paragraph
-    cfile.write('\t\t// the following is the load vector computation\n')
+    cfile.write(tab*2 +'// the following is the load vector computation\n')
     if 'load' in ges_dict:
-        release_weak('\t\t', 'load', ges_dict, ges_info, cfile)
+        release_weak(tab*2, 'load', ges_dict, ges_info, cfile)
 
     # end of element sub function
     cfile.write('l999:\n')
-    cfile.write('\treturn;\n')
+    cfile.write(f'{tab}return;\n')
     cfile.write('}\n\n')
 
     # write initial()
     cfile.write(f'static void initial()\n')
     cfile.write('{\n')
-    cfile.write(f'\tngaus = {gaus_num};\n')
-    cfile.write(f'\tndisp = {disp_num};\n')
-    cfile.write(f'\tnrefc = {refc_num};\n')
-    cfile.write(f'\tncoor = {coor_num};\n')
-    cfile.write(f'\tnvar  = {var_num};\n')
-    cfile.write(f'\tnnode = {node_num};\n')
+    cfile.write(f'{tab}ngaus = {gaus_num};\n')
+    cfile.write(f'{tab}ndisp = {disp_num};\n')
+    cfile.write(f'{tab}nrefc = {refc_num};\n')
+    cfile.write(f'{tab}ncoor = {coor_num};\n')
+    cfile.write(f'{tab}nvar  = {var_num};\n')
+    cfile.write(f'{tab}nnode = {node_num};\n')
 
     for i,disp in enumerate(ges_dict['disp']):
-        cfile.write(f'\tkdord[{i+1}]={ges_dict["disp_driv_order"][disp]};\n')
-        cfile.write(f'\tnvard[{i+1}]={ges_dict["var"][disp]};\n')
+        cfile.write(f'{tab}kdord[{i+1}]={ges_dict["disp_driv_order"][disp]};\n')
+        cfile.write(f'{tab}nvard[{i+1}]={ges_dict["var"][disp]};\n')
         for j in range(ges_dict['var'][disp]):
             gaus_order = ges_dict['shap'][disp][j].split('=')[0].strip().replace(disp,'')
             kvord = (int(gaus_order)-1)*disp_num + i+1
-            cfile.write(f'\tkvord[({j+1}-1)*{disp_num}+{i+1}-1]={kvord};\n')
+            cfile.write(f'{tab}kvord[({j+1}-1)*{disp_num}+{i+1}-1]={kvord};\n')
 
     for i in range(gaus_num):
         for j in range(dim):
-            cfile.write(f'\trefc[({j+1}-1)*{gaus_num}+{i+1}-1]={ges_dict["gaus"][i+1][j]};\n')
-        cfile.write(f'\tgaus[{i+1}]={ges_dict["gaus"][i+1][dim]};\n')
+            cfile.write(f'{tab}refc[({j+1}-1)*{gaus_num}+{i+1}-1]={ges_dict["gaus"][i+1][j]};\n')
+        cfile.write(f'{tab}gaus[{i+1}]={ges_dict["gaus"][i+1][dim]};\n')
 
-    cfile.write('\treturn;\n')
+    cfile.write(tab+'return;\n')
     cfile.write('}\n')
 
     # write shap functions
@@ -304,7 +315,7 @@ def ges2c(ges_info, ges_dict, cfile):
         cfile.write(f"static void shap_{shap}(refc,shpr)\n")
         cfile.write(f"double *refc,shpr[{(dim+1)*gaus_num}];\n")
         cfile.write("{\n")
-        cfile.write(f"    double (*shap)(double *,int)=&fshap_u;\n")
+        cfile.write(f"    double (*shap)(double *,int)=&fshap_{shap};\n")
         cfile.write(f"    dshap(shap,refc,shpr,{dim},{gaus_num},{1});\n") # 1 maybe the derivative order
         cfile.write(f"    return;\n")
         cfile.write("}\n")
@@ -312,111 +323,111 @@ def ges2c(ges_info, ges_dict, cfile):
         cfile.write(f"static double fshap_{shap}(double *refc,int n)\n")
         cfile.write("{\n")
         cfile.write(f"// extern double *coor;\n")
-        cfile.write(f"\tdouble ")
+        cfile.write(f"{tab}double ")
         cfile.write(f"{','.join(ges_dict['refc'])};\n")
-        cfile.write(f"\tdouble fval,")
+        cfile.write(f"{tab}double fval,")
         cfile.write(f"{','.join(ges_dict['coor'])};\n")
         for i,coor in enumerate(ges_dict['coor']):
-            cfile.write(f"\t{coor}=coor[{i+1}];\n")
+            cfile.write(f"{tab}{coor}=coor[{i+1}];\n")
 
         for i,refc in enumerate(ges_dict['refc']):
-            cfile.write(f"\t{refc}=refc[{i+1}];\n")
-        cfile.write(f"\tswitch (n)\n")
-        cfile.write("\t{\n")
+            cfile.write(f"{tab}{refc}=refc[{i+1}];\n")
+        cfile.write(f"{tab}switch (n)\n")
+        cfile.write(tab+"{\n")
 
         for i,expr in enumerate(ges_dict['shap'][shap]):
-            cfile.write(f"\tcase {i+1}:\n")
-            cfile.write(f"\t\tfval={expr.split('=')[1].strip()};\n")
-            cfile.write(f"\t\tbreak;\n")
+            cfile.write(f"{tab}case {i+1}:\n")
+            cfile.write(f"{tab}{tab}fval={expr.split('=')[1].strip()};\n")
+            cfile.write(f"{tab}{tab}break;\n")
 
-        cfile.write(f"//\tdefault:\n")
-        cfile.write("\t}\n")
-        cfile.write(f"\treturn fval;\n")
+        cfile.write(f"//{tab}default:\n")
+        cfile.write(tab+"}\n")
+        cfile.write(f"{tab}return fval;\n")
         cfile.write("}\n")
 
     # write transcoor functions
     cfile.write(f"static void tran_coor(double *refc,double *coor,double *coorr,double *rc)\n")
     cfile.write("{\n")
-    cfile.write(f"\tdouble (*shap)(double *,int)=&ftran_coor;\n")
-    cfile.write(f"\tdcoor(shap,refc,coor,rc,{dim},{dim},{1});\n") # 1 maybe the derivative order
-    cfile.write(f"\treturn;\n")
+    cfile.write(f"{tab}double (*shap)(double *,int)=&ftran_coor;\n")
+    cfile.write(f"{tab}dcoor(shap,refc,coor,rc,{dim},{dim},{1});\n") # 1 maybe the derivative order
+    cfile.write(f"{tab}return;\n")
     cfile.write("}\n")
 
     cfile.write(f"static double ftran_coor(double *refc,int n)\n")
     cfile.write("{\n")
-    cfile.write(f"\tdouble fval,")
+    cfile.write(f"{tab}double fval,")
     cfile.write(f"{','.join(ges_dict['refc'])};\n")
-    cfile.write(f"\tdouble ")
+    cfile.write(f"{tab}double ")
     cfile.write(f"{','.join(map(lambda x: x+f'[{gaus_num+1}]',ges_dict['coor']))};\n")
-    cfile.write(f"\tint j;\n")
-    cfile.write(f"\tfor (j=1; j<={gaus_num}; ++j)\n")
-    cfile.write("\t{\n")
+    cfile.write(f"{tab}int j;\n")
+    cfile.write(f"{tab}for (j=1; j<={gaus_num}; ++j)\n")
+    cfile.write(tab+"{\n")
     for i,coor in enumerate(ges_dict['coor']):
-        cfile.write(f"\t\t{coor}[j]=coorr[{i}*{gaus_num}+j-1];\n")
-    cfile.write("\t}\n")
+        cfile.write(f"{tab}{tab}{coor}[j]=coorr[{i}*{gaus_num}+j-1];\n")
+    cfile.write(tab+"}\n")
     for i,refc in enumerate(ges_dict['refc']):
-        cfile.write(f"\t{refc}=refc[{i+1}];\n")
-    cfile.write(f"\tswitch (n)\n")
-    cfile.write("\t{\n")
+        cfile.write(f"{tab}{refc}=refc[{i+1}];\n")
+    cfile.write(f"{tab}switch (n)\n")
+    cfile.write(tab+"{\n")
     for i,coor in enumerate(ges_dict['coor']):
-        cfile.write(f"\tcase {i+1}:\n")
-        cfile.write(f"\t\tfval=\n")
+        cfile.write(f"{tab}case {i+1}:\n")
+        cfile.write(f"{tab}{tab}fval=\n")
         for j,tran_expr in enumerate(ges_dict['tran'][coor]):
             var, expr = tran_expr.split('=')
             var = var.strip().replace('(','[').replace(')',']')
-            cfile.write(f"\t\t\t+({expr.strip()})*{var}")
+            cfile.write(f"{tab}{tab}{tab}+({expr.strip()})*{var}")
             if j == node_num-1:
                 cfile.write(';\n')
             else:
                 cfile.write('\n')
-        cfile.write(f"\t\tbreak;\n")
-    cfile.write(f"\t\t//default:\n")
-    cfile.write("\t}\n")
-    cfile.write(f"\treturn fval;\n")
+        cfile.write(f"{tab}{tab}break;\n")
+    cfile.write(f"{tab}{tab}//default:\n")
+    cfile.write(tab+"}\n")
+    cfile.write(f"{tab}return fval;\n")
     cfile.write("}\n")
 
     # write coef functions
     if 'coef' in ges_dict:
         cfile.write(f"static void coef_shap(double *refc,double *coef,double *coefr,double *coefd)\n")
         cfile.write("{\n")
-        cfile.write(f"\tdouble (*shap)(double *,int)=&fcoef_shap;\n")
-        cfile.write(f"\tdcoef(shap,refc,coef,coefd,{3},{3},{2});\n")
-        cfile.write(f"\treturn;\n")
+        cfile.write(f"{tab}double (*shap)(double *,int)=&fcoef_shap;\n")
+        cfile.write(f"{tab}dcoef(shap,refc,coef,coefd,{3},{3},{2});\n")
+        cfile.write(f"{tab}return;\n")
         cfile.write("}\n")
 
         cfile.write(f"static double fcoef_shap(double *refc,int n)\n")
         cfile.write("{\n")
-        cfile.write(f"\tdouble {','.join(ges_dict['refc'])};\n")
-        cfile.write(f"\tdouble {','.join(ges_dict['coor'])},fval;\n")
-        cfile.write(f"\tdouble {','.join(map(lambda x: f'{x}[{coor_num*disp_num}]',ges_dict['disp']))};\n")
-        cfile.write(f"\tint j;\n")
-        cfile.write(f"\tfor (j=1; j<={node_num}; ++j)\n")
-        cfile.write("\t{\n")
+        cfile.write(f"{tab}double {','.join(ges_dict['refc'])};\n")
+        cfile.write(f"{tab}double {','.join(ges_dict['coor'])},fval;\n")
+        cfile.write(f"{tab}double {','.join(map(lambda x: f'{x}[{coor_num*disp_num}]',ges_dict['coef']))};\n")
+        cfile.write(f"{tab}int j;\n")
+        cfile.write(f"{tab}for (j=1; j<={node_num}; ++j)\n")
+        cfile.write(tab+"{\n")
         for i,coef in enumerate(ges_dict['coef']) :
-            cfile.write(f"\t\t{coef}[j]=coefr[{i}*{node_num}+j-1];\n")
-        cfile.write("\t}\n")
+            cfile.write(f"{tab}{tab}{coef}[j]=coefr[{i}*{node_num}+j-1];\n")
+        cfile.write(tab+"}\n")
         for i,coor in enumerate(ges_dict['coor']):
-            cfile.write(f"\t{coor}=coor[{i+1}];\n")
+            cfile.write(f"{tab}{coor}=coor[{i+1}];\n")
         for i,refc in enumerate(ges_dict['refc']):
-            cfile.write(f"\t{refc}=refc[{i+1}];\n")
+            cfile.write(f"{tab}{refc}=refc[{i+1}];\n")
 
-        cfile.write(f"\tswitch (n)\n")
-        cfile.write("\t{\n")
+        cfile.write(f"{tab}switch (n)\n")
+        cfile.write(tab+"{\n")
         for i,coef in enumerate(ges_dict['coef_shap'].keys()) :
-            cfile.write(f"\tcase {i+1}:\n")
-            cfile.write(f"\t\tfval=\n")
+            cfile.write(f"{tab}case {i+1}:\n")
+            cfile.write(f"{tab}{tab}fval=\n")
             for j,coef_expr in enumerate(ges_dict['coef_shap'][coef]):
                 var, expr = coef_expr.split('=')
                 var = var.strip().replace('(','[').replace(')',']')
-                cfile.write(f"\t\t\t+({expr.strip()})*{var}")
+                cfile.write(f"{tab}{tab}{tab}+({expr.strip()})*{var}")
                 if j == node_num-1:
                     cfile.write(';\n')
                 else:
                     cfile.write('\n')
-            cfile.write(f"\t\tbreak;\n")
-        cfile.write(f"\t\t//default:\n")
-        cfile.write("\t}\n")
-        cfile.write(f"\treturn fval;\n")
+            cfile.write(f"{tab}{tab}break;\n")
+        cfile.write(f"{tab}{tab}//default:\n")
+        cfile.write(tab+"}\n")
+        cfile.write(f"{tab}return fval;\n")
         cfile.write("}\n")
         
 
@@ -438,36 +449,40 @@ def release_code(indentation, keywd, ges_dict, ges_info, cfile):
 
         if re.match(r'\$c[cv]', code_strs, re.I) != None:
 
-            code_strs = re.sub(r'\$c[cv]', '', code_strs, 0, re.I).lstrip()
+            code_strs = re.sub(r'^\$c[cv]', '', code_strs, 0, re.I).lstrip()
 
-            if re.search(r'\^\w+(?:\[\d+\]){1,2}',code_strs) != None:
-                array_list = re.findall(r'\^\w+(?:\[\d+\]){1,2}',code_strs)
+            insteed_str = ''
+
+            if re.match(r'array', code_strs, re.I) != None:
+
+                code_strs = code_strs.replace('array','').lstrip()
+
+                array_list = re.findall(r'\^\w+(?:\[\d+\]){2}', code_strs)
 
                 for array in array_list:
-                    idx_list = re.findall(r'\[\d+\]',array)
-                    var_name = array.split('[')[0].lstrip('^')
 
-                    if re.match(r'double', code_strs, re.I) != None:
+                    idx_list = list(map(lambda x: int(x.lstrip('[').rstrip(']')), \
+                                        re.findall(r'\[\d+\]',array)))
 
-                        # it mey be necessary or error for parsing '^xx[d]'
-                        if   len(idx_list) == 1:
-                            insteed_str = var_name + f"[{int(idx_list[0].lstrip('[').rstrip(']'))-1}]"
+                    tensor_name = array.split('[')[0].lstrip('^')
 
-                        elif len(idx_list) == 2:
-                            array_len = int(idx_list[0].lstrip('[').rstrip(']')) \
-                                      * int(idx_list[1].lstrip('[').rstrip(']'))
-                            insteed_str = var_name +f'[{array_len}]'
+                    insteed_str = f"{tensor_name}[{idx_list[0]*idx_list[1]}]"
 
-                    else:
+                    code_strs = code_strs.replace(array, insteed_str)
 
-                        # it mey be necessary or error for parsing '^xx[d]'
-                        if   len(idx_list) == 1:
-                            insteed_str = var_name + f"[{int(idx_list[0].lstrip('[').rstrip(']'))}]"
+            else:
 
-                        elif len(idx_list) == 2:
-                            index_str = f"[({idx_list[0].lstrip('[').rstrip(']')}-1)*{ges_dict['array'][var_name][1]} " \
-                                      + f"+ {idx_list[1].lstrip('[').rstrip(']')}-1]"
-                            insteed_str = var_name + index_str
+                array_list = re.findall(r'\^\w+(?:\[\d+\]){2}', code_strs)
+
+                for array in array_list:
+
+                    idx_list = list(map(lambda x: int(x.lstrip('[').rstrip(']')), \
+                                        re.findall(r'\[\d+\]',array)))
+
+                    tensor_name = array.split('[')[0]
+
+                    insteed_str = tensor_name.lstrip('^') \
+                        + f"[({idx_list[0]}-1)*({ges_dict['array_matrix'][tensor_name][1]})+{idx_list[1]}-1]"
 
                     code_strs = code_strs.replace(array, insteed_str)
 
@@ -482,21 +497,29 @@ def release_code(indentation, keywd, ges_dict, ges_info, cfile):
 
             cfile.write(indentation + code_strs)
 
-        elif re.search(r'\[.*\]', code_strs, re.I) != None:
+        elif re.match(r'common', code_strs, re.I) != None:
+            pass
+
+        else:
+
             left_var, righ_exp = code_strs.split('=')
             left_var = left_var.strip()
             righ_exp = righ_exp.strip().rstrip('\n')
 
             disp, coor = '', ''
-            func_exp_list = re.findall(r'\[\w+(?:/\w+)?\]', righ_exp)
+            func_exp_list = list(map(lambda x: x.lstrip('[').rstrip(']'), \
+                                     re.findall(r'\[\w+(?:/\w+)?\]', righ_exp)))
 
             for func_exp in func_exp_list:
 
+                if func_exp.isnumeric():
+                    continue
+
                 if func_exp.find('/') != -1:
-                    disp, coor = func_exp.lstrip('[').rstrip(']').split('/')
+                    disp, coor = func_exp.split('/')
 
                 else:
-                    disp = func_exp.lstrip('[').rstrip(']')
+                    disp = func_exp
                     coor = ''
 
                 if coor == '':
@@ -505,13 +528,13 @@ def release_code(indentation, keywd, ges_dict, ges_info, cfile):
                 else:
                     insteed_str = f'c{disp}[(i-1)*({dim+1})+{ges_coor.index(coor)+2}-1]'
 
-                righ_exp = righ_exp.replace(func_exp,insteed_str)
+                righ_exp = righ_exp.replace(f'[{func_exp}]',insteed_str)
 
             cfile.write(indentation + f'for (i=1; i<={node_num}; ++i)\n')
             cfile.write(indentation +  '{\n')
-            cfile.write(indentation + f'\tiv=kvord[(i-1)*({disp_num})+{ges_disp.index(disp)+1}-1];\n')
-            cfile.write(indentation + f'\tstif={righ_exp};\n')
-            cfile.write(indentation + f'\te{left_var}[iv]+=stif;\n')
+            cfile.write(indentation + f'{tab}iv=kvord[(i-1)*({disp_num})+{ges_disp.index(disp)+1}-1];\n')
+            cfile.write(indentation + f'{tab}stif={righ_exp};\n')
+            cfile.write(indentation + f'{tab}e{left_var}[iv]+=stif;\n')
             cfile.write(indentation +  '}\n')
 # end release_code()
 
@@ -535,13 +558,13 @@ def release_weak(indentation, key_word, ges_dict, ges_info, cfile):
             variable  = variable.replace(str(var_order),'')
 
             cfile.write(f"{indentation}stif={parameter};\n")
-            cfile.write(f"{indentation}elump[{(var_order-1)*disp_num+ges_dict['disp'].index(variable)+1}]=stif*weight;\n")
+            cfile.write(f"{indentation}elump[{(var_order-1)*disp_num+ges_dict['disp'].index(variable)+1}]=stif*weigh;\n")
 
         for i,var in enumerate(ges_dict['disp']):
             cfile.write(f"{indentation}for (i=1; i<=nvard[{i+1}]; ++i)\n")
             cfile.write(indentation+"{\n")
-            cfile.write(f"{indentation}\tiv = kvord[(i-1)*({disp_num})+{i+1}-1];\n")
-            cfile.write(f"{indentation}\te{key_word}[iv]+=elump[iv]*c{var}[(i-1)*({dim+1})+1-1];\n")
+            cfile.write(f"{indentation}{tab}iv = kvord[(i-1)*({disp_num})+{i+1}-1];\n")
+            cfile.write(f"{indentation}{tab}e{key_word}[iv]+=elump[iv]*c{var}[(i-1)*({dim+1})+1-1];\n")
             cfile.write(indentation+"}\n")
 
     
@@ -555,7 +578,22 @@ def release_weak(indentation, key_word, ges_dict, ges_info, cfile):
         weak_type = {}
         
         # classify by weak type
+        left_char, righ_char = '',''
         for strs in ges_dict[key_word][1:]:
+
+            array_list = re.findall(r'\^\w+(?:\[\d+\]){2}', strs)
+
+            for array in array_list:
+
+                idx_list = list(map(lambda x: int(x.lstrip('[').rstrip(']')), \
+                                    re.findall(r'\[\d+\]',array)))
+
+                tensor_name = array.split('[')[0]
+
+                insteed_str = tensor_name.lstrip('^') \
+                    + f"[({idx_list[0]}-1)*({ges_dict['array_matrix'][tensor_name][1]})+{idx_list[1]}-1]"
+
+                strs = strs.replace(array, insteed_str)
 
             weak_item = re.search(r'\w+(/\w+)?;\w+(/\w+)?',strs)
             if weak_item != None:
@@ -633,11 +671,11 @@ def release_weak(indentation, key_word, ges_dict, ges_info, cfile):
 
                     cfile.write(f"{indentation}for (i=1; i<={disp_num*node_num}; ++i)\n")
                     cfile.write(indentation+"{\n")
-                    cfile.write(f"{indentation}\tiv=kvord[(i-1)*{disp_num}+{ges_dict['disp'].index(left_var)+1}-1];\n")
-                    cfile.write(f"{indentation}\tfor (j=1; j<={disp_num*node_num}; ++j)\n")
-                    cfile.write(indentation+"\t{\n")
-                    cfile.write(f"{indentation}\t\tjv=kvord[(j-1)*{disp_num}+{ges_dict['disp'].index(righ_var)+1}-1];\n")
-                    cfile.write(f"{indentation}\t\tstif=")
+                    cfile.write(f"{indentation}{tab}iv=kvord[(i-1)*{disp_num}+{ges_dict['disp'].index(left_var)+1}-1];\n")
+                    cfile.write(f"{indentation}{tab}for (j=1; j<={disp_num*node_num}; ++j)\n")
+                    cfile.write(indentation+tab+"{\n")
+                    cfile.write(f"{indentation}{tab}{tab}jv=kvord[(j-1)*{disp_num}+{ges_dict['disp'].index(righ_var)+1}-1];\n")
+                    cfile.write(f"{indentation}{tab}{tab}stif=")
 
                     weak_len = len(weak_type[wtype][disp_type])
 
@@ -675,8 +713,8 @@ def release_weak(indentation, key_word, ges_dict, ges_info, cfile):
                             else:
                                 cfile.write(f"{indentation}             {to_be_write_str}\n")
 
-                    cfile.write(f"{indentation}\t\te{key_word}[(iv-1)*{disp_num*node_num}+jv-1]+=stif*weigh;\n")
-                    cfile.write(indentation+"\t}\n")
+                    cfile.write(f"{indentation}{tab}{tab}e{key_word}[(iv-1)*{disp_num*node_num}+jv-1]+=stif*weigh;\n")
+                    cfile.write(indentation+tab+"}\n")
                     cfile.write(indentation+"}\n")
 
             # write by left disp
@@ -688,10 +726,10 @@ def release_weak(indentation, key_word, ges_dict, ges_info, cfile):
 
                     cfile.write(f"{indentation}for (i=1; i<={disp_num*node_num}; ++i)\n")
                     cfile.write(indentation+"\n")
-                    cfile.write(f"{indentation}\tiv=kvord[(i-1)*{disp_num}+{ges_dict['disp'].index(left_var)+1}-1];\n")
-                    cfile.write(f"{indentation}\tfor (jv=1; jv<={disp_num*node_num}; ++jv)\n")
-                    cfile.write(indentation+"\t{\n")
-                    cfile.write(f"{indentation}\t\tstif=")
+                    cfile.write(f"{indentation}{tab}iv=kvord[(i-1)*{disp_num}+{ges_dict['disp'].index(left_var)+1}-1];\n")
+                    cfile.write(f"{indentation}{tab}for (jv=1; jv<={disp_num*node_num}; ++jv)\n")
+                    cfile.write(indentation+tab+"{\n")
+                    cfile.write(f"{indentation}{tab}{tab}stif=")
 
                     weak_len = len(weak_type[wtype][disp_type])
 
@@ -720,12 +758,12 @@ def release_weak(indentation, key_word, ges_dict, ges_info, cfile):
                             if i == 0:
                                 cfile.write(f"{to_be_write_str}\n")
                             elif i == weak_len - 1:
-                                cfile.write(f"{indentation}\t\t\t {to_be_write_str};\n")
+                                cfile.write(f"{indentation}{tab}{tab}{tab} {to_be_write_str};\n")
                             else:
-                                cfile.write(f"{indentation}\t\t\t {to_be_write_str}\n")
+                                cfile.write(f"{indentation}{tab}{tab}{tab} {to_be_write_str}\n")
 
-                    cfile.write(f"{indentation}\t\te{key_word}[(iv-1)*{disp_num*node_num}+jv-1]+=stif*weigh;\n")
-                    cfile.write(indentation+"\t}\n")
+                    cfile.write(f"{indentation}{tab}{tab}e{key_word}[(iv-1)*{disp_num*node_num}+jv-1]+=stif*weigh;\n")
+                    cfile.write(indentation+tab+"}\n")
                     cfile.write(indentation+"}\n")
             
             # write by righ disp
@@ -737,10 +775,10 @@ def release_weak(indentation, key_word, ges_dict, ges_info, cfile):
 
                     cfile.write(f"{indentation}for (iv=1; iv<={disp_num*node_num}; ++iv)\n")
                     cfile.write(indentation+"{\n")
-                    cfile.write(f"{indentation}\tfor (j=1; j<={disp_num*node_num}; ++j)\n")
-                    cfile.write(indentation+"\t{\n")
-                    cfile.write(f"{indentation}\t\tjv=kvord[(j-1)*{disp_num}+{ges_dict['disp'].index(righ_var)+1}-1];\n")
-                    cfile.write(f"{indentation}\t\tstif=")
+                    cfile.write(f"{indentation}{tab}for (j=1; j<={disp_num*node_num}; ++j)\n")
+                    cfile.write(indentation+tab+"{\n")
+                    cfile.write(f"{indentation}{tab}{tab}jv=kvord[(j-1)*{disp_num}+{ges_dict['disp'].index(righ_var)+1}-1];\n")
+                    cfile.write(f"{indentation}{tab}{tab}stif=")
 
                     weak_len = len(weak_type[wtype][disp_type])
 
@@ -771,21 +809,21 @@ def release_weak(indentation, key_word, ges_dict, ges_info, cfile):
                             if i == 0:
                                 cfile.write(f"{to_be_write_str}\n")
                             elif i == weak_len - 1:
-                                cfile.write(f"{indentation}\t\t\t {to_be_write_str};\n")
+                                cfile.write(f"{indentation}{tab}{tab}{tab} {to_be_write_str};\n")
                             else:
-                                cfile.write(f"{indentation}\t\t\t {to_be_write_str}\n")
+                                cfile.write(f"{indentation}{tab}{tab}{tab} {to_be_write_str}\n")
 
-                    cfile.write(f"{indentation}\t\te{key_word}[(iv-1)*{disp_num*node_num}+jv-1]+=stif*weigh;\n")
-                    cfile.write(indentation+"\t}\n")
+                    cfile.write(f"{indentation}{tab}{tab}e{key_word}[(iv-1)*{disp_num*node_num}+jv-1]+=stif*weigh;\n")
+                    cfile.write(indentation+tab+"}\n")
                     cfile.write(indentation+"}\n")
             
             elif wtype == 'f-f':
 
                 cfile.write(f"{indentation}for (iv=1; iv<={disp_num*node_num}; ++iv)\n")
                 cfile.write(indentation+"{\n")
-                cfile.write(f"{indentation}\tfor (jv=1; jv<={disp_num*node_num}; ++jv)\n")
-                cfile.write(indentation+"\t{\n")
-                cfile.write(f"{indentation}\t\tstif=")
+                cfile.write(f"{indentation}{tab}for (jv=1; jv<={disp_num*node_num}; ++jv)\n")
+                cfile.write(indentation+tab+"{\n")
+                cfile.write(f"{indentation}{tab}{tab}stif=")
 
                 weak_len = len(weak_type[wtype])
 
@@ -809,12 +847,12 @@ def release_weak(indentation, key_word, ges_dict, ges_info, cfile):
                         if i == 0:
                             cfile.write(f"{to_be_write_str}\n")
                         elif i == weak_len - 1:
-                            cfile.write(f"{indentation}\t\t\t {to_be_write_str};\n")
+                            cfile.write(f"{indentation}{tab}{tab}{tab} {to_be_write_str};\n")
                         else:
-                            cfile.write(f"{indentation}\t\t\t {to_be_write_str}\n")
+                            cfile.write(f"{indentation}{tab}{tab}{tab} {to_be_write_str}\n")
 
-                cfile.write(f"{indentation}\t\te{key_word}[(iv-1)*{disp_num*node_num}+jv-1]+=stif*weigh;\n")
-                cfile.write(indentation+"\t}\n")
+                cfile.write(f"{indentation}{tab}{tab}e{key_word}[(iv-1)*{disp_num*node_num}+jv-1]+=stif*weigh;\n")
+                cfile.write(indentation+tab+"}\n")
                 cfile.write(indentation+"}\n")
 
     if key_word == 'load':
@@ -826,6 +864,20 @@ def release_weak(indentation, key_word, ges_dict, ges_info, cfile):
 
         # classify by weak type
         for strs in ges_dict[key_word]:
+
+            array_list = re.findall(r'\^\w+(?:\[\d+\]){2}', strs)
+
+            for array in array_list:
+
+                idx_list = list(map(lambda x: int(x.lstrip('[').rstrip(']')), \
+                                    re.findall(r'\[\d+\]',array)))
+
+                tensor_name = array.split('[')[0]
+
+                insteed_str = tensor_name.lstrip('^') \
+                    + f"[({idx_list[0]}-1)*({ges_dict['array_matrix'][tensor_name][1]})+{idx_list[1]}-1]"
+
+                strs = strs.replace(array, insteed_str)
 
             weak_item = re.search(r'\[\w+(/\w+)?\]',strs)
             if weak_item != None:
@@ -869,8 +921,8 @@ def release_weak(indentation, key_word, ges_dict, ges_info, cfile):
 
                     cfile.write(f"{indentation}for (i=1; i<={node_num}; ++i)\n")
                     cfile.write(indentation+"{\n")
-                    cfile.write(f"{indentation}\tiv=kvord[(i-1)*({disp_num})+{ges_dict['disp'].index(weak_var)+1}-1];\n")
-                    cfile.write(f"{indentation}\tstif=")
+                    cfile.write(f"{indentation}{tab}iv=kvord[(i-1)*({disp_num})+{ges_dict['disp'].index(weak_var)+1}-1];\n")
+                    cfile.write(f"{indentation}{tab}stif=")
 
                     weak_len = len(weak_type[wtype][weak_var])
 
@@ -895,17 +947,17 @@ def release_weak(indentation, key_word, ges_dict, ges_info, cfile):
                             if i == 0:
                                 cfile.write(f"{to_be_write_str}\n")
                             elif i == weak_len - 1:
-                                cfile.write(f"{indentation}\t\t {to_be_write_str};\n")
+                                cfile.write(f"{indentation}{tab}{tab} {to_be_write_str};\n")
                             else:
-                                cfile.write(f"{indentation}\t\t {to_be_write_str}\n")
+                                cfile.write(f"{indentation}{tab}{tab} {to_be_write_str}\n")
 
-                    cfile.write(f"{indentation}\teload[iv]+=stif*weigh;\n")
+                    cfile.write(f"{indentation}{tab}eload[iv]+=stif*weigh;\n")
                     cfile.write(indentation+"}\n")
 
             elif wtype == 'f':
                 cfile.write(f"{indentation}for (iv=1; iv<={dim*node_num}; ++iv)\n")
                 cfile.write(indentation+"{\n")
-                cfile.write(f"{indentation}\tstif=")
+                cfile.write(f"{indentation}{tab}stif=")
 
                 weak_len = len(weak_type[wtype])
 
@@ -925,9 +977,9 @@ def release_weak(indentation, key_word, ges_dict, ges_info, cfile):
                         if i == 0:
                             cfile.write(f"{to_be_write_str}\n")
                         elif i == weak_len - 1:
-                            cfile.write(f"{indentation}\t\t {to_be_write_str};\n")
+                            cfile.write(f"{indentation}{tab}{tab} {to_be_write_str};\n")
                         else:
-                            cfile.write(f"{indentation}\t\t {to_be_write_str}\n")
+                            cfile.write(f"{indentation}{tab}{tab} {to_be_write_str}\n")
 
-                cfile.write(f"{indentation}\teload[iv]+=stif*weigh;\n")
+                cfile.write(f"{indentation}{tab}eload[iv]+=stif*weigh;\n")
                 cfile.write(indentation+"}\n")

@@ -1,0 +1,48 @@
+\ ................ finite deformation equation .........
+\ sij,j + fi = 0
+\ s = D*e, where eij = (ui,j+uj,i)*aij + uk,i*uk,j*aij
+\ aij = 1/2 if i=j else aij=1
+\ ......................................................
+DISP sxx,syy,sxy
+VECT sv sxx syy
+VECT sp sxy
+COOR r o
+COEF u,v
+SHAP %1 %2
+GAUS %3
+$CC double pe,pv,exy;
+MASS %1 vol
+ARRAY ^e[2][2],^d[2][2],^rt[2][2],^ss[2][2],^tmp[2][2]
+@L singular.ro n
+MATE pe pv 1.0e10 0.3
+VECT fv ^ss[1][1] ^ss[2][2]
+VECT fp ^ss[1][2]
+VECT ep exy
+MATRIX sm 2 2
+1. pv
+pv 1.
+
+
+STIF
+@L vol.ro n
+$CC fact = pe/(1.+pv)/(1.-pv)*vol;
+$CC shear = (1.-pv)/2.;
+@L gradv.ro m ^d r o u v
+$CV ^rt_i_j = ^d_i_j
+$CV ^rt_i_i = ^d_i_i+1.0
+$CC det = invm(2,rt,ss);
+\$CV ^rt_i_j = ^ss_i_j
+$CV ^e_i_j = +^d_i_j+^d_k_i*^d_k_j/2.
+$CC exy = ^e[1][2]+^e[2][1];
+$CV fv_i = +fact*sm_i_j*^e_j_j
+$CV fp_i = +fact*shear*ep_i
+$CC ^ss[2][1] = ^ss[1][2];
+$CV ^tmp_i_j = +^rt_i_k*^ss_k_j
+$CV ^ss_i_j = +^rt_i_k*^tmp_j_k
+$CC det = fabs(det);
+$CV ^ss_i_j = ^ss_i_j/det
+DIST = +[sxx;sxx]*0.0
+
+LOAD = +[sv_i]*fv_i*vol+[sp_i]*fp_i*vol
+
+END

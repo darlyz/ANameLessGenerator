@@ -1,0 +1,19 @@
+class a
+class convention
+#
+coordinate s
+xy xyd rz ro rod rs so  xyz roz rso
+#
+problem l
+static finis dfini c sfini n
+dynamic_wave finiw dfini n sfini n
+dynamic_newmark finin dfini n sfini n
+#
+elemtype m
+q4 t3 q9 t6 { xy xyd rz ro rod rs so }
+c8 w4 c27 w10  { xyz roz rso }
+#
+boundary element m
+l2 l3 { xy xyd }
+q4 t3 q9 t6 { xyz }
+#

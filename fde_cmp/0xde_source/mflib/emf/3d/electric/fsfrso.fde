@@ -1,0 +1,24 @@
+\ ------------------------------- equation --------------------------------------
+\ For steady current field in 3drso(three dimensional spherical coordinate system).
+\ Using least square method to compute electric field:
+\                                 E=-grad(u)
+\ -------------------------------------------------------------------------------
+DISP ex ey ez
+VECT e ex ey ez
+COEF u
+COOR r s o
+SHAP %1 %2
+GAUS %3
+MASS %1 vol
+$CC double ux,uy,uz;
+@L singular.rso n
+VECT gu ux uy uz
+
+STIF
+@L vol.rso n
+@L grad.rso v gu r s o u
+DIST=+[ex;ex]*0.0
+
+LOAD=-[e_i]*vol*gu_i
+
+END

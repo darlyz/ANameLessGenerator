@@ -1,0 +1,25 @@
+DISP sxx syy
+COOR r
+COEF u
+SHAP %1 %2
+GAUS %3
+$CC double pe,pv,factvol,exx,eyy,fxx,fyy;
+MASS %1 vol vol
+@L singular.r n
+MATE pe pv 1.0e10 0.3
+LOAD fxx fyy
+VECT fv fxx fyy
+VECT ev exx eyy
+MATRIX sm 1 1
+(1.0-pv)
+
+$CC fact = pe/(1.0+pv)/(1.0-pv*2.0);
+$CC shear = (0.5-pv);
+
+STIF
+@L vol.r n
+@L gradv.r v ev
+$CV fv_i = +fact*sm_i_j*ev_j*vol
+DIST = +[sxx;sxx]*0.0
+
+END

@@ -1,0 +1,18 @@
+DEFI
+GSUB = ntugl2g2
+LSUB = ntull2g2
+GDIM = 3
+LDIM = 1
+GVAR gu1,gv1,gw1,gu2,gv2,gw2,
+LVAR lu1,lv1,lw1,lu2,lv2,lw2,
+NODE = 2
+MASS=lump
+DAMP=lump
+
+VART
+lu1 = t1 gu1 gv1 gw1
+lu2 = t1 gu2 gv2 gw2
+lv1 = t2 gu1 gv1 gw1
+lv2 = t2 gu2 gv2 gw2
+lw1 = t3 gu1 gv1 gw1
+lw2 = t3 gu2 gv2 gw2

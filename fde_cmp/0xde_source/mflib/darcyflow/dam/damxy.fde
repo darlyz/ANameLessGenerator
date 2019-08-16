@@ -1,0 +1,40 @@
+\------------------------------equation---------------------------------------------
+\ for unconfined seepage in 2dxy(two dimensional cartesian coordinate system):
+\                  (pk*u,x_i),x_i=eq
+\ where x_i denote the derections of x and y;
+\ where y denote the derection of water depth;
+\ where u denote waterhead.
+\ where pk denote the permeability coefficient of material.
+\--------------------the pde in weak form------------------------------------------
+\              [pk*grad(u);grad(u)] = [eq;u]
+\ where [ . ; . ] denote the inner product of two functions in the solution domain. 
+\----------------------------------------------------------------------------------
+DISP u
+COOR x y
+COEF un
+SHAP %1 %2
+GAUS %3
+$CC double pk,pk1,eq,em;
+@L singular.xy n
+MATE pk eq 1.0 0.0
+FUNC gux guy
+VECT gu = gux guy
+
+FUNC
+$CC pk1=pk;
+$CC em=0.0;
+$CC if (un<y) {
+$CC  pk1=0.0;
+$CC  em=1.0e-8;
+$CC }
+@L vol.xy n
+FVECT fe 2
+@L grad.xy f fe
+@W gu fe
+
+STIF
+DIST=+[gu_i;gu_i]*pk1*vol+[u;u]*em
+
+LOAD=+[u]*eq*vol
+
+END

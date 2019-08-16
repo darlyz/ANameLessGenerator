@@ -1,0 +1,57 @@
+\--------------------------equation-----------------------------------------------
+\For incompressible fluid in 2drz(two dimensional axial symmetry coordinate system).
+\----------------------------------------------------------------------------------
+DISP u,v,p
+COOR r z
+SHAP %1 %2
+SHAP %1 %4 p 1 2 3 4
+GAUS %3
+COEF un,vn
+MASS %1 rou*vol rou*vol 0
+FUNC ux uy vx vy wz cu cv div
+$CC double rou,emu,fu,fv,fx,fy,gx,gy,c2,bata,unr,unz,vnr,vnz,wno;
+MATE rou emu fx fy 1.0 0.1 0.0 0.0
+@L singular.rz n
+$FVS ns%1%2
+VECT un un vn
+VECT e ux uy vx vy wz
+VECT div div
+VECT u u v
+VECT x r z
+VECT f fx fy
+VECT g gx gy
+VECT conv cu cv
+VECT vgun unr unz vnr vnz wno
+$CC c2 = 1.0e-8;
+MATRIX mgun
+ unr unz
+ vnr vnz
+ 
+
+FUNC
+@L vol.rz n
+$CC bata = det*c2;
+@L gradv.rz v vgun r z un vn
+$CV g_i = +mgun_i_j*un_j
+$CV f_i = f_i+g_i
+FVECT fdiv 1
+@L div.rz f fdiv
+@W div fdiv
+FVECT fvgu 5
+@L gradv.rz f fvgu r z u v
+@W e fvgu
+FMATR fmgu 2 2
+@S fmgu fvgu 1 2 3 4
+FVECT fconv 2
+@A fconv_i = +[fmgu_i_j]*un_j
+@W conv fconv
+
+STIF
+DIST=+[e_i;e_i]*emu*vol+[conv_i;u_i]*rou*vol+[u_j;u_i]*mgun_i_j*rou*vol
+     +[div;p]*vol-[p;div]*vol
+     +[p;p]*bata*vol
+
+LOAD=+[u_i]*f_i*vol
+
+END
+

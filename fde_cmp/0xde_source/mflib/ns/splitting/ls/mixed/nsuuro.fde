@@ -1,0 +1,47 @@
+\--------------------------equation-----------------------------------------------
+\For incompressible fluid in 2dro(two dimensional polar coordinate system).
+\convect_part of Navier-Stokes equations
+\----------------------------------------------------------------------------------
+DISP u,v,p
+COOR r o
+SHAP %1 %2
+SHAP %1 %4 p 1 2 3 4
+SHAP %1 %4 pn 1 2 3 4
+GAUS %3
+COEF un vn pn
+FUNC lx ly
+$CC double rou,emu,fx,fy;
+ARRAY ^gun[2][2]
+MATE rou emu fx fy 1.0 0.1 0.0 0.0
+@L singular.ro n
+VECT u u v
+VECT x r o
+VECT un un vn
+VECT f fx fy
+VECT l lx ly
+MATRIX unit
+1.0 0.0
+0.0 1.0
+
+
+FUNC
+@L vol.ro n
+@L gradv.ro m ^gun r o un vn
+$CV f_i=+^gun_i_j*un_j
+$CV f_i=+un_i+f_i*dt
+$CV ^gun_i_j = unit_i_j+^gun_i_j*dt
+fmatrix fgu 2 2
+FVECT fu 2
+FVECT fl 2
+@L gradv.ro f fgu r o u v
+@R fu_i = +[u_i]
+@A fl_i = +[fu_j]*^gun_i_j+[fgu_i_j]*un_j*dt
+@W l fl
+
+STIF
+DIST=+[l_i;l_i]+[p;p]
+
+LOAD=+[l_i]*f_i+[p]*pn
+
+END
+

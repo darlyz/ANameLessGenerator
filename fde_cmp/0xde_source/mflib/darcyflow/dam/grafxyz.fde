@@ -1,0 +1,32 @@
+\-----------------equation---------------------------------------------------------
+\ calculate the pressure:
+\               p=(u-z)*gama
+\ where u denote waterhead;
+\ where z denote the z derection coordinate of node;
+\ where z denote the derection of water depth;
+\ where gama denote bulk density.
+\--------------------the pde in weak form------------------------------------------
+\ using Least Square method :
+\               [p;p]=[(u-z)*gama;p]
+\ where [ . ; . ] denote the inner product of two functions in the solution domain.
+\-----------------------------------------------------------------------------------
+DEFI
+DISP p
+COOR x y z
+COEF u
+SHAP %1 %2
+GAUS %3
+MASS %1 1.0
+$CC double gama,f;
+MATE gama 1.0
+
+STIF
+$CC f=(u-z)*gama;
+$CC if (f<0.0) {
+$CC  f=0.0;
+$CC } 
+DIST=+[p;p]*0.0
+
+LOAD=+[p]*f
+
+END

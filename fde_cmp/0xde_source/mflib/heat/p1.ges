@@ -1,0 +1,33 @@
+\ ............................heat_equation...............................
+\ For heat field in 1dx(one dimensional cartesian coordinate system).
+\ full weak form is
+\         [ec*u,t;u]+[ek*u,x;u,x]=[q;u]+|n·(ek*u,x);u|
+\ ...................weak form of PDE on the boundary.....................
+\                       |ek*u;u|=|q;u|
+\ means n·(ek*u,x) := q-ek*u, which is third kind of b.c.
+\ ........................................................................
+p1
+DEFI
+DISP u
+VAR  u1
+REFC p
+COOR x
+NODE 1
+$CC double ek,q;
+MATE ek q
+\$CC coorr(1,1) = 1.0
+
+SHAP
+U=[1]u1
+
+TRAN
+x=[p]x(1)
+
+GAUS=1  1.,1.;
+
+STIF
+DIST=[u;u]*ek
+
+LOAD=+[u]*q
+
+END

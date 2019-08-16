@@ -1,0 +1,89 @@
+\ ------------------ Visco-elastic equations ----------------------------------
+\ Balance equation:
+\                   sij,j + fi = rho*u,tt + eta*u,t
+\ where s     denotes stress;
+\       f     denotes body force;
+\       rho   denotes density;
+\       u,tt  denotes the second derivative of u with respect to time;
+\       eta   denotes the viscosity of the material;
+\       u,t   deontes the derivative of u with respect to time.
+\
+\ Constitutive equation:
+\                   e,t = invD*s,t + invQ*s
+\ where invD is the inverse of stiffness matrix D,
+\       invQ is the inverse of viscosity matrix Q.
+\ e(n+1) - e(n) = invD*(s(n+1)-s(n)) + invQ*s(n)*dt
+\ s(n+1) - s(n) = D*(e(n+1)-e(n)) - D*invQ*s(n)*dt
+\ ds = D*de - D*invQ*s(n)*dt
+\ where ds = s(n+1)-s(n), de = e(n+1)-e(n)
+\ -----------------------------------------------------------------------------
+\ Discretization in time domain:
+\               ds(t) = (s(t) - s(t-dt))/dt
+\               de(t) = (e(t) - e(t-dt))/dt
+\ substituting into the constitutive equation:
+\               s(t) = D_bar*e + s_bar                        (1)
+\ where D_bar = inv(invD + invQ*dt),
+\       s_bar = inv(invD + invQ*dt)*invD*s(t-dt) - inv(invD + invQ*dt)*e(t-dt)
+\ -----------------------------------------------------------------------------
+\ In weak form:
+\   (s;de) + (rho*u,tt;ds) + (eta*u,t;du) = (f;du) + (T;du)   (2)
+\ where T is the boundary stress.
+\ substituting (1) into (2):
+\ (D_bar*e;de) + (rho*u,tt;du) + (eta*u,t;du) = (f;du) + (T;du) + (s_bar;de)
+\ -----------------------------------------------------------------------------
+DISP u v
+VECT u u v
+COOR x y
+VECT sv str[1] str[2]
+VECT sp str[3]
+FUNC exx eyy exy
+COMMON double ^inelm%1%2[nelem][m];
+VECT ev exx eyy
+VECT ep exy
+VECT f fx fy
+SHAP %1 %2
+GAUS %3
+$CC double pe,pv,fx,fy,rou,alpha,yita,csp,str[4];
+ARRAY ^d[2][2],^rq[2][2],snv[2],ssv[2]
+$CC static int init=0;
+$CC int m;
+$I
+$CC m = ngaus*3;
+$CC if (init==0) {
+$CC inelm%1%2 = (double *) calloc(nelem*m,sizeof(double));
+$CC for (i=0; i<nelem*m; ++i) inelm%1%2[i]=0.0;
+$CC init = 1; }
+@L singular.xy n
+MATE pe pv fx fy rou alpha yita 1.0e10 0.3 0.0 0.0 3000.0 0.6 1.0e23
+MATRIX sm 2 2
+(1.0-pv) pv
+pv (1.0-pv)
+
+MATRIX revq 2 2
+1./3. (-1./6.)
+(-1./6.) 1./3.
+
+$CV ^rq_i_j = revq_i_j/yita
+
+FUNC
+@L vol.xy n
+$CC fact = pe/(1.0+pv)/(1.0-2.0*pv);
+$CC shear = (0.5-pv)*fact;
+$CC j = (igaus-1)*3;
+$CC for (i=1; i<=3; ++i) str[i]=^inelm%1%2[num][j+i];
+$CV ^d_i_j = sm_i_j*fact
+$CV snv_i = +^rq_i_j*sv_j
+$CV ssv_i = +^d_i_j*snv_j
+$CV ssv_i = ssv_i*dt - sv_i
+$CV csp = shear/yita*dt - 1.0
+FMATR fe 2 2
+@L gradv.xy f fe
+@W ev fe 1 4
+@A fe_i_j = +[fe_i_j]+[fe_j_i]
+@W ep fe 2
+STIF
+DIST = +[ev_i;ev_j]*^d_i_j*vol+[ep_i;ep_i]*shear*vol
+
+LOAD = +[u_i]*f_i*vol+[ev_i]*ssv_i+[ep_i]*csp*sp_i*vol
+
+END

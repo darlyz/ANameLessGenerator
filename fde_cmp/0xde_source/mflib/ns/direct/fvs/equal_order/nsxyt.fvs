@@ -1,0 +1,67 @@
+void samarq(double,double,double,int);
+\ Navier-Stokes equation using fvs scheme
+\ for convection term with t3 shape function
+\ here emu = 1/Re, Re denotes the Raynold Number
+defi
+disp u v p
+coor x,y
+coef un,vn
+eqno 6
+node 3
+$CC double r[5],xm[5],ym[5],um[5],vm[5],flux[5],fluxm[5]
+$CC double xc,yc,uc,vc
+$CC int mode
+$CC mode = 1
+mate rou emu fx fy 1 1.0e-3 0 0
+
+equation
+$CC mode = 1
+{
+&c xc yc uc vc
+&s x y un vn
+#
+$CC &c=(&s[1]+&s[2]+&s[3])/3
+}
+{
+@ xm ym um vm x y un vn
+1 2 3
+2 3 1
+3 1 2
+
+{
+&m xm ym um vm
+&s x y un vn
+#
+$CC &m[3]=(&s[1]+&s[2])/2
+}
+}
+{
+@ xm ym um vm flux fluxm r
+1 2 3
+2 3 1
+3 1 2
+
+#
+$CC flux[2]=0.5*((um[2]+uc)*(yc-ym[2])-(vm[2]+vc)*(xc-xm[2]))
+$CC fluxm[2]=um[2]*(yc-ym[2])-vm[2]*(xc-xm[2])
+$CC samar(fluxm[1],r[1],emu,mode)
+}
+{
+&u u v
+{
+&i 1 2 3
+@ &u flux r
+1 2 3
+2 3 1
+3 1 2
+
+#
+equation &i &u
+[(r[3]-1.)*flux[3]+r[2]*flux[2]]&u[1]
++[(1.-r[3])*flux[3]]&u[2]-[r[2]*flux[2]]&u[3] = 0.0
+
+}
+}
+!
+
+end

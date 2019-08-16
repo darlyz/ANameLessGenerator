@@ -1,0 +1,32 @@
+\ ------------------------------- equation --------------------------------------
+\ For steady current field in 3dxyz(three dimensional cartesian coordinate system).
+\ The differential form of current conservation law:
+\                                div(J) = 0.
+\ Let E = -grad(u), and use the constitutive relation D = epsilon*E, derive
+\                          div(sigma*grad(u)) = 0.
+\ --------------------------- weak form of PDE ----------------------------------
+\            [sigma*grad(u);grad(u)]=[0.0;u]+|n¡¤(sigma*grad(u));u|.
+\ PS: u we can see as voltage.
+\ -------------------------------------------------------------------------------
+DISP u
+COOR x y z
+FUNC ux uy uz
+VECT gu ux uy uz
+SHAP %1 %2
+GAUS %3
+$CC double sigma;
+MATE sigma 5.96e7
+@L singular.xyz n
+
+FUNC
+@L vol.xyz n
+FVECT fe 3
+@L grad.xyz f fe x y z u
+@W gu fe
+
+STIF
+DIST=+[gu_i;gu_i]*vol*sigma
+
+LOAD=+[u]*vol*0.0
+
+END

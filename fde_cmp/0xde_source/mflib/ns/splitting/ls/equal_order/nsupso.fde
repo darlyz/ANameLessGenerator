@@ -1,0 +1,42 @@
+\--------------------------equation-----------------------------------------------
+\For incompressible fluid in 2dso(two dimensional spherical coordinate system).
+\Diffusion_part of Navier-Stokes equations
+\---------------------------------------------------------------------------------
+DISP u,v,p,a
+COOR s o
+SHAP %1 %2
+SHAP %1 %2c a_p 1 2 3 4
+GAUS %3
+MASS %1 rou*vol rou*vol 0 0
+FUNC ux uy uz vx vy vz div pa
+$CC double r,rou,emu,fx,fy,penaly;
+MATE r rou emu fx fy penaly 1.0 1.0 0.1 0.0 0.0 1.0e3
+@L singular.so n
+VECT e ux uy uz vx vy vz
+VECT div div
+VECT u u v
+VECT x s o
+VECT f fx fy
+FVECT fe 6
+FVECT fdiv 1
+FVECT fgp 2
+VECT gp px py
+
+FUNC
+@L vol.so n
+@L div.so f fdiv
+@W div fdiv
+@L gradv.so f fe
+@W e fe
+@L grad.so f fgp r s o p
+pa = +[p]-[a]
+
+STIF
+DIST=+[e_i;e_i]*emu*vol
+     +[div;p]*vol-[p;div]*vol
+     +[pa;pa]*penaly*vol
+
+LOAD=+[u_i]*f_i*rou*vol
+
+END
+

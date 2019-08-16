@@ -1,0 +1,34 @@
+DEFI
+GSUB = ncugt3m
+LSUB = ncult3m
+GDIM = 3
+LDIM = 2
+GVAR gu1,gv1,gw1,gs1,go1,gc1,gu2,gv2,gw2,gs2,go2,gc2,\
+gu3,gv3,gw3,gs3,go3,gc3,
+LVAR lu1,lv1,lw1,ls1,lo1,lc1,lu2,lv2,lw2,ls2,lo2,lc2,\
+lu3,lv3,lw3,ls3,lo3,lc3,
+NODE = 3
+MASS dist
+DAMP dist
+LOAD g
+
+VART
+lu1 = t1 gu1 gv1 gw1
+lu2 = t1 gu2 gv2 gw2
+lu3 = t1 gu3 gv3 gw3
+lv1 = t2 gu1 gv1 gw1
+lv2 = t2 gu2 gv2 gw2
+lv3 = t2 gu3 gv3 gw3
+lw1 = t3 gu1 gv1 gw1
+lw2 = t3 gu2 gv2 gw2
+lw3 = t3 gu3 gv3 gw3
+ls1 = t1 gs1 go1 gc1
+ls2 = t1 gs2 go2 gc2
+ls3 = t1 gs3 go3 gc3
+lo1 = t2 gs1 go1 gc1
+lo2 = t2 gs2 go2 gc2
+lo3 = t2 gs3 go3 gc3
+lc1 = t3 gs1 go1 gc1
+lc2 = t3 gs2 go2 gc2
+lc3 = t3 gs3 go3 gc3
+

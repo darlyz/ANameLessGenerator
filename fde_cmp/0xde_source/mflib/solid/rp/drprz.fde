@@ -1,0 +1,76 @@
+\ ..................................................................
+\ sd = pa*se**pm     se*se = eij*eij*2/3
+\ d = 2/3*pa*se**(pm-1)*e
+\ equation in weak form
+\ (d,de) = (f,du)
+\ (2/3*pa*se**(pm-1)*e(u),de) = (f,du)
+\ f(u) = (2/3*pa*se**(pm-1)*e(u),de) - (f,du)
+\ by newton method
+\ df(u)w = (2/3*pa*se**(pm-1)*e,de)
+\        + (2/3*2/3*pa*(pm-1)*se**(pm-3)*e(u)*e,e(u)*de)
+\ f(u+w) = f(u) + df(u)(u+w) - df(u)u = 0
+\ df(u)(u+w) = df(u)u - f(u)
+\            = (2/3*pa*(pm-1)*se**(pm-3)*e(u)*e(u),e(u)*de) + (f,du)
+\            = (2/3*pa*(pm-1)*se**(pm-1),e(u)*de) + (f,du)
+\ ..................................................................
+DISP u v p a
+COOR r z
+VECT u u v
+VECT f fx fy
+COEF un vn
+SHAP %1 %2
+SHAP %1 %2c a_p 1 2 3 4
+GAUS %3
+$CC double pa,pm,fx,fy,rou,pm1,pm3,emid,se,pk,fact1;
+$CC double enx,eny,enz,enxx,enyy,enzz,enxy,enyx;
+MASS %1 rou*vol rou*vol 0 0
+@L singular.rz n
+MATE pa pm fx fy rou  1.0e10 3.0 0.0 0.0 7800.0
+$CC pk=pa/(pm+1.);
+$CC pa=pa*2./3.;
+FUNC exx eyy ezz exy exyz div fpa
+VECT ev exx eyy ezz
+VECT ep exy
+VECT exyz exyz
+VECT div div
+VECT en enxx enxy enyx enyy enzz
+VECT env enxx enyy enzz
+VECT enp (enxy+enyx)/2.
+
+FUNC
+@L vol.rz n
+@L gradv.rz v en r z un vn
+$CV emid=+env_i*env_i
+$CV emid=+emid+enp_i*enp_i*2.
+$CC emid = emid*2.0/3.+1.0e-010;
+$CC se = sqrt(emid);
+$CC pm1 =pm-1.;
+$CC fact=pa*pow(se,pm1)*vol;
+$CC pm3 =pm-3.;
+$CC fact1=pa*2./3.*(pm-1)*pow(se,pm3)*vol;
+FVECT fe 5
+FVECT fp 1
+FVECT fev 3
+FVECT fep 2
+FVECT fexyz 1
+FVECT fdiv 1
+@L gradv.rz f fe r z u v
+@S fev fe 1 4 5
+@W ev fev
+@S fep fe 2 3
+@A fp_j = +[fep_i]
+@W ep fp
+@A fexyz_i = [fev_j]*env_j+[fp_j]*enp_j
+@W exyz fexyz
+@L div.rz f fdiv
+@W div fdiv
+fpa = [p]-[a]
+
+STIF
+DIST = +[ev_i;ev_i]*fact+[ep_i;ep_i]*fact/2.+[exyz;exyz]*fact1
+       +[div;p]*vol-[p;div]*vol+[fpa;fpa]*vol
+
+LOAD = +[u_i]*f_i*vol+[exyz]*fact*(pm-1.)
+\+[ev_i]*fnv_i+[ep_i]*fnp_i
+
+END

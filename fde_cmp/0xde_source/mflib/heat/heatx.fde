@@ -1,0 +1,29 @@
+﻿\ ............................heat_equation...............................
+\ For heat field in 1dx(one dimensional cartesian coordinate system).
+\ the differential form of heat function
+\                       ec*u,t - (ek*u,x),x = q
+\ ...........................weak form of PDE.............................
+\         [ec*u,t;u]+[ek*u,x;u,x]=[q;u]+|n·(ek*u,x);u|
+\ ........................................................................
+DISP u
+COOR x
+SHAP %1 %2
+GAUS %3
+$CC double ek,ec,q;
+MASS %1 ec*vol
+@L singular.x n
+MATE ek ec q 1.0 1.0 0.0
+FUNC gux
+VECT gu gux
+
+FUNC
+@L vol.x n
+FVECT fe 1
+@L grad.x f fe
+@W gu fe
+STIF
+DIST = +[gu_i;gu_i]*ek*vol
+
+LOAD = +[u]*q*vol
+
+END

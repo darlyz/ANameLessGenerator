@@ -1,0 +1,15 @@
+DEFI
+DISP u
+COOR x,y
+SHAP %1 %2
+GAUS %3
+$CC double q;
+MASS %1 0.0
+MATE q 0.0
+
+STIF
+DIST=+[u;u]*0.0
+
+LOAD=+[u]*q
+
+END

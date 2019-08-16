@@ -1,0 +1,38 @@
+\ ------------------------------- equation --------------------------------------
+\ For time harmonic field in 2drs(two dimensional spherical coordinate system).
+\ PS: Find magnetic field fist, electric field second.
+\ -------------------------------------------------------------------------------
+DISP hz
+COOR r s
+FUNC curlhzx curlhzy
+VECT curlhz curlhzx curlhzy
+VECT js fjx fjy
+VECT d dx dy
+SHAP %1 %2
+GAUS %3
+$CC double sigma,epsilon,omega,fmu,fjxr,fjxi,fjyr,fjyi;
+$CC double a1i,a1r,a2i,a2r,c1r,c1i,c2r,c2i,br,bi,dxr,dyr,dxi,dyi;
+MATE sigma epsilon omega fmu fjxr fjxi fjyr fjyi 5.96e7 8.8541878e-12 3.14159e2 12.56637e-7 0.0 0.0 0.0 0.0
+$CC a1r=sigma;
+$CC a1i=-omega*epsilon;
+$CC a2r=sigma;
+$CC a2i=omega*epsilon;
+$CC br=1.0;
+$CC bi=0.0;
+$CP c1=b/a1;
+$CP c2=b/a2;
+$CP d_i=c2*js_i;
+@L singular.rs n
+
+FUNC
+@L vol.rs n
+FVECT fe 2
+@L vcurl.rs f fe r s hz
+@W curlhz fe
+
+STIF
+DIST=+[curlhz_i;curlhz_i]*vol*|c1r;c1i|-[hz;hz]*vol*|0;omega*fmu|
+
+LOAD=+[curlhzx]*vol*|dxr;dxi|+[curlhzy]*vol*|dyr;dyi|
+
+END

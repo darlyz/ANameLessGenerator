@@ -1,0 +1,27 @@
+﻿\ ............................heat_equation...............................
+\ For heat field in 3drso(three dimensional spherical coordinate system).
+\ the heat flux
+\                         (ur,us,uo) = ek*grad(u)
+\ ........................................................................
+DISP ux uy uz
+COOR r s o
+COEF u
+SHAP %1 %2
+GAUS %3
+$CC double ek,ec,q,gux,guy,guz;
+MASS %1 vol vol vol
+@L singular.rso n
+MATE ek ec q 1.0 1.0 0.0
+VECT u ux uy uz
+VECT gu gux guy guz
+
+FUNC
+@L vol.rso n
+@L grad.rso v gu
+
+STIF
+null
+
+LOAD = -[u_i]*gu_i*ek*vol
+
+END

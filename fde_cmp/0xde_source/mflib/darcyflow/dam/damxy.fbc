@@ -1,0 +1,15 @@
+DEFI
+DISP u
+COOR x
+SHAP %1 %2
+GAUS %3
+MASS %1 0.0
+$CC double pk,eq;
+MATE pk eq 1.0 0.0
+
+STIF
+DIST=+[u;u]*0.0
+
+LOAD=+[u]*pk*eq
+
+END

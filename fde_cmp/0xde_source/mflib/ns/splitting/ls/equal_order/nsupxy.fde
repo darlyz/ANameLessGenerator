@@ -1,0 +1,53 @@
+\--------------------------equation-----------------------------------------------
+\For incompressible fluid in 2dxy(two dimensional cartesian coordinate system).
+\Diffusion_part of Navier-Stokes equations
+\continuity equation:
+\                      div(u) = 0
+\momentum equation:
+\       rou*u,t - div(emu*grad(u)) + grad(p) = f    
+\ where rou is density;emu is dynamic viscosity coefficient;
+\ where u:(u,v),denote the velocity of x and y directions.
+\ where f is vector,denote fx and fy.
+\--------------------the pde in weak form--------------------------------------------
+\   [rou*u,t;u]+[emu*grad(u);grad(u)]-[p;div(u)]+[div(u);p]+[pa;pa]=+rou*[f;u] 
+\ where [ . ; . ] denote the inner product of two functions in the solution domain. 
+\ where pa = p-pv, pv is the average of p;
+\------------------------------------------------------------------------------------ 
+DISP u,v,p,a
+COOR x,y
+SHAP %1 %2
+SHAP %1 %2c a_p 1 2 3 4
+GAUS %3
+MASS %1 rou*vol rou*vol 0 0
+FUNC ux uy vx vy div pa
+$CC double rou,emu,fx,fy,penaly;
+MATE rou emu fx fy penaly 1.0 0.1 0.0 0.0 1.0e3
+@L singular.xy n
+VECT e ux uy vx vy
+VECT div div
+FVECT fdiv 1
+VECT u u v
+VECT x x y
+VECT f fx fy
+FVECT fe 4
+FVECT fgp 2
+VECT gp px py
+
+FUNC
+@L vol.xy n
+@L div.xy f fdiv
+@W div fdiv
+@L gradv.xy f fe
+@W e fe
+@L grad.xy f fgp x y p
+pa = +[p]-[a]
+
+STIF
+DIST=+[e_i;e_i]*emu*vol
+     +[div;p]*vol-[p;div]*vol
+     +[pa;pa]*penaly*vol
+
+LOAD=+[u_i]*f_i*rou*vol
+
+END
+

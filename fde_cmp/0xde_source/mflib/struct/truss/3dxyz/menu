@@ -1,0 +1,17 @@
+class a
+class structure t
+#
+coordinate s
+xyz 
+#
+problem l
+static le tru ell 3 u v w
+dynamic_wave lw ntu wave 3 u v w
+dynamic_newmark ln ntu newmark 3 u v w
+#
+elemtype m
+l2 l2g2 { xyz }
+#
+boundary m
+sprn { xyz }
+#

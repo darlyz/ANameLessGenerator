@@ -1,0 +1,17 @@
+class a
+class convention
+#
+coordinate s
+xy xyd rz ro rod rs so  xyz roz rso
+#
+problem a
+dynamic lws dev n sev n
+#
+elemtype m
+q4 t3 q9 t6 { xy xyd rz ro rod rs so }
+c8 w4 c27 w10  { xyz roz rso }
+#
+boundary m
+l2 l3 { xy xyd }
+q4 t3 q9 t6 { xyz }
+#

@@ -1,0 +1,78 @@
+\ ..................................................................
+\ sd = pa*se**pm     se*se = 2/3*eij*eij     eij = (ui,j+uj,i)/2
+\ d = 2/3*pa*se**(pm-1)*e
+\ (d,de) = (f,du)
+\ (2/3*pa*se**(pm-1)*e(u),de) = (f,du)
+\ f(u) = (2/3*pa*se**(pm-1)*e(u),de) - (f,du)
+\ df(u)w = (2/3*pa*se**(pm-1)*e,de)
+\        + (2/3*2/3*pa*(pm-1)*se**(pm-3)*e(u)*e,e(u)*de)
+\ f(u+w) = f(u) + df(u)(u+w) - df(u)u = 0
+\ df(u)(u+w) = df(u)u - f(u)
+\            = (2/3*pa*(pm-1)*se**(pm-3)*e(u)*e(u),e(u)*de) + (f,du)
+\            = (2/3*pa*(pm-1)*se**(pm-1),e(u)*de) + (f,du)
+\ ..................................................................
+DISP u v w p a
+COOR r s o
+VECT u u v w
+VECT f fx fy fz
+COEF un vn wn
+SHAP %1 %2
+SHAP %1 %2c a_p 1 2 3 4 5 6 7 8
+MASS %1 rou*vol rou*vol rou*vol 0 0
+GAUS %3
+$CC double pa,pm,fx,fy,fz,rou,pm1,pm3,emid,se,pk,fact1;
+$CC double enx,eny,enz,enxx,enyy,enzz,enxy,enyz,enxz,enyx,enzy,enzx;
+@L singular.rso n
+MATE pa pm fx fy fz rou 1.0e10 3.0 0.0 0.0 0.0 7800.0
+$CC pk=pa/(pm+1.);
+$CC pa=pa*2./3.;
+FUNC exx eyy ezz eyz exz exy exyz div fpa
+VECT ev exx eyy ezz
+VECT ep eyz exz exy
+VECT exyz exyz
+VECT div div
+MATRIX en 3 3
+enxx enxy enxz
+enyx enyy enyz
+enzx enzy enzz
+
+VECT env enxx enyy enzz
+VECT enp (enyz+enzy)/2. (enxz+enzx)/2. (enxy+enyx)/2.
+
+FUNC
+@L vol.rso n
+@L gradv.rso m en r s o un vn wn
+$CV emid=+env_i*env_i+enp_i*enp_i*2.
+$CC emid = emid*2.0/3.+1.0e-010;
+$CC se = sqrt(emid);
+$CC pm1 =pm-1.;
+$CC fact=pa*pow(se,pm1)*vol;
+$CC pm3 =pm-3.;
+$CC fact1=pa*2./3.*(pm-1.)*pow(se,pm3)*vol;
+FMATR fe 3 3
+FMATR fp 3 3
+FVECT fev 3
+FVECT fep 3
+FVECT fexyz 1
+FVECT fdiv 1
+FVECT fgp 3
+@L gradv.rso f fe
+@A fp_i_j = +[fe_i_j]+[fe_j_i]
+@S fev fe 1 5 9
+@S fep fp 6 3 2
+@W ev fev
+@W ep fep
+@A fexyz_i = [fev_j]*env_j+[fep_j]*enp_j
+@W exyz fexyz
+@L div.rso f fdiv
+@W div fdiv
+fpa = [p]-[a]
+
+STIF
+DIST = +[ev_i;ev_i]*fact+[ep_i;ep_i]*fact/2.+[exyz;exyz]*fact1
+       +[div;p]*vol-[p;div]*vol+[fpa;fpa]*vol
+
+LOAD = +[u_i]*f_i*vol+[exyz]*fact*(pm-1.)
+\+[ev_i]*fnv_i+[ep_i]*fnp_i
+
+END

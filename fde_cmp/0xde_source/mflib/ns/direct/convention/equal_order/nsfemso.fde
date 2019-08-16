@@ -1,0 +1,57 @@
+\--------------------------equation-----------------------------------------------
+\For incompressible fluid in 2dso(two dimensional spherical coordinate system).
+\------------------------------------------------------------------------------------
+DISP u,v,p,a
+COOR s o
+SHAP %1 %2
+SHAP %1 %2c a_p 1 2 3 4
+GAUS %3
+COEF un vn
+MASS %1 rou*vol rou*vol 0 0
+FUNC ux uy uz vx vy vz cu cv div pa
+$CC double r,rou,emu,fx,fy,gx,gy,floadx,floady,penalty,unx,uny,unz,vnx,vny,vnz;
+MATE r rou emu fx fy penalty 1.0 1.0 0.1 0.0 0.0 1.0e3
+@L singular.so n
+VECT un un vn
+VECT e ux uy uz vx vy vz
+VECT div div
+VECT u u v
+VECT x s o
+VECT f fx fy
+VECT g gx gy
+VECT fload floadx floady
+VECT conv cu cv
+VECT vgun unx uny unz vnx vny vnz
+MATRIX mgun
+ unx uny
+ vnx vny
+ 
+
+FUNC
+@L vol.so n
+@L gradv.so v vgun r s o un vn
+$CV g_i = +mgun_i_j*un_j
+$CV fload_i = f_i+g_i
+FVECT fdiv 1
+@L div.so f fdiv
+@W div fdiv
+FVECT fvgu 6
+@L gradv.so f fvgu r s o u v
+@W e fvgu
+FMATR fmgu 2 2
+@S fmgu fvgu 1 2 4 5
+FVECT fu 2
+@R fu_i = +[u_i]
+FVECT fconv 2
+@A fconv_i=+[fmgu_i_j]*un_j+[fu_j]*mgun_i_j
+@W conv fconv
+pa = +[p]-[a]
+
+STIF
+DIST=+[e_i;e_i]*emu*vol+[conv_i;u_i]*rou*vol
+     +[div;p]*vol-[p;div]*vol
+     +[pa;pa]*penalty*vol
+
+LOAD=+[u_i]*fload_i*rou*vol
+
+END

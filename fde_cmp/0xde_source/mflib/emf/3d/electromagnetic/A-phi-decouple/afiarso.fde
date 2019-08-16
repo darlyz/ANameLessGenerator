@@ -1,0 +1,50 @@
+\ ------------------------------- equation --------------------------------------
+\ For harmonic field in 3drso(three dimensional spherical coordinate system).
+\ -------------------------------------------------------------------------------
+DISP ax ay az
+VECT a ax ay az
+COOR r s o
+COEF ur ui
+FUNC curlax curlay curlaz div
+VECT curla curlax curlay curlaz
+VECT div div
+VECT gur urx ury urz
+VECT gui uix uiy uiz
+VECT js fjx fjy fjz
+VECT d dx dy dz
+VECT uur uurx uury uurz
+VECT uui uuix uuiy uuiz
+SHAP %1 %2
+GAUS %3
+$CC double sigma,epsilon,omega,fmu,fjxr,fjxi,fjyr,fjyi,fjzr,fjzi,pc;
+$CC double ec,ai,ar,br,bi,uurx,uury,uurz,uuix,uuiy,uuiz,urx,ury,urz,uix,uiy,uiz;
+MATE sigma epsilon omega fmu fjxr fjxi fjyr fjyi fjzr fjzi pc \
+ 5.96e7 8.8541878e-12 3.14159e2 12.56637e-7 0.0 0.0 0.0 0.0 0.0 0.0 1.0
+$CC ai=sigma;
+$CC ar=omega*epsilon;
+$CC bi=-sigma;
+$CC br=-omega*epsilon;
+$CC ec=1.0/fmu;
+@L singular.rso n
+
+FUNC
+@L vol.rso n
+@L grad.rso v gur x y z ur
+@L grad.rso v gui x y z ui
+$cv uur_i=gur_i*ai-gui_i*ar
+$cv uui_i=gui_i*ai+gur_i*ar
+FVECT fe 3
+@L curl.rso f fe r s o ax ay az
+@W curla fe
+FVECT fdiv 1
+@L div.rso f fdiv r s o ax ay az
+@W div fdiv
+
+STIF
+DIST=+[a_i;a_i]*vol*omega*|br;bi|+[curla_i;curla_i]*|ec;0|+[div;div]*|pc*ec;0|
+
+load=+[ax]*vol*|fjxr;fjxi|-[ax]*vol*|uurx;uuix|
++[ay]*vol*|fjyr;fjyi|-[ay]*vol*|uury;uuiy|
++[az]*vol*|fjzr;fjzi|-[az]*vol*|uurz;uuiz|
+
+END

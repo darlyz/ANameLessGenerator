@@ -1,0 +1,26 @@
+p1
+\ ek denotes stiffness, f denotes force
+DEFI
+DISP u
+VAR  u1
+REFC p
+COOR x
+NODE 1
+$CC double ek,f;
+MATE ek f 0.0 1.0
+$CC ^coorr[1][1] = 1.0;
+
+SHAP
+U=[1]u1
+
+TRAN
+x=[p]x(1)
+
+GAUS=1  1.0,1.0;
+
+STIF
+DIST=+[u;u]*ek
+
+LOAD=+[u]*0.0
+
+END

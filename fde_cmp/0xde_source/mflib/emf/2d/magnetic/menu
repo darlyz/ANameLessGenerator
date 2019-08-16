@@ -1,0 +1,18 @@
+coordinate s
+xy rz ro rs 
+#
+class a
+class convention { static dynamic }
+class complex { harmonic }
+#
+problem l
+static les mf c fmf n
+dynamic lws mf n fmf n
+harmonic leh hmf n hfmf n
+#
+elemtype m
+q4 t3 q9 t6
+#
+boundary element m
+l2 l3 
+#

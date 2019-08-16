@@ -1,0 +1,24 @@
+\ ---------------------------------- equation -----------------------------------------
+\ For static electric field in 3dxyz(three dimensional cartesian coordinate system).
+\ The full weak form is
+\               [1/fmu*curl(A);curl(A)]+[pc/fmu*div(A);div(A)]=[Js;A]-|n¡ÁH;A|
+\ ------------------------ weak form of PDE on the boundary ---------------------------
+\                                 [A;A]*0 = -|n¡ÁH;A|.
+\ PS: Let fht:= n¡ÁH, fhn:=n¡¤H to establish neumann condition.
+\ -------------------------------------------------------------------------------------
+DISP ax ay az
+COOR x y
+SHAP %1 %2
+GAUS %3
+$T t
+$CC double fhtx,fhty,fhn;
+MATE fhn 0.0
+$cc fhtx=0;
+$cc fhty=0;
+
+STIF
+DIST=+[ax;ax]*0.0
+
+LOAD=-[ax]*fhtx-[ay]*fhty-[az]*fhn
+
+END

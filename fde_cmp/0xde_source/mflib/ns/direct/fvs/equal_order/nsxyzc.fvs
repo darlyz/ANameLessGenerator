@@ -1,0 +1,120 @@
+void samar(double,double,double,int);
+\ Navier-Stokes equation using fvs scheme
+\ for convection term with w4 shape function
+\ here emu = 1/Re, Re denotes the Raynold Number
+defi
+disp u v w p
+coor x,y,z
+coef un,vn,wn
+eqno 24
+node 8
+$CC double xc[4],uc[4]
+$CC double fx13[4],fx16[4],fx18[4],fx27[4],fx38[4],fx57[4]
+$CC double fu13[4],fu16[4],fu18[4],fu27[4],fu38[4],fu57[4]
+\$CC dimension x12(3),x14(3),x15(3),x23(3),x26(3),x34(3)
+\$CC dimension x37(3),x48(3),x56(3),x58(3),x67(3),x78(3)
+\$CC dimension u12(3),u14(3),u15(3),u23(3),u26(3),u34(3)
+\$CC dimension u37(3),u48(3),u56(3),u58(3),u67(3),u78(3)
+{
+&m 12 14 15 23 26 34 37 48 56 58 67 78
+&i 16 13 16 27 16 38 27 38 57 18 57 57
+&j 13 18 18 13 27 13 38 18 16 57 27 38
+&r 21 41 51 32 62 43 73 84 65 85 76 87
+
+#
+$CC double x&m[4],u&m[4],flux&m,flux&r,flux&mr,r&m,r&r
+}
+{
+&m m
+#
+$CC int mode
+$CC mode = 1
+mate emu rou fx fy fz 1.0e-3 1.0 0.0 0.0 0.0
+ 
+equation
+}
+{
+&a [1] [2] [3]
+&x x y z
+&u un vn wn
+{
+&p x u
+&n &x &u
+{
+&c &pc&a
+
+#
+$CC &c=(&n(1)+&n(2)+&n(3)+&n(4)+&n(5)+&n(6)+&n(7)+&n(8))/8
+}
+{
+&m &p12&a &p14&a &p15&a &p23&a &p26&a &p34&a \
+   &p37&a &p48&a &p56&a &p58&a &p67&a &p78&a
+@ &n
+1 2
+1 4
+1 5
+2 3
+2 6
+3 4
+3 7
+4 8
+5 6
+5 8
+6 7
+7 8
+
+#
+$CC &m=(&n[1]+&n[2])/2
+}
+{
+&f f&p13&a f&p16&a f&p18&a f&p27&a f&p38&a f&p57&a
+\&g f&p24&a f&p25&a f&p45&a f&p36&a f&p47&a f&p68&a
+@ &n
+1 3 2 4
+1 6 2 5
+1 8 4 5
+2 7 3 6
+3 8 4 7
+5 7 6 8
+
+#
+$CC &f=(&n[1]+&n[2]+&n[3]+&n[4])/4
+\$CC &g=&f
+}
+}
+}
+
+{
+&m 12 14 15 23 26 34 37 48 56 58 67 78
+&i 13 18 16 13 27 13 38 18 16 57 27 38
+&j 16 13 18 27 16 38 27 38 57 18 57 57
+&r 21 41 51 32 62 43 73 84 65 85 76 87
+#
+$CC squr(xc,x&m,fx&i,fx&j,uc,u&m,fu&i,fu&j,flux&m,flux&mr)
+$CC flux&m = rou*flux&m
+$CC flux&mr = rou*flux&mr
+$CC samar(flux&mr,r&m,emu,mode)
+$CC flux&r = -flux&m
+$CC r&r = 1.0-r&m
+}
+{
+&u u v w
+{
+&i 1 2 3 4 5 6 7 8
+&j 2 3 4 1 8 5 6 7
+&k 4 1 2 3 6 7 8 5
+&l 5 6 7 8 1 2 3 4
+
+#
+
+equation &i &u
+[(r&i&j-1.)*flux&i&j+(r&i&k-1.)*flux&i&k+(r&i&l-1.)*flux&i&l]u(&i)
++[(1.-r&i&j)*flux&i&j]u(&j)
++[(1.-r&i&k)*flux&i&k]u(&k)
++[(1.-r&i&l)*flux&i&l]u(&l) = 0.0
+}
+}
+!
+
+end
+      

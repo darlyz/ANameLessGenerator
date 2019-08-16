@@ -1,0 +1,27 @@
+\ heat_equation
+\ ..................................................................
+\  ec*u,t - (ek*u,i),i = q
+\  (ec*u,t,v) + (ek*grad(u),grad(v)) = (q,v)
+\ ..................................................................
+DISP u
+COOR r o z
+SHAP %1 %2
+GAUS %3
+$CC double ek,ec,q;
+MASS %1 ec*vol
+@L singular.roz n
+MATE ek ec q
+FUNC gux guy guz
+VECT gu = gux guy guz
+
+FUNC
+@L vol.roz n
+FVECT fe 3
+@L grad.roz f fe
+@W gu fe
+STIF
+DIST = +[gu_i;gu_i]*ek*vol
+
+LOAD = +[u]*q*vol
+
+END

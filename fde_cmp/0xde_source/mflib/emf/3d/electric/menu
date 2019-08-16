@@ -1,0 +1,16 @@
+coordinate s
+xyz roz rso 
+#
+class a
+class convention
+#
+problem l
+static les ef n fef n
+steady les sf n fsf n
+#
+elemtype m
+c8 w4 c27 w10
+#
+boundary element m
+q4 t3 q9 t6
+#

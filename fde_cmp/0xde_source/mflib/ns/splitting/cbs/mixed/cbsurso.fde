@@ -1,0 +1,38 @@
+\--------------------------equation-----------------------------------------------
+\For incompressible fluid in 3drso(three dimensional spherical coordinate system).
+\convect_part of Navier-Stokes equations
+\---------------------------------------------------------------------------------
+DISP u v w p
+COOR r s o
+SHAP %1 %2
+SHAP %1 %4 p 1 2 3 4 5 6 7 8
+GAUS %3
+COEF un vn wn
+MASS %1 vol vol vol 0
+FUNC lu lv lw
+$CC double rou,emu,fx,fy,fz,fu,fv,fw;
+ARRAY ^gun[3][3]
+MATE rou emu fx fy fz 1.0 0.1 0.0 0.0 0.0
+@L singular.rso n
+VECT l lu lv lw
+VECT un un vn wn
+VECT u u v w
+VECT x r s o
+VECT f fu fv fw
+
+FUNC
+@L vol.rso n
+@L gradv.rso m ^gun r s o un vn wn
+$CV f_i = +^gun_i_j*un_j
+FMATR gu 3 3
+@L gradv.rso f gu r s o u v w
+FVECT fl 3
+@A fl_i = +[gu_i_j]*un_j
+@W l fl
+
+stiff
+null
+
+LOAD = -[u_i]*f_i*dt*vol-[l_i]*f_i*dt*dt/2*vol
+
+END

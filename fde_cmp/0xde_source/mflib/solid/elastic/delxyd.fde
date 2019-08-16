@@ -1,0 +1,55 @@
+\---------------------elastic deformation equation----------------------------------
+\Coordinate: 2dxy(two dimensional cartesian coordinate system).
+\Balance equation:
+\                      sij,j + fi = 0
+\Geometric equation:
+\                   eij = (ui,j+uj,i)*aij
+\       aij = 1/2 if i=j else aij=1
+\Constitutive equation:
+\                         s = D*e
+\
+\ where f denotes the body force vector (fx, fy);
+\       u denotes the displacement vector (u, v);
+\       s denotes the stress matrix;
+\       e denotes the strain matrix;
+\       D denotes the constitutive matrix.
+\-------------------------the PDE in weak form--------------------------------------
+\                     (D*e;de) = (f;du)
+\ where de denotes the variation of e;
+\       du denotes the variation of u;
+\       ( . ; . ) denotes the inner product of two functions in the solution domain.
+\-----------------------------------------------------------------------------------
+DISP u v
+VECT u u v
+COOR x y
+FUNC exx eyy exy
+FMATR fe 2 2
+VECT ev exx eyy
+VECT ep exy
+SHAP %1 %2
+GAUS %3
+$CC double pe,pv,fx,fy,rou,alpha;
+@L singular.xy n
+MATE pe pv fx fy rou alpha 1.0e10 0.3 0.0 0.0 3000.0 0.6
+MASS %1 rou
+DAMP %1 rou*alpha
+VECT f fx fy
+MATRIX sm 2 2
+1.0 pv
+pv 1.0
+
+
+FUNC
+@L vol.xy n
+$CC fact = pe/(1.0+pv)/(1.-pv)*vol;
+$CC shear = (1.0-pv)/2.0;
+@L gradv.xy f fe
+@W ev fe 1 4
+@A fe_i_j = +[fe_i_j]+[fe_j_i]
+@W ep fe 2
+STIF
+DIST =+[ev_i;ev_j]*sm_i_j*fact+[ep_i;ep_i]*shear*fact
+
+LOAD=+[u_i]*f_i*vol
+
+END

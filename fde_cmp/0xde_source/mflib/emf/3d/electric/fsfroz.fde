@@ -1,0 +1,24 @@
+\ ------------------------------- equation --------------------------------------
+\ For steady current field in 3droz(three dimensional cylindrical coordinate system).
+\ Using least square method to compute electric field:
+\                                 E=-grad(u)
+\ -------------------------------------------------------------------------------
+DISP ex ey ez
+VECT e ex ey ez
+COEF u
+COOR r o z
+SHAP %1 %2
+GAUS %3
+MASS %1 vol
+$CC double ux,uy,uz;
+@L singular.roz n
+VECT gu ux uy uz
+
+STIF
+@L vol.roz n
+@L grad.roz v gu r o z u
+DIST=+[ex;ex]*0.0
+
+LOAD=-[e_i]*vol*gu_i
+
+END

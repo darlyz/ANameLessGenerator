@@ -1,0 +1,21 @@
+DISP sxx syy szz
+COOR r
+COEF u
+SHAP %1 %2
+GAUS %3
+$CC double pe,pv,fx,rou,alpha,fxx,fyy,fzz,exx,eyy,ezz;
+MASS %1 vol vol vol
+@L singular.s n
+MATE pe pv 1.0e10 0.3
+LOAD fxx fyy fzz
+VECT fv fxx fyy fzz
+VECT ev exx eyy ezz
+@L isotropi.3d n mv
+
+STIF
+@L vol.s n
+@L gradv.s v ev
+$CV fv_i = +fact*mv_i_j*ev_j*vol
+DIST = +[sxx;sxx]*0.0
+
+END

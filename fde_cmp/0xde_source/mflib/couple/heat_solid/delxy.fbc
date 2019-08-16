@@ -1,0 +1,17 @@
+DEFI
+DISP u,v
+COOR x
+SHAP %1 %2
+GAUS %3
+$CC double fu,fv;
+MASS %1 0.0
+DAMP %1 0.0
+MATE fv 100;
+
+STIF
+$cc fu=0.0;
+DIST=[u;u]*0.0
+
+LOAD=+[u]*fu+[v]*fv
+
+END

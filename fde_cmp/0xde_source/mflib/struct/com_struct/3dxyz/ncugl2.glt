@@ -1,0 +1,33 @@
+\C
+\C*********   TRANSFORMATION OF COORDINATES
+\C*********     LOCAL (1-D) TO GLOBAL (3-D) : ( L ) = T ( G )
+\C
+DEFI
+GSUB = ncugl2
+LSUB = ncull2
+GVAR = gu1 gv1 gw1 ganx1 gany1 ganz1 \
+        gu2 gv2 gw2 ganx2 gany2 ganz2
+LVAR = lu1 lv1 lw1 lanx1 lany1 lanz1 \
+        lu2 lv2 lw2 lanx2 lany2 lanz2
+GDIM = 3
+LDIM = 1
+NODE = 2
+LOAD g
+MASS dist
+DAMP dist
+3DBEAM
+
+
+VART
+ lu1  = t1 gu1   gv1   gw1
+ lv1  = t2 gu1   gv1   gw1
+ lw1  = t3 gu1   gv1   gw1
+ lanx1= t1 ganx1 gany1 ganz1
+ lany1= t2 ganx1 gany1 ganz1
+ lanz1= t3 ganx1 gany1 ganz1
+ lu2  = t1 gu2   gv2   gw2
+ lv2  = t2 gu2   gv2   gw2
+ lw2  = t3 gu2   gv2   gw2
+ lanx2= t1 ganx2 gany2 ganz2
+ lany2= t2 ganx2 gany2 ganz2
+ lanz2= t3 ganx2 gany2 ganz2

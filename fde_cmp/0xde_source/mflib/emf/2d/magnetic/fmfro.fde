@@ -1,0 +1,22 @@
+\ ------------------------------- equation --------------------------------------
+\ For magnetic field in 2dro(two dimensional polar coordinate system).
+\ -------------------------------------------------------------------------------
+DISP hx hy
+COEF az
+COOR r o
+SHAP %1 %2
+GAUS %3
+MASS %1 vol
+$CC double fmu,curlazx,curlazy;
+MATE fmu 12.56637e-7
+@L singular.ro n
+VECT curlaz curlazy curlazx
+
+STIF
+@L vol.ro n
+@L vcurl.ro v curlaz r o az
+DIST=+[hx;hx]*0.0
+
+LOAD=+[hx]*vol/fmu*curlazx+[hy]*vol/fmu*curlazy
+
+END

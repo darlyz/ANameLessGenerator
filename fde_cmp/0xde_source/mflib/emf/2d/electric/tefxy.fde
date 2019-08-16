@@ -1,0 +1,37 @@
+\ ------------------------------- equation --------------------------------------
+\ For dynamic electric field in 2dxy(two dimensional cartesian coordinate system).
+\ Convect the differential form of Maxwell equations:
+\              fmu*Hz,t+curl(dt/(epsilon+sigma*dt)*curl(Hz))
+\              = +curl((dt*Js-epsilon*H(n))/(epsilon+sigma*dt)).
+\ --------------------------- weak form of PDE ----------------------------------
+\              [fmu*Hz,t;Hz]+[dt/(epsilon+sigma*dt)*curl(Hz);curl(Hz)] 
+\              = +[(dt*Js-epsilon*e(n))/(epsilon+sigma*dt);curl(Hz)]
+\                -|n¡ÁE;Hz|.
+\ -------------------------------------------------------------------------------
+DISP hz
+COOR x y
+COEF ex ey
+FUNC curlhzx curlhzy
+VECT curlhz curlhzx curlhzy
+SHAP %1 %2
+GAUS %3
+$CC double sigma,epsilon,fmu,fjx,fjy,fjx2,fjy2,edts1;
+MASS %1 fmu*vol
+MATE sigma epsilon fmu fjx fjy 5.96e7 8.8541878e-12 12.56637e-7 0.0 0.0
+@L singular.xy n
+
+FUNC
+@L vol.xy n
+FVECT fe 2
+@L vcurl.xy f fe x y hz
+@W curlhz fe
+
+STIF
+$CC edts1=epsilon+dt*sigma;
+$CV fjx2=dt*fjx-epsilon*ex;
+$CV fjy2=dt*fjy-epsilon*ey;
+DIST=+[curlhz_i;curlhz_i]*vol*dt/edts1
+
+LOAD=+[curlhzx]*vol*fjx2/edts1+[curlhzy]*vol*fjy2/edts1
+
+END

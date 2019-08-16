@@ -1,0 +1,61 @@
+\--------------------------equation-----------------------------------------------
+\For incompressible fluid in 2dxy(two dimensional cartesian coordinate system).
+\continuity equation:
+\                      div(u) = 0
+\momentum equation:
+\       rou*u,t - div(emu*grad(u)) + rou*grad(u)*u + grad(p) = f    
+\ where rou is density;emu is dynamic viscosity coefficient.
+\ where u:(u,v),denote the velocity of x and y directions.
+\ where f is vector,denote fx and fy.
+\--------------------the pde in weak form--------------------------------------------
+\       [rou*u,t;u]+[emu*grad(u);grad(u)]+[rou*grad(un)*u;u]-
+\       [p;div(u)]+[div(u);p]+[bata*p;p]=+rou*[f;u]+[rou*grad(un)*un;u]  
+\ where [ . ; . ] denote the inner produc of two functions in the solution domain.
+\ $FVS will be used for the convection term (rou*grad(u)*un)
+\ where un is vector,denote known un and vn. 
+\-------------------------------------------------------------------------------------
+DISP u,v,p
+COOR x,y
+SHAP %1 %2
+SHAP %1 %4 p 1 2 3 4
+GAUS %3
+COEF un,vn
+MASS %1 rou*vol rou*vol 0
+FUNC ux uy vx vy div
+$CC double rou,emu,fu,fv,fx,fy,fgx,fgy,gx,gy,c2,bata;
+ARRAY ^gun[2][2]
+MATE rou emu fx fy 1.0 0.1 0.0 0.0
+@L singular.xy n
+$FVS ns%1%2
+VECT un un vn
+VECT e ux uy vx vy
+VECT div div
+VECT u u v
+VECT x x y
+VECT f fx fy
+VECT g gx gy
+VECT fg fgx fgy
+$CC c2 = 1.0e-8;
+
+FUNC
+@L vol.xy n
+$CC bata = det*c2;
+@L gradv.xy m ^gun x y un vn
+$CV g_i = +^gun_i_j*un_j
+$CV fg_i = f_i+g_i
+FVECT fdiv 1
+@L div.xy f fdiv
+@W div fdiv
+FMATR fgu 2 2
+@L gradv.xy f fgu x y u v
+@W e fgu
+
+STIF
+DIST=+[e_i;e_i]*emu*vol+[u_j;u_i]*^gun_i_j*rou*vol
+     +[div;p]*vol-[p;div]*vol
+     +[p;p]*bata*vol
+
+LOAD=+[u_i]*fg_i*rou*vol
+
+END
+

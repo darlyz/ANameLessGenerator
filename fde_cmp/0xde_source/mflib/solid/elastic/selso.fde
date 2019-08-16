@@ -1,0 +1,41 @@
+\ ................ stress computation .........
+\ stress equation
+\ s = D*e, where eij = (ui,j+uj,i)*aij
+\ aij = 1/2 if i=j else aij=1
+\ where u denote displacement, s denote stress, e denote strain
+\ D denote the constitutive matrix
+\ ......................................................
+\ PDE in weak form
+\ (s,ds) = (D*e,ds)
+\ where ds denotes the variation of s
+\ ......................................................
+DISP sxx,syy,sxy,sxz,syz
+COOR s o
+COEF u,v
+SHAP %1 %2
+GAUS %3
+$CC double r,pe,pv,fxx,fyy,fyz,fxz,fxy,exx,eyy,eyx,exy,exz,eyz;
+MASS %1 vol
+VECT dv exx exy exz eyx eyy eyz
+@L singular.so n
+MATE r pe pv 1.0 1.0e10 0.3
+LOAD fxx fyy fxy fxz fyz
+VECT fv fxx fyy
+VECT fg fxy fxz fyz
+VECT ev exx eyy
+VECT eg (exy+eyx) fxz fyz
+MATRIX sm 2 2
+(1.0-pv) pv
+pv (1.0-pv)
+
+
+STIF
+@L vol.so n
+$CC fact = pe/(1.0+pv)/(1.0-2.0*pv);
+$CC shear = (1.0-2.0*pv)/2.0;
+@L gradv.so v dv
+$CV fv_i = +fact*sm_i_j*ev_j*vol
+$CV fg_i = +fact*shear*eg_i*vol
+DIST = +[sxx;sxx]*0.0
+
+END

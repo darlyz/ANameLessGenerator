@@ -1,0 +1,179 @@
+\ --------------------------- Visco-elastic-plastic equation ------------------------------------
+\ Notation:
+\ s           .... denotes stress
+\ sn          .... denotes the value of s in iteration n
+\ dsn         .... denotes the increment of sn
+\ q           .... denotes inner variable
+\ qn          .... denotes the iteration value of q
+\ e           .... denotes strain
+\ ep          .... denotes plastic strain
+\ ev          .... denotes viscous strain
+\ ds          .... denotes the increment of s
+\ dep         .... denotes the increment of ep
+\ depn        .... denotes the increment of ep in iteration n
+\ dev         .... denotes the increment of ev
+\ devn        .... denotes the increment of ep in iteration n
+\ D           .... denotes elastic constitutive matrix
+\ f_bar       .... denotes body force
+\ f = f(s,q)  .... denotes yield function
+\ de          .... denotes the increment of e or the virtual of e
+\ den         .... denotes the increment of e in iteration n
+\ du          .... denotes the virtual displacement of u
+\ df/ds       .... denotes the derivative of f with respect to s
+\ df/dq       .... denotes the derivative of f with respect to q
+\ Q           .... denotes the viscous matrix
+\ inv(*)      .... denotes the inverse of matrix *
+\ (f1;f2)     .... denotes the inner product of two functions 
+\                  (f1 and f2) in the solution domain. 
+\ 
+\ dq = dlambda*m(s,q)
+\ s = D*(e-ep-ev)
+\ f(s,q) = 0 or dlambda = 0 and
+\ dlambda>=0 & f(s,q)<=0
+\ -----------------------------------------------------------------------------------------------
+\ From iteration step n to n+1, the equation set to be solved:
+\      (dsn;de) = (f_bar;du) - (sn;de)   .... balance equation
+\      f(n+1) = 0                        .... yield function at step n+1
+\      dep(n) = dlambda(n)*df/ds         .... flow rule
+\      dev(n) = inv(Q)*s(n+1)*dt         .... constitutive equation of viscosity
+\ -----------------------------------------------------------------------------------------------
+\      dsn = D*(den-depn-devn) = D*(den - dlambda*df/ds - inv(Q)*s(n+1)*dt)
+\          = D*den - D*dlambda*df/ds - D*inv(Q)*sn*dt - D*inv(Q)*dsn*dt
+\ Rearranging:
+\      dsn = D_bar*den - D_bar*dlambda*df/ds - D_bar*inv(Q)*dsn*dt     (1)
+\ where D_bar = inv(inv(D) + inv(Q)*dt)
+\ -----------------------------------------------------------------------------------------------
+\ Yield function:
+\      f(n+1) = f(n) + df/ds*dsn + df/dq*m*dlambda                     (2)
+\ -----------------------------------------------------------------------------------------------
+\ Substituting (1) and (2) into the equation set:
+\      (D_bar*den - D_bar*dlambda*df/ds - D_bar*inv(Q)*dsn;de) = (f_bar;du) - (dsn;de)
+\      (df/ds)*(D_bar*den - D_bar*dlambda*df/ds - D_bar*inv(Q)*dsn*dt) + df/dq*m*dlambda +fn =0
+\ -----------------------------------------------------------------------------------------------
+DISP u v
+COOR x y
+COEF un vn
+FUNC exx eyy exy plast plastg
+COMMON double *inelm%1%2;
+VECT evp exx eyy exy
+VECT ev exx eyy
+VECT ep exy
+VECT plast plast
+VECT plastg plastg
+VECT ddfv ddf[1] ddf[2]
+VECT ddfp ddf[3]
+VECT ddgv ddg[1] ddg[2]
+VECT ddgp ddg[3]
+VECT str str[1] str[2] str[3]
+VECT strv str[1] str[2]
+VECT strp str[3]
+VECT ds ds[1] ds[2] ds[3]
+VECT dsv ds[1] ds[2]
+VECT dsp ds[3]
+SHAP %1 %2
+GAUS %3
+$CC double pe,pv,fx,fy,rou,alpha,t0,time1,a,b,prag,dln,shearqrev,factqrev;
+$CC double vi,qnn,shearwave;
+$CC int kq,ntime,ialpha;
+$CC extern double getyield(double *,double *,double *,double ,double *,
+$CC int,double (*f)(),int);
+$CC extern double %4(double *,double *);
+MASS %1 rou*vol rou*vol
+DAMP %1 0.0 0.0
+ARRAY dev[2],dep[1],^e[2][2],^d[2][2],^qrev[2][2],^dwave[2][2]
+$CC double ddf[4],ddg[4],ds[4],str[5],p[5];
+$CC static int init=0;
+$CC int m;
+$I
+$CC m = ngaus*4;
+$CC if (init==0) {
+$CC inelm%1%2 = (double *) calloc(nelem*m+1,sizeof(double));
+$CC for (i=1; i<=nelem*m; ++i) inelm%1%2[i]=0.0;
+$CC init = 1; }
+@L singular.xy n
+MATE pe pv vi fx fy p[1] p[2] p[4] qnn rou alpha \
+1.0e010;0.3;1.0e020;0.0;0.0;0.2;1000.0;0.0;3.0;3000.0;0.6;
+$CC t0 = 0.0;
+$CC ntime=(tmax-t0)/dt;
+$CC time1=time_now/ntime;
+$CC kq=qnn+0.5;
+$CC p[3]=0.0;
+VECT u u v
+VECT f fx fy
+MATRIX sm 2 2
+1. pv
+pv 1.
+
+MATRIX qrevm 2 2
+1./3.0 -1./6.0
+-1./6.0 1./3.0
+
+
+FUNC
+$CC fact=pe/(1.0+pv)/(1.0-2.0*pv);
+$CC shear=(0.5-pv)*fact;
+$CV ^d_i_j=+sm_i_j*fact
+$CC factqrev=1/vi;
+$CC shearqrev=factqrev;
+$CV ^qrev_i_j=qrevm_i_j*factqrev
+$CC det=invm(2,d,e);
+$CV ^d_i_j = ^e_i_j
+$CV ^dwave_i_j=+^d_i_j+^qrev_i_j*dt
+$CC shearwave=1/shear+shearqrev*dt;
+$CC det=invm(2,dwave,e);
+$CV ^dwave_i_j = ^e_i_j
+$CC shearwave=1.0/shearwave;
+$CV ^d_i_j=+^dwave_i_j
+$CC shear=shearwave;
+@L vol.xy n
+$CC j = (num-1)*ngaus*4+(igaus-1)*4;
+$CC for (i=1; i<=4; ++i) str[i]=inelm%1%2[j+i];
+@L gradv.xy m ^e x y un vn
+$CV dev_i=+^e_i_i
+$CC dep[1] = ^e[1][2]+^e[2][1];
+$CV dsv_i=+^d_i_j*dev_j
+$CV dsp_i=+shear*dep_i
+$CC ialpha=1;
+$CC a=getyield(p,str,d,shear,ddf,kq,%4,ialpha);
+$CC prag=%4(p,str);
+$CC dln=ddf[1]*dev[1]+ddf[2]*dev[2]+ddf[3]*dep[1]+prag;
+$CV str_i=+str_i+ds_i
+$CC if (dln>0.0) {
+$CC  b=1.0/a;
+$CV dsv_i=+b*ddgv_i*ddfv_j*dev_j
+$CV dsp_i=+b*ddgp_i*ddfp_i*dep_i
+$CV strv_i=+strv_i-dsv_i-ddgv_i*prag*b
+$CV strp_i=+strp_i-dsp_i-ddgp_i*prag*b
+$CC } else {
+$CC  b=0.0;
+$CC }
+$CV dsv_i=+^d_i_j*^qrev_j_k*strv_k*dt
+$CV dsp_i=+shear*shearqrev*strp_i*dt
+$CV str_i=+str_i+ds_i
+$CC ialpha=1;
+$CC a=getyield(p,str,d,shear,ddf,kq,%4,ialpha);
+$CC prag=%4(p,str);
+FMATR fe 2 2
+@L gradv.xy f fe
+@W ev fe 1 4
+FVECT fev 2
+@S fev fe 1 4
+@A fe_i_j=+[fe_i_j]+[fe_j_i]
+@W ep fe 3
+FVECT fep 1
+@S fep fe 3
+FVECT fp 1
+FVECT gp 1
+@A fp_1=+[fev_i]*ddfv_i+[fep_j]*ddfp_j
+@A gp_1=+[fev_i]*ddgv_i+[fep_j]*ddgp_j
+@W plast fp
+@W plastg gp
+STIF
+DIST=+[ev_i;ev_j]*^d_i_j*vol+[ep_i;ep_i]*shear*vol-[plast;plastg]*b*vol
+
+LOAD=+[u_i]*f_i*time1*vol-[evp_i]*str_i*vol+[plastg]*b*prag*vol
++[ev_i]*^d_i_j*^qrev_j_k*strv_k*dt+[ep_i]*shear*shearqrev*strp_i*dt
+-[plastg]*b*ddfv_i*^qrev_i_j*strv_j*dt
+-[plastg]*b*ddfp_i*shearqrev*strp_i*dt
+
+END

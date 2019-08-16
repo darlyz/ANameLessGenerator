@@ -1,0 +1,25 @@
+\ ------------------------------- equation --------------------------------------
+\ For static magnetic field in 3dxyz(three dimensional cartesian coordinate system).
+\ Compute magnetic flux by least squares method
+\                             h=1/fmu*curl(A).
+\ -------------------------------------------------------------------------------
+DISP hx hy hz
+VECT h hx hy hz
+COEF ax ay az
+COOR x y z
+SHAP %1 %2
+GAUS %3
+MASS %1 vol
+$CC double fmu,curlax,curlay,curlaz;
+MATE fmu 12.56637e-7
+@L singular.xyz n
+VECT curla curlax curlay curlaz
+
+STIF
+@L vol.xyz n
+@L curl.xyz v curla x y z ax ay az
+DIST=+[hx;hx]*0.0
+
+LOAD=+[h_i]*vol*curla_i/fmu
+
+END

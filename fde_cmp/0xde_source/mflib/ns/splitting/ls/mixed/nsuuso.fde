@@ -1,0 +1,54 @@
+\--------------------------equation-----------------------------------------------
+\For incompressible fluid in 2dso(two dimensional spherical coordinate system).
+\convect_part of Navier-Stokes equations
+\----------------------------------------------------------------------------------
+DISP u,v,p
+COOR s o
+SHAP %1 %2
+SHAP %1 %4 p 1 2 3 4
+SHAP %1 %4 pn 1 2 3 4
+GAUS %3
+COEF un vn pn
+FUNC lx ly
+$CC double r,rou,emu,fx,fy,unx,uny,unz,vnx,vny,vnz;
+MATE r rou emu fx fy 1.0 1.0 0.1 0.0 0.0
+@L singular.so n
+VECT u u v
+VECT x s o
+VECT un un vn
+VECT f fx fy
+VECT l lx ly
+VECT vgun unx uny unz vnx vny vnz
+MATRIX mgun
+ unx uny
+ vnx vny
+ 
+
+MATRIX unit
+1.0 0.0
+0.0 1.0
+
+
+FUNC
+@L vol.so n
+@L gradv.so v vgun r s o un vn
+$CV f_i=+mgun_i_j*un_j
+$CV f_i=+un_i+f_i*dt
+$CV mgun_i_j = unit_i_j+mgun_i_j*dt
+FVECT fvgu 6
+FMATR fmgu 2 2
+@L gradv.so f fvgu r s o u v
+@S fmgu fvgu 1 2 4 5
+FVECT fu 2
+@R fu_i = +[u_i]
+FVECT fl 2
+@A fl_i = +[fu_j]*mgun_i_j+[fmgu_i_j]*un_j*dt
+@W l fl
+
+STIF
+DIST=+[l_i;l_i]+[p;p]
+
+LOAD=+[l_i]*f_i+[p]*pn
+
+END
+

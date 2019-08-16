@@ -1,0 +1,12 @@
+DEFI
+a nparb
+
+START a
+l1:
+BFT
+while (end==0)
+{
+SOLVC a bicgstab ilu
+}
+gidres(coor0);
+if (stop==0) goto l1;

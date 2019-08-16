@@ -1,0 +1,24 @@
+\ ------------------------------- equation -----------------------------------------
+\ For static electric field in 2drz(two dimensional axisymmetric coordinate system).
+\ Using least square method to compute electric field:
+\                                 E=-grad(u)
+\ ----------------------------------------------------------------------------------
+DISP ex ey
+VECT e ex ey
+COEF u
+COOR r z
+SHAP %1 %2
+GAUS %3
+MASS %1 vol
+$CC double ux,uy;
+@L singular.rz n
+VECT gu ux uy
+
+STIF
+@L vol.rz n
+@L grad.rz v gu r z u
+DIST=+[ex;ex]*0.0
+
+LOAD=-[e_i]*vol*gu_i
+
+END

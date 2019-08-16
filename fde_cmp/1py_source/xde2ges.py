@@ -42,8 +42,8 @@ def xde2ges_dict(ges_info, xde_dict, xde_addr, ges_dict):
 
     for key_word in xde_dict.keys():
 
-        if 'array' == key_word:
-            ges_dict['array'] = xde_dict['array'].copy()
+        if key_word in ['array', 'array_vect', 'array_matrix']:
+            ges_dict[key_word] = xde_dict[key_word].copy()
 
         # parse disp and var declare
         # parse dord and node declare
@@ -72,7 +72,9 @@ def xde2ges_dict(ges_info, xde_dict, xde_addr, ges_dict):
             ges_dict['vol'] =  xde_dict['vol']
 
         elif 'func' == key_word:
-            ges_dict['func'] =  xde_dict['func'].copy()
+            ges_dict['func'] = []
+            for func_list in xde_dict['func']:
+                ges_dict['func'] += func_list.copy()
 
         # 5 parse mate line
         elif 'mate' == key_word:
@@ -562,7 +564,7 @@ def release_array_code(code_strs, code_place, ges_dict):
 
     code_strs = re.sub(r'(?P<index>\w+\[\d+\](?!\[\d+\]))', mdfy_indx, code_strs)
 
-    ges_dict['code'][code_place].append(code_strs.replace('ARRAY', '$cc double') + ';\n')
+    ges_dict['code'][code_place].append(code_strs.replace('ARRAY', '$cc array double') + ';\n')
 # end release_array_code()
 
 def parse_disp_var(ges_info, xde_dict, ges_dict):

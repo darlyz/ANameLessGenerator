@@ -1,0 +1,84 @@
+\ ------------------ Finite deformation equation -------------------------------------
+\            sij,j + fi = 0
+\ where s denotes the Euler stress;
+\       f denotes the body force.
+\            S = D*e
+\ where eij = (ui,j+uj,i)*aij + uk,i*uk,j*aij
+\       aij = 1/2 if i=j else aij=1
+\ where e denotes Green-Lagrange strain;
+\       u denotes displacement;
+\       S denotes Kirchhoff stress;
+\       D denotes constitutive matrix.
+\ ------------------- PDE in weak form ----------------------------------------------
+\            (D*e;de) = (f;du)
+\ where de        denotes the variation of e;
+\       ( . ; . ) denotes the inner product of two functions in the solution domain.
+\ Linearizing e in the PDE
+\            e(u) = el(u)+en(u,u)
+\ where
+\       el(u) = (ui,j+uj,i)*aij;
+\       en(u,v) =  uk,i*vk,j*aij
+\       aij = 1/2 if i=j else aij=1
+\ -----------------------------------------------------------------------------------
+\ e(un+du) = el(un+du) + en(du,un) + en(un,du) + en(un,un) + en(du,du)
+\          = el(un+du) + en(un+du,un) + en(un,un+du) - en(un,un) + en(du,du)
+\ cancel the second order term en(du,du) we have
+\ e(u) = el(u) + en(u,un) + en(un,u) - en(un,un)
+\ where u = un+du
+\           de = el(du) + en(du,un) + en(un,du)
+\ ------------ The linearizing PDE in the weak form --------------------------------
+\           (D*L(u);L(du)) = (D*enn;L(du)) + (f;du)
+\ where
+\       L(v) = el(v) + en(v,un) + en(un,v);
+\       un is the value of u obtained from the previous iteration;
+\       enn = en(un,un);
+\ ----------------------------------------------------------------------------------
+DISP u v
+VECT u u v
+COOR x y
+COEF un vn
+FUNC exx eyy exy
+FMATR fg 2 2
+VECT ev exx eyy
+VECT ep exy
+VECT f fx fy
+MATRIX en 2 2
+enxx enxy
+enyx enyy
+
+ARRAY ^enn[2][2]
+VECT eng ^enn[1][1] ^enn[2][2]
+VECT enp ^enn[1][2]
+VECT env envx envy
+SHAP %1 %2
+GAUS %3
+$CC double pe,pv,fx,fy,rou,alpha,enxx,enyy,enxy,enyx,envx,envy;
+MASS %1 rou*vol
+DAMP %1 rou*alpha*vol
+@L singular.xy n
+MATE pe pv fx fy rou alpha 1.0e10 0.3 0.0 0.0 3000.0 0.6
+MATRIX sm 2 2
+(1.-pv) pv
+pv (1.-pv)
+
+
+FUNC
+@L vol.xy n
+$CC fact = pe/(1.+pv)/(1.-2.*pv)*vol;
+$CC shear = (0.5-pv);
+@L gradv.xy m en x y un vn
+$CV ^enn_i_j = +en_k_i*en_k_j
+$CV env_i = +sm_i_j*eng_j/2.
+@L gradv.xy f fg
+@A fg_i_j = +[fg_i_j]+[fg_k_i]*^enn_k_j
+@W ev fg 1 4
+@A fg_i_j = +[fg_i_j]+[fg_j_i]
+@W ep fg 2
+STIF
+DIST = +[ev_i;ev_j]*sm_i_j*fact+[ep_i;ep_i]*shear*fact
+
+LOAD = +[u_i]*f_i*vol
+       +[ev_i]*env_i*fact
+       +[ep_i]*enp_i*shear*fact
+
+END

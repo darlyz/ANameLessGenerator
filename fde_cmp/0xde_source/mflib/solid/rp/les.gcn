@@ -1,0 +1,11 @@
+DEFI
+a nell
+b str a
+
+START a
+while (end==0)
+{
+SOLVC a
+}
+SOLVSTR b a
+gidres(coor0);

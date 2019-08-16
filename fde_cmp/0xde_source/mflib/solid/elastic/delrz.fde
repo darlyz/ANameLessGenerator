@@ -1,0 +1,49 @@
+\ ................ elastic deformation equation .........
+\ sij,j + fi = 0
+\ s = D*e, where eij = (ui,j+uj,i)*aij
+\ aij = 1/2 if i=j else aij=1
+\ where u denote displacement, s denote stress, e denote strain
+\ D denote the constitutive matrix
+\ ......................................................
+\ PDE in weak form
+\ (D*e,de) = (f,du)
+\ where de denotes the variation of e
+\ ......................................................
+DISP u v
+VECT u u v
+COOR r z
+FUNC exx eyy ezz exy
+VECT ev exx eyy ezz
+VECT ep exy
+SHAP %1 %2
+GAUS %3
+$CC double pe,pv,fx,fy,rou,alpha;
+@L singular.rz n
+MATE pe pv fx fy rou alpha 1.0e10 0.3 0.0 0.0 3000.0 0.6
+MASS %1 rou*vol
+DAMP %1 rou*alpha*vol
+VECT f fx fy
+MATRIX sm 3 3
+(1.0-pv) pv pv
+pv (1.0-pv) pv
+pv pv (1.0-pv)
+
+
+FUNC
+@L vol.rz n
+$CC fact = pe/(1.0+pv)/(1.0-2.0*pv)*vol;
+$CC shear = (0.5-pv);
+FVECT fe 5
+FVECT fep 2
+FVECT fp 1
+@L gradv.rz f fe
+@W ev fe 1 4 5
+@S fep fe 2 3
+@A fp_j = +[fep_i]
+@W ep fp
+STIF
+DIST = +[ev_i;ev_j]*sm_i_j*fact+[ep_i;ep_i]*shear*fact
+
+LOAD = +[u_i]*f_i*vol
+
+END

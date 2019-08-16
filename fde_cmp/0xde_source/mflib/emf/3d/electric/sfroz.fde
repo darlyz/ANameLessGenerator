@@ -1,0 +1,27 @@
+\ ------------------------------- equation --------------------------------------
+\ For steady current field in 3droz(three dimensional cylindrical coordinate system).
+\ The differential form of current conservation law:
+\                                div(J) = 0.
+\ -------------------------------------------------------------------------------
+DISP u
+COOR r o z
+FUNC ux uy uz
+VECT gu ux uy uz
+SHAP %1 %2
+GAUS %3
+$CC double sigma;
+MATE sigma 5.96e7
+@L singular.roz n
+
+FUNC
+@L vol.roz n
+FVECT fe 3
+@L grad.roz f fe r o z u
+@W gu fe
+
+STIF
+DIST=+[gu_i;gu_i]*vol*sigma
+
+LOAD=+[u]*vol*0.0
+
+END

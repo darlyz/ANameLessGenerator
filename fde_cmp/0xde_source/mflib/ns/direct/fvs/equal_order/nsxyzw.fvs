@@ -1,0 +1,104 @@
+void samar(double,double,double,int);
+\ Navier-Stokes equation using fvs scheme
+\ for convection term with w4 shape function
+\ here em = 1/Re, Re denotes the Raynolds Number
+defi
+disp u v w p
+coor x,y,z
+coef un,vn,wn
+eqno 12
+node 4
+$CC double xc[4],uc[4]
+$CC double fx1[4],fx2[4],fx3[4],fx4[4]
+$CC double fu1[4],fu2[4],fu3[4],fu4[4]
+\$CC double x12[4],x13[4],x14[4],x23[4],x24[4],x34[4]
+\$CC double u12[4],u13[4],u14[4],u23[4],u24[4],u34[4]
+{
+&m 12 13 14 23 24 34
+&r 21 31 41 32 42 43
+
+#
+$CC double x&m(4),u&m(4),flux&m,flux&r,flux&mr,r&m,r&r
+}
+{
+&m m
+#
+$CC int mode
+$CC mode = 1
+mate rou emu fx fy fz penalty 1 1.0e-3 0 0 1.e2
+ 
+equation
+}
+{
+&a [1] [2] [3]
+&x x y z
+&u un vn wn
+{
+&p x u
+&n &x &u
+{
+&c &pc&a
+
+#
+$CC &c=(&n[1]+&n[2]+&n[3]+&n[4])/4
+}
+{
+&m &p12&a &p13&a &p14&a &p23&a &p24&a &p34&a
+@ &n
+1 2
+1 3
+1 4
+2 3
+2 4
+3 4
+
+#
+$CC &m=(&n[1]+&n[2])/2
+}
+{
+&f f&p4&a f&p1&a f&p2&a f&p3&a
+@ &n
+1 2 3 4
+2 3 4 1
+3 4 1 2
+4 1 2 3
+
+#
+$CC &f=(&n[1]+&n[2]+&n[3])/3
+}
+}
+}
+
+{
+&m 12 13 14 23 24 34
+&i 4 2 3 4 1 2
+&j 3 4 2 1 3 1
+&r 21 31 41 32 42 43
+#
+$CC squr(xc,x&m,fx&i,fx&j,uc,u&m,fu&i,fu&j,flux&m,flux&mr)
+$CC flux&m = rou*flux&m
+$CC flux&mr = rou*flux&mr
+$CC samar(flux&mr,r&m,emu,mode)
+$CC flux&r = -flux&m
+$CC r&r = 1.0-r&m
+}
+{
+&u u v w
+{
+&i 1 2 3 4
+&j 2 3 4 1
+&k 3 4 1 2
+&l 4 1 2 3
+
+#
+
+equation &i &u
+[(r&i&j-1.)*flux&i&j+(r&i&k-1.)*flux&i&k+(r&i&l-1.)*flux&i&l]&u(&i)
++[(1.-r&i&j)*flux&i&j]&u(&j)
++[(1.-r&i&k)*flux&i&k]&u(&k)
++[(1.-r&i&l)*flux&i&l]&u(&l) = 0.0
+}
+}
+!
+
+end

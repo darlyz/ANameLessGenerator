@@ -1,0 +1,15 @@
+coordinate s
+xyz roz rso 
+#
+class a
+class complex
+#
+problem l
+harmonic dles afiu n afia n em n
+#
+elemtype m
+c8 w4 c27 w10
+#
+boundary element m
+q4 t3 q9 t6
+#

@@ -1,0 +1,46 @@
+\ ..................................................................
+\ sd = pa*se**pm  se*se = eij*eij*2/3
+\ where e denote strain
+\ d = 2/3*pa*se**(pm-1)*e
+\ equation in weak form
+\ (d,de) = (f,du)
+\ (2/3*pa*se**(pm-1)*e(u),de) = (f,du)
+\ by Newton method
+\ F(u+w) = F(u) + dF(u)(u+w) - dF(u)u = 0
+\ dF(u)(u+w) = dF(u)u - F(u)
+\ where
+\ F(u) = (2/3*pa*se**(pm-1)*e(u),de) - (f,du)
+\ dF(u)(u+w) = (2/3*pa*se**(pm-1)*e(u+w),de)
+\            + (2/3*2/3*(pm-1)*pa*se**(pm-3)*e(u)*e(u+w),e(u)*de)
+\ dF(u)u = (2/3*pm*pa*se**(pm-1)*e(u),de)
+\ dF(u)u - F(u) = (2/3*(pm-1)*pa*se**(pm-1)*e(u),de) + (f,du)
+\ ..................................................................
+DISP dxx,dyy,dxy,dxz,dyz
+COOR s o
+COEF un,vn
+SHAP %1 %2
+GAUS %3
+$CC double r,pa,pm,pm1,pm3,emid,se;
+$CC double enx,eny,enxx,enyy,enxy,enyz,enxz,enyx,enzy,enzx;
+MASS %1 vol vol vol vol vol
+@L singular.so n
+MATE r pa pm 1.0 1.0e10 3.0
+VECT dv dxx dyy
+VECT dg dxy dxz dyz
+VECT en enxx enxy enyx enyy enxz enyz
+VECT env enxx enyy
+VECT eng (enxy+enyx) enxz enyz
+
+STIF
+@L vol.so n
+@L gradv.so v en r s o un vn
+$CV emid=+env_i*env_i+eng_i*eng_i/2.
+$CC emid = emid*2.0/3.+1.0e-010;
+$CC se = sqrt(emid);
+$CC pm1 =pm-1.;
+$CC fact=pa*pow(se,pm1)*vol;
+DIST = [dxx;dxx]*0.0
+
+LOAD = +[dv_i]*(env_i*fact)*vol+[dg_i]*eng_i/2.*fact*vol
+
+END

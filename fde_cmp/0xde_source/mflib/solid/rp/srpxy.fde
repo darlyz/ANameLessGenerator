@@ -1,0 +1,46 @@
+\ ------------------------ Rigid-plastic equation -----------------------------------
+\               s = S + p*delta_ij
+\ where s    .... stress;
+\       p    .... pressure;
+\       delta_ij is delta function, delta_ij equals 1 if i=j, else 0;
+\       S = 2/3*pa*se**(pm-1)*e;
+\       se   .... effective strain rate;
+\       e    .... strain.
+\ --------------------PDE in weak form-----------------------------------------------
+\               (s;ds) = (S + p*delta_ij;ds)
+\ where 
+\       ds denotes the variation of s;
+\       ( . ; . ) denotes the inner product of two functions in the solution domain.
+\ -----------------------------------------------------------------------------------
+DISP dxx,dyy,dxy
+COOR x,y
+COEF un,vn
+SHAP %1 %2
+GAUS %3
+$CC double pa,pm,pm1,pm3,emid,se;
+$CC double enx,eny,enxx,enyy,enxy,enyx;
+MASS %1 vol vol vol
+@L singular.xy n
+MATE pa pm 1.0e10 3.0
+VECT dv dxx dyy
+VECT dg dxy
+MATRIX en 2 2
+enxx enxy
+enyx enyy
+
+VECT env enxx enyy
+VECT eng (enxy+enyx)
+
+STIF
+@L vol.xy n
+@L gradv.xy m en x y un vn
+$CV emid=+env_i*env_i+eng_i*eng_i/2.
+$CC emid = emid*2.0/3.+1.0e-010;
+$CC se = sqrt(emid);
+$CC pm1 =pm-1.;
+$CC fact=pa*pow(se,pm1)*vol;
+DIST = +[dxx;dxx]*0.0
+
+LOAD = +[dv_i]*(env_i*fact)+[dg_i]*eng_i/2.*fact
+
+END

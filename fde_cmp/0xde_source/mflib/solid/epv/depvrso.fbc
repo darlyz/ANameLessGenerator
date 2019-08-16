@@ -1,0 +1,21 @@
+DEFI
+DISP u v w
+COOR r s
+SHAP %1 %2
+GAUS %3
+MASS %1 0.
+DAMP %1 0.
+$CC double fu,fv,fw,ntime,time0,time1;
+MATE fw 1000.;
+$CC fu=0.0;
+$CC fv=0.0;
+$CC time0=0.0;
+$CC ntime=(tmax-time0)/dt;
+$CC time1=time_now/ntime;
+
+STIF
+DIST=+[u/x;u/x]*0.0
+
+LOAD=+[u]*fu*time1+[v]*fv*time1+[w]*fw*time1
+
+END

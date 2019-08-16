@@ -1,0 +1,15 @@
+defi
+a ell
+b str a
+c str a
+d str a
+ 
+START a
+STARTexp b
+STARTexp c
+STARTexp d
+SOLVc a bicgstab bilu
+SOLVSTR b
+SOLVSTR c
+SOLVexp d
+gidres(coor0);

@@ -1,0 +1,44 @@
+\--------------------------equation-----------------------------------------------
+\For incompressible fluid in 3dxyz(three dimensional cartesian coordinate system).
+\convect_part of Navier-Stokes equations
+\                 u,t = - grad(u)*u
+\ where u:(u,v,w),denote the velocity of x, y and z directions.
+\--------------------the pde in weak form-----------------------------------------
+\       [u(n+1)-u(n);du] = - [grad(u(n))*u(n);du]*dt
+\                    - [grad(u(n))*u(n);grad(du)*u(n)]*dt*dt/2
+\ where u(n+1) denote result at this time,u(n) denote result at last time.
+\ ps: in this filed, we get incremental results.
+\---------------------------------------------------------------------------------
+DISP u v w p
+COOR x y z
+SHAP %1 %2
+GAUS %3
+COEF un vn wn
+MASS %1 vol vol vol 0
+FUNC lu lv lw
+$CC double rou,emu,fx,fy,fz,fu,fv,fw,penaly;
+ARRAY ^gun[3][3]
+MATE rou emu fx fy fz penaly 1.0 0.1 0.0 0.0 0.0 1.0e3
+@L singular.xyz n
+VECT l lu lv lw
+VECT un un vn wn
+VECT u u v w
+VECT x x y z
+VECT f fu fv fw
+
+FUNC
+@L vol.xyz n
+@L gradv.xyz m ^gun x y z un vn wn
+$CV f_i = +^gun_i_j*un_j
+FMATR gu 3 3
+@L gradv.xyz f gu x y z u v w
+FVECT fl 3
+@A fl_i = +[gu_i_j]*un_j
+@W l fl
+
+stiff
+null
+
+LOAD = -[u_i]*f_i*dt*vol-[l_i]*f_i*dt*dt/2*vol
+
+END

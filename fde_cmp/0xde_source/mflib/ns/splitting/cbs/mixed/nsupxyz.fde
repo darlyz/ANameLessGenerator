@@ -1,0 +1,51 @@
+\--------------------------equation-----------------------------------------------
+\For incompressible fluid in 3dxyz(three dimensional cartesian coordinate system).
+\Diffusion_part of Navier-Stokes equations
+\continuity equation:
+\                      div(u) = 0
+\momentum equation:
+\       rou*u,t - div(emu*grad(u)) + grad(p) = f    
+\ where rou is density;emu is dynamic viscosity coefficient;
+\ where u:(u,v,w),denote the velocity of x,y and z directions.
+\ where f is vector,denote fx,fy and fz.
+\--------------------the pde in weak form--------------------------------------------
+\          [rou*u,t;u]+[emu*grad(u);grad(u)]-[p;div(u)]+
+\                      [div(u);p]+[bata*p;p)=+rou*[f;u] 
+\ where [ . ; . ] denote the inner product of two functions in the solution domain. 
+\------------------------------------------------------------------------------------ 
+DISP u,v,w,p
+COOR x,y,z
+SHAP %1 %2
+SHAP %1 %4 p 1 2 3 4 5 6 7 8
+GAUS %3
+MASS %1 rou*vol rou*vol rou*vol 0
+FUNC ux uy uz vx vy vz wx wy wz div
+$CC double rou,emu,fx,fy,fz,bata,c2;
+MATE rou emu fx fy fz 1.0 0.1 0.0 0.0 0.0
+@L singular.xyz n
+VECT e ux uy uz vx vy vz wx wy wz
+VECT div div
+FVECT fdiv 1
+VECT u u v w
+VECT x x y z
+VECT f fx fy fz
+FVECT fe 9
+$CC c2 = 1.0e-8;
+
+FUNC
+@L vol.xyz n
+$CC bata = pow(det,2.0/3.0)*c2;
+@L div.xyz f fdiv
+@W div fdiv
+@L gradv.xyz f fe
+@W e fe
+
+STIF
+DIST=+[e_i;e_i]*emu*vol
+     +[div;p]*vol-[p;div]*vol
+     +[p;p]*bata*vol
+
+LOAD=+[u_i]*f_i*rou*vol
+
+END
+

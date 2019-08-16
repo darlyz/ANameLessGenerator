@@ -1,0 +1,17 @@
+class a
+class mix
+#
+coordinate s
+xy rz ro rs so  xyz roz rso
+#
+problem l
+dynamic cbsu nsup n cbsu n
+#
+elemtype m
+q9 t6 { xy rz ro rs so }
+c27 w10  { xyz roz rso }
+#
+boundary element m
+l3 { xy }
+q9 t6 { xyz }
+#

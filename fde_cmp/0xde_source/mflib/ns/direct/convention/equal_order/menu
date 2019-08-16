@@ -1,0 +1,18 @@
+class a
+class convention
+#
+coordinate s
+xy rz ro rs so  xyz roz rso
+#
+problem l
+static nsfems nsfem c
+dynamic nsfemd nsfem n
+#
+elemtype m
+q4 t3 { xy rz ro rs so }
+c8 w4 { xyz roz rso }
+#
+boundary element m
+l2 { xy }
+q4 t3 { xyz }
+#

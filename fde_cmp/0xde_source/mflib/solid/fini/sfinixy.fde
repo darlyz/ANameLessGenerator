@@ -1,0 +1,68 @@
+\ ------------------ Finite deformation equation ------------------------------
+\ Constitutive equation:
+\            S = D*e                                           (1)
+\ where eij = (ui,j+uj,i)*aij + uk,i*uk,j*aij
+\       aij = 1/2 if i=j else aij=1
+\ where e denotes Green-Lagrange strain;
+\       u denotes displacement;
+\       S denotes Kirchhoff stress;
+\       D denotes constitutive matrix.
+\ -----------------------------------------------------------------------------
+\ The relation between Kirchhoff stress and Euler stress:
+\            s = rho_t/rho_0*Nt*S*N                            (2)
+\ where s     denotes the Euler stress;
+\       S     denotes the Kirchhoff stress;
+\       rho_t denotes the material density after the deformation;
+\       rho_0 denotes the material density before the deformation;
+\       N     denotes the transformation matrix;
+\       Nt    denotes the transpose of N;
+\ -----------------------------------------------------------------------------
+\ Substituting (1) into (2):
+\            s = rho_t/rho_0*Nt*D*e*N
+\ --------------------PDE in weak form-----------------------------------------
+\            (s;ds) = (rho_t/rho_0*Nt*D*e*N;ds)
+\ where ds denotes the variation of s.
+\ -----------------------------------------------------------------------------
+DISP sxx,syy,sxy
+VECT sv sxx syy
+VECT sp sxy
+COOR x,y
+COEF u,v
+SHAP %1 %2
+GAUS %3
+$CC double pe,pv,exy;
+MASS %1 vol
+ARRAY ^e[2][2],^d[2][2],^rt[2][2],^ss[2][2],^tmp[2][2]
+@L singular.xy n
+MATE pe pv 1.0e10 0.3
+VECT fv ^ss[1][1] ^ss[2][2]
+VECT fp ^ss[1][2]
+VECT ep exy
+MATRIX sm 2 2
+(1.-pv) pv
+pv (1.-pv)
+
+
+STIF
+@L vol.xy n
+$CC fact = pe/(1.+pv)/(1.-2.*pv);
+$CC shear = (1.-2.*pv)/2.;
+@L gradv.xy m ^d x y u v
+$CV ^rt_i_j = ^d_i_j
+$CV ^rt_i_i = ^d_i_i+1.0
+$CC det = invm(2,rt,ss);
+\$CV ^rt_i_j = ^ss_i_j
+$CV ^e_i_j = +^d_i_j+^d_k_i*^d_k_j/2.
+$CC exy = ^e[1][2]+^e[2][1];
+$CV fv_i = +fact*sm_i_j*^e_j_j
+$CV fp_i = +fact*shear*ep_i
+$CC ^ss[2][1] = ^ss[1][2];
+$CV ^tmp_i_j = +^rt_i_k*^ss_k_j
+$CV ^ss_i_j = +^rt_i_k*^tmp_j_k
+$CC det = fabs(det);
+$CV ^ss_i_j = ^ss_i_j/det
+DIST = +[sxx;sxx]*0.0
+
+LOAD = +[sv_i]*fv_i*vol+[sp_i]*fp_i*vol
+
+END

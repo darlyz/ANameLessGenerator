@@ -1,0 +1,46 @@
+\--------------------------equation-----------------------------------------------
+\For incompressible fluid in 3drso(three dimensional spherical coordinate system).
+\----------------------------------------------------------------------------------
+DISP u,v,w,p,a
+COOR r s o
+SHAP %1 %2
+SHAP %1 %2c a_p 1 2 3 4 5 6 7 8
+GAUS %3
+COEF un,vn,wn
+MASS %1 rou*vol rou*vol rou*vol 0 0
+FUNC ux uy uz vx vy vz wx wy wz div pa
+$CC double rou,emu,fx,fy,fz,penalty,gx,gy,gz,fgx,fgy,fgz;
+ARRAY ^gun[3][3]
+MATE rou emu fx fy fz penalty 1.0 0.1 0.0 0.0 0.0 1.0e3
+@L singular.rso n
+$FVS nsxyz%1
+VECT un un vn wn
+VECT e ux uy uz vx vy vz wx wy wz
+VECT div div
+VECT u u v w
+VECT x r s o
+VECT f fx fy fz
+VECT g gx gy gz
+VECT fg fgx fgy fgz
+
+FUNC
+@L vol.rso n
+@L gradv.rso m ^gun r s o un vn wn
+$CV g_i = +^gun_i_j*un_j
+$CV fg_i = f_i+g_i
+FVECT fdiv 1
+@L div.rso f fdiv
+@W div fdiv
+FMATR fgu 3 3
+@L gradv.rso f fgu r s o u v w
+@W e fgu
+pa = +[p]-[a]
+
+STIF
+DIST=+[e_i;e_i]*emu*vol+[u_j;u_i]*^gun_i_j*rou*vol
+     +[div;p]*vol-[p;div]*vol+[pa;pa]*penalty*vol
+
+LOAD=+[u_i]*fg_i*rou*vol
+
+END
+

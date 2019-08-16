@@ -1,0 +1,26 @@
+\ laplace equation
+\ ..............................................
+\  u,t - (u,i),i = f
+\  (u,t,v) + (grad(u),grad(v)) = (f,v) \ ................................................
+DISP ux uy
+COOR r z
+COEF u
+SHAP %1 %2
+GAUS %3
+$CC double f,gux,guy;
+MASS %1 vol vol
+@L singular.rz n
+MATE f 0.0
+VECT u ux uy
+VECT gu gux guy
+
+FUNC
+@L vol.rz n
+@L grad.rz v gu
+
+STIF
+null
+
+LOAD = [u_i]*gu_i*vol
+
+END

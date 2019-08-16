@@ -1,0 +1,61 @@
+\ ------------------------------- equation --------------------------------------
+\ For harmonic field in 3dxyz(three dimensional cartesian coordinate system).
+\ Computing electric field E and magnectic field H by the following equations
+\                           E = -i*omega*A-grad(u)
+\                           H = curl(A)/fmu
+\ ---------------------------- symmetric weak form ------------------------------
+\                           E = -i*omega*A-i*omega*grad(u)
+\                           H = curl(A)/fmu
+\ -------------------------------------------------------------------------------
+DISP ex ey ez hx hy hz
+VECT e ex ey ez
+VECT h hx hy hz
+COEF axr axi ayr ayi azr azi ur ui
+VECT ar axr ayr azr
+VECT ai axi ayi azi
+COOR x y z
+SHAP %1 %2
+GAUS %3
+$CC double omega,fmu,sym_form,ctag;
+$CC double curlaxr,curlayr,curlazr,curlaxi,curlayi,curlazi,hxr,hyr,hzr,hxi,hyi,hzi;
+$CC double guxr,guyr,guzr,guxi,guyi,guzi,exr,eyr,ezr,exi,eyi,ezi,er,ei,hr,hi;
+$cc sym_form=0;  // symmetric weak form when sym_form is not 0
+MASS %1 vol vol vol vol vol vol
+VECT curlar curlaxr curlayr curlazr
+VECT curlai curlaxi curlayi curlazi
+VECT gur guxr guyr guzr
+VECT gui guxi guyi guzi
+VECT js fjx fjy fjz
+VECT d dx dy dz
+MATE omega fmu ctag 3.14159e2 12.56637e-7 1
+@L singular.xyz n
+VECT hr hxr hyr hzr
+VECT hi hxi hyi hzi
+VECT er exr eyr ezr
+VECT ei exi eyi ezi
+
+FUNC
+@L vol.xyz n
+@L curl.xyz v curlar x y z axr ayr azr
+@L curl.xyz v curlai x y z axi ayi azi
+$CV hr_i=curlar_i/fmu
+$CV hi_i=curlai_i/fmu
+@L grad.xyz v gur x y z ur
+@L grad.xyz v gui x y z ui
+
+STIF
+$cc if(sym_form==0){
+$cv er_i=-gur_i*ctag+omega*ai_i
+$cv ei_i=-gui_i*ctag-omega*ar_i 
+$cc }
+$cc else{
+$cv er_i=+omega*gui_i*ctag+omega*ai_i
+$cv ei_i=-omega*gur_i*ctag-omega*ar_i
+$cc }
+DIST=+[ex;ex]*|0;0|
+
+LOAD=+[hx]*|hxr;hxi|+[ex]*vol*|exr;exi|
++[hy]*|hyr;hyi|+[ey]*vol*|eyr;eyi|
++[hz]*|hzr;hzi|+[ez]*vol*|ezr;ezi|
+
+END

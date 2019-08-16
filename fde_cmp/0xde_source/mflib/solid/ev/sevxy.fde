@@ -1,0 +1,63 @@
+\ ------------------ Visco-elastic equations -----------------------------------
+\ Constitutive equation:
+\               s(t) = D_bar*e + s_bar                                      (1)
+\ where D_bar = inv(invD + invQ*dt),
+\       s_bar = inv(invD + invQ*dt)*invD*s(t-dt) - inv(invD + invQ*dt)*e(t-dt)
+\ Refer to displacement FDE files (devxy.fde, devxyd.fde, or devxyz.fde) 
+\       for more information regarding the meaning of each term in equation (1)
+\ --------------------PDE in weak form------------------------------------------
+\               (s;ds) = (D_bar*e + s_bar;ds)
+\ where ds denotes the variation of s.
+\ ------------------------------------------------------------------------------
+DISP sxx syy sxy
+COOR x y
+COEF u v
+COMMON extern double ^inelm%1%2[nelem][m];
+VECT sv sxx syy
+VECT sp sxy
+VECT snv str[1] str[2]
+VECT snp str[3]
+VECT f fx fy
+SHAP %1 %2
+GAUS %3
+ARRAY ^d[2][2],^rq[2][2],^en[2][2],f[2],ssv[2],ssp[2],ev[2],ep[1]
+$CC double pe,pv,fx,fy,rou,alpha,yita,csn,str[4];
+$CC int m;
+$I
+$CC m = ngaus*3;
+@L singular.xy n
+MATE pe pv fx fy rou alpha yita 1.0e10 0.3 0.0 0.0 3000.0 0.6 1.0e23
+MASS q vol
+MATRIX sm 2 2
+(1.-pv) pv
+pv (1.-pv)
+
+MATRIX revq 2 2
+1./3. (-1./6.)
+(-1./6.) 1./3.
+
+$CV ^rq_i_j = revq_i_j/yita
+
+STIF
+@L vol.xy n
+$CC fact = pe/(1.+pv)/(1.-2.*pv);
+$CC shear = (0.5-pv)*fact;
+$CC j = (igaus-1)*3;
+$CC for (i=1; i<=3; ++i) str[i]=^inelm%1%2[num][j+i];
+$CV ^d_i_j = sm_i_j*fact
+@L gradv.xy m ^en x y u v
+$CV ev_i = ^en_i_i
+$CV ep[1] = ^en[1][2]+^en[2][1]
+$CV f_i = +^rq_i_j*snv_j
+$CV ssv_i = +^d_i_j*f_j*dt
+$CV f_i = +^d_i_j*ev_j
+$CV snv_i = ssv_i - f_i + snv_i
+$CV csn = shear/yita
+$CV snp_i = shear*ep_i - csn*snp_i*dt + snp_i
+$CC j = (igaus-1)*3;
+$CC for (i=1; i<=3; ++i) ^inelm%1%2[num][j+i]=str[i];
+DIST = +[sxx;sxx]*0.0
+
+LOAD = +[sv_i]*snv_i*vol+[sp_i]*snp_i*vol
+
+END

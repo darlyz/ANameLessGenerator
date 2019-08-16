@@ -1,0 +1,40 @@
+bmull2g2
+DEFI
+DISP u,v
+VAR u1,v1,st1,u2,v2,st2,
+REFC rx,
+COOR x,
+DORD 1,2
+NODE 2
+$CC double pe,pa,piz,fx,fy,fm,rou,alpha;
+MATE pe pa piz fx fy fm rou alpha 1.0e10 1. 1.e-4 0. 0. 0. 1000. 0.3
+$A
+
+SHAP
+u=
+u1= (1.-rx)/2.
+u2= (1.+rx)/2.
+
+v=
+v1= (1.-rx)*(2.-rx-rx*rx)/4.
+v2= (1.+rx)*(2.+rx-rx*rx)/4.
+st1= {x/rx}*(rx+1.)*(rx-1.)*(rx-1.)/4.
+st2= {x/rx}*(rx-1.)*(rx+1.)*(rx+1.)/4.
+
+TRAN
+x=
+x(1) = (1.-rx)/2.
+x(2) = (1.+rx)/2.
+
+GAUS  2
+ 5.77350e-001 1.
+-5.77350e-001 1.
+
+STIF
+DIST =\
++[u/x;u/x]*pe*pa
++[v/x,x;v/x,x]*pe*piz
+
+LOAD =+[u]*fx+[v]*fy+[v/x]*fm
+
+END

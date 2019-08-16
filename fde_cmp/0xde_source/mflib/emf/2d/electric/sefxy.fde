@@ -1,0 +1,33 @@
+\ ------------------------------- equation --------------------------------------
+\ For static electric field in 2dxy(two dimensional cartesian coordinate system).
+\ Convect_part of Maxwell equations, the differential form of Gauss theorem:
+\                               div(D) = rho.
+\ Let E = -grad(u), and use the constitutive relation D = epsilon*E, derive
+\                        -div(epsilon*grad(u)) = rho.
+\ --------------------------- weak form of PDE ----------------------------------
+\             [epsilon*grad(u);grad(u)] = [rho;u]-|n¡¤D;u|.
+\ "n" is outer normal vector on the boundary and "¡¤" mean dot product
+\ PS: u we can see as voltage.
+\ -------------------------------------------------------------------------------
+DISP u
+COOR x y
+FUNC ux uy
+VECT gu ux uy
+SHAP %1 %2
+GAUS %3
+$CC double epsilon,rho;
+MATE epsilon rho 8.8541878e-12 0.0
+@L singular.xy n
+
+FUNC
+@L vol.xy n
+FVECT fe 2
+@L grad.xy f fe x y u
+@W gu fe
+
+STIF
+DIST=+[gu_i;gu_i]*vol*epsilon
+
+LOAD=+[u]*vol*rho
+
+END

@@ -1,0 +1,18 @@
+coordinate s
+xy xyz
+#
+class a
+class convention
+#
+problem l
+static dam dam c graf n
+\dynamic  dam dam n graf n
+#
+elemtype m
+q4 t3 q9 t6 { xy }
+c8 w4 c27 w10 { xyz }
+#
+boundary element m
+l2 l3 { xy }
+q4 t3 q9 t6 { xyz }
+#

@@ -1,0 +1,17 @@
+DEFI
+GSUB = bmugl2
+LSUB = bmull2
+GDIM = 2
+LDIM = 1
+GVAR gu1,gv1,lst1,gu2,gv2,lst2
+LVAR lu1,lv1,lst1,lu2,lv2,lst2
+NODE = 2
+LOAD = g
+
+VART
+lu1 = t1 gu1 gv1
+lu2 = t1 gu2 gv2
+lv1 = t2 gu1 gv1
+lv2 = t2 gu2 gv2
+
+

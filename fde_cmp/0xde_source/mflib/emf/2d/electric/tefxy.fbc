@@ -1,0 +1,25 @@
+\ --------------------------------- equation -------------------------------------
+\ For dynamic electric field in 2dxy(two dimensional cartesian coordinate system).
+\ The full weak form is
+\              [fmu*Hz,t;Hz]+[dt/(epsilon+sigma*dt)*curl(Hz);curl(Hz)]
+\              = +[(dt*Js-epsilon*E(n))/(epsilon+sigma*dt);curl(Hz)]
+\                -|n¡ÁE;Hz|.
+\ ---------------------- weak form of PDE on the boundary ------------------------
+\                        [hz;hz]*0 = -|n¡ÁE;Hz|.
+\ PS: Let fetz:= n¡ÁE to establish neumann condition.
+\ --------------------------------------------------------------------------------
+DISP Hz
+COOR x
+SHAP %1 %2
+GAUS %3
+MASS %1 0.0
+$CC double fetz;
+$T n
+MATE fetz 0.0
+
+STIF
+DIST=+[Hz;Hz]*0.0
+
+LOAD=-[Hz]*fetz
+
+END

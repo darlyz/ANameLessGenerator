@@ -1,0 +1,139 @@
+nculq4m
+DEFI
+DISP u,v,w,s,o,c
+VAR u1,v1,w1,s1,o1,c1,u2,v2,w2,s2,o2,c2,
+VAR u3,v3,w3,s3,o3,c3,u4,v4,w4,s4,o4,c4,
+REFC rx,ry,
+COOR x,y,
+FUNC = ekx,eky,ekxy,gmx,gmy,ex,ey,exy,
+DORD 1,1,1,1,1,1,
+NODE 4
+$CC double pe,pv,thick,rou,alpha,fact,fact1,fact2,fx,fy,fz;
+MATE pe pv thick rou alpha fx fy fz 1.0e10 0.3 0.01 1000.0 0.6 0.0 0.0 0.0
+$A
+$CC fact = pe*thick*thick*thick/12./(1.-pv*pv);
+$CC fact2 = pe/(1.+pv)/(1.-pv)*thick;
+
+SHAP
+U=
+u1 = (1.-rx)/2.*(1.-ry)/2.
+u2 = (1.+rx)/2.*(1.-ry)/2.
+u3 = (1.+rx)/2.*(1.+ry)/2.
+u4 = (1.-rx)/2.*(1.+ry)/2.
+
+v=
+v1 = (1.-rx)/2.*(1.-ry)/2.
+v2 = (1.+rx)/2.*(1.-ry)/2.
+v3 = (1.+rx)/2.*(1.+ry)/2.
+v4 = (1.-rx)/2.*(1.+ry)/2.
+
+w=
+w1 = (1.-rx)/2.*(1.-ry)/2.*(2.-rx-ry-rx*rx-ry*ry)/2.
+w2 = (1.+rx)/2.*(1.-ry)/2.*(2.+rx-ry-rx*rx-ry*ry)/2.
+w3 = (1.+rx)/2.*(1.+ry)/2.*(2.+rx+ry-rx*rx-ry*ry)/2.
+w4 = (1.-rx)/2.*(1.+ry)/2.*(2.-rx+ry-rx*rx-ry*ry)/2.
+s1 = -(1.-rx)*(1.-ry)*(1.-ry)*(-1.-ry)*{y/ry}/8.-(1.-rx)*(1.-rx)*(-1.-rx)*(1.-ry)*{y/rx}/8.
+s2 = -(1.+rx)*(1.-ry)*(1.-ry)*(-1.-ry)*{y/ry}/8.+(1.+rx)*(1.+rx)*(-1.+rx)*(1.-ry)*{y/rx}/8.
+s3 = +(1.+rx)*(1.+ry)*(1.+ry)*(-1.+ry)*{y/ry}/8.+(1.+rx)*(1.+rx)*(-1.+rx)*(1.+ry)*{y/rx}/8.
+s4 = +(1.-rx)*(1.+ry)*(1.+ry)*(-1.+ry)*{y/ry}/8.-(1.-rx)*(1.+rx)*(-1.-rx)*(1.+ry)*{y/rx}/8.
+o1 = +(1.-rx)*(1.-rx)*(-1.-rx)*(1.-ry)*{x/rx}/8.+(1.-rx)*(1.-ry)*(1.-ry)*(-1.-ry)*{x/ry}/8.
+o2 = -(1.+rx)*(1.+rx)*(-1.+rx)*(1.-ry)*{x/rx}/8.+(1.+rx)*(1.-ry)*(1.-ry)*(-1.-ry)*{x/ry}/8.
+o3 = -(1.+rx)*(1.+rx)*(-1.+rx)*(1.+ry)*{x/rx}/8.-(1.+rx)*(1.+ry)*(1.+ry)*(-1.+ry)*{x/ry}/8.
+o4 = +(1.-rx)*(1.-rx)*(-1.-rx)*(1.+ry)*{x/rx}/8.-(1.-rx)*(1.+ry)*(1.+ry)*(-1.+ry)*{x/ry}/8.
+
+s=
+s1 = (1.-rx)/2.*(1.-ry)/2.
+s2 = (1.+rx)/2.*(1.-ry)/2.
+s3 = (1.+rx)/2.*(1.+ry)/2.
+s4 = (1.-rx)/2.*(1.+ry)/2.
+
+o=
+o1 = (1.-rx)/2.*(1.-ry)/2.
+o2 = (1.+rx)/2.*(1.-ry)/2.
+o3 = (1.+rx)/2.*(1.+ry)/2.
+o4 = (1.-rx)/2.*(1.+ry)/2.
+
+c=
+c1 = (1.-rx)/2.*(1.-ry)/2.
+c2 = (1.+rx)/2.*(1.-ry)/2.
+c3 = (1.+rx)/2.*(1.+ry)/2.
+c4 = (1.-rx)/2.*(1.+ry)/2.
+
+TRAN
+x=
+x(1) = (1.-rx)/2.*(1.-ry)/2.
+x(2) = (1.+rx)/2.*(1.-ry)/2.
+x(3) = (1.+rx)/2.*(1.+ry)/2.
+x(4) = (1.-rx)/2.*(1.+ry)/2.
+
+y=
+y(1) = (1.-rx)/2.*(1.-ry)/2.
+y(2) = (1.+rx)/2.*(1.-ry)/2.
+y(3) = (1.+rx)/2.*(1.+ry)/2.
+y(4) = (1.-rx)/2.*(1.+ry)/2.
+
+z=
+z(1) = (1.-rx)/2.*(1.-ry)/2.
+z(2) = (1.+rx)/2.*(1.-ry)/2.
+z(3) = (1.+rx)/2.*(1.+ry)/2.
+z(4) = (1.-rx)/2.*(1.+ry)/2.
+
+GAUS = 4
+ 5.773503e-01  5.773503e-01  1.000000e+00
+ 5.773503e-01 -5.773503e-01  1.000000e+00
+-5.773503e-01  5.773503e-01  1.000000e+00
+-5.773503e-01 -5.773503e-01  1.000000e+00
+
+FUNC
+$CC if (det<thick*thick) {
+$CC fact1 =5.*pe*thick/24./(1.+pv);
+$CC } else {
+$CC fact1 =5.*pe*thick*thick*thick/det/24./(1.+pv);
+$CC }
+ekx=+[o/x]
+
+eky=-[s/y]
+
+ekxy=-[s/x]+[o/y]
+
+gmx=+[w/x]+[o]
+
+gmy=+[w/y]-[s]
+
+ex=+[u/x]
+
+ey=+[v/y]
+
+exy=+[u/y]+[v/x]
+
+STIF
+DIST=
++[ekx;ekx]*fact*1.
++[ekx;eky]*fact*pv
++[eky;ekx]*fact*pv
++[eky;eky]*fact*1.
++[ekxy;ekxy]*fact*(1.-pv)/2.
++[gmx;gmx]*fact1*2.
++[gmy;gmy]*fact1*2.
++[ex;ex]*fact2*(1.)
++[ex;ey]*fact2*(pv)
++[ey;ex]*fact2*(pv)
++[ey;ey]*fact2*(1.)
++[exy;exy]*fact2*((1.-pv)/2.)
++[c;c]*fact2*1.0e-2
+
+MASS
+DIST=\
++[u;u]*rou
++[v;v]*rou
++[w;w]*rou
+
+DAMP
+DIST=\
++[u;u]*rou*alpha
++[v;v]*rou*alpha
++[w;w]*rou*alpha
+
+LOAD=+[u]*fx+[v]*fy+[w]*fz
+
+END

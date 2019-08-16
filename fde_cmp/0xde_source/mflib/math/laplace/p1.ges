@@ -1,0 +1,24 @@
+p1
+DEFI
+DISP u
+VAR  u1
+REFC p
+COOR x
+NODE 1
+MATE ek q
+$CC coorr(1,1) = 1.0
+
+SHAP
+U=[1]u1
+
+TRAN
+x=[p]x(1)
+
+GAUS=1  1.,1.;
+
+STIF
+DIST=[u;u]*ek
+
+LOAD=+[u]*q
+
+END

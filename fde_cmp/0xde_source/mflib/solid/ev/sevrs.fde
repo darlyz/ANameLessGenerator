@@ -1,0 +1,71 @@
+\ ............. elastic viscoustic equations ...................
+\ e,t = revD*s,t + revQ*s
+\ e(n+1) - e(n) = revD*(s(n+1)-s(n)) + revQ*s(n)*dt
+\ s(n+1)-s(n) = D*(e(n+1)-e(n)) - D*revQ*s(n)*dt
+\ ds = D*de - D*revQ*s(n)*dt
+\ where ds = s(n+1)-s(n), de = e(n+1)-e(n)
+\ stress equation in weak form
+\ ..............................................................
+\ (s(n+1),ds) = (D*de-D*revQ*s(n)*dt+s(n),ds) = (f,du)
+\ ..............................................................
+\ for shear term
+\ D = 0.5-pv
+\ revQ = 1/yita
+\ D*revQ = D/yita
+\ ..............................................................
+DISP sxx syy szz sxy
+COOR r s
+COEF u v
+COMMON extern double ^inelm%1%2[nelem][m];
+VECT sv sxx syy szz
+VECT sp sxy
+VECT snv str[1] str[2] str[3]
+VECT snp str[4]
+VECT evp exx exy eyx eyy ezz
+VECT ev exx eyy ezz
+VECT ep (exy+eyx)
+VECT f fx fy fz
+SHAP %1 %2
+GAUS %3
+$CC double pe,pv,fx,fy,fz,rou,alpha,yita,csn,exx,eyy,ezz,exy,eyx,exz,eyz,str[5];
+ARRAY ^d[3][3],^rq[3][3],f[3],ssv[3],ssp[1]
+$CC int m;
+$I
+$CC m = ngaus*4;
+@L singular.rs n
+MATE pe pv fx fy fz rou alpha yita 1.0e10 0.3 0.0 0.0 0.0 3000.0 0.6 1.0e23
+MASS %1 vol
+MATRIX sm 3 3
+(1.-pv) pv pv
+pv (1.-pv) pv
+pv pv (1.-pv)
+
+MATRIX revq 3 3
+1./3. (-1./6.) (-1./6.)
+(-1./6.) 1./3. (-1./6.)
+(-1./6.) (-1./6.) 1./3.
+
+$CV ^rq_i_j = revq_i_j/yita
+
+STIF
+@L vol.rs n
+$CC fact = pe/(1.+pv)/(1.-2.*pv);
+$CC shear = (0.5-pv)*fact;
+$CC j = (igaus-1)*4;
+$CC for (i=1; i<=4; ++i) str[i]=^inelm%1%2[num][j+i];
+$CV ^d_i_j = sm_i_j*fact
+@L gradv.rs v evp r s u v
+$CV f_i = +^rq_i_j*snv_j
+$CV ssv_i = +^d_i_j*f_j*dt
+$CV f_i = +^d_i_j*ev_j
+$CV snv_i = ssv_i - f_i + snv_i
+$CV csn = shear/yita
+$CV snp_i = shear*ep_i - csn*snp_i*dt + snp_i
+$CC j = (igaus-1)*4;
+$CC for (i=1; i<=4; ++i) ^inelm%1%2[num][j+i]=str[i];
+DIST = +[sxx;sxx]*0.0
+
+LOAD = +[sv_i]*snv_i*vol+[sp_i]*snp_i*vol
+
+
+END

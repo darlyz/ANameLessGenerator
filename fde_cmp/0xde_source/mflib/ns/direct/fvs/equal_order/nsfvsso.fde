@@ -1,0 +1,53 @@
+\--------------------------equation-----------------------------------------------
+\For incompressible fluid in 2dso(two dimensional spherical coordinate system).
+\------------------------------------------------------------------------------------
+DISP u,v,p,a
+COOR s o
+SHAP %1 %2
+SHAP %1 %2c a_p 1 2 3 4
+GAUS %3
+COEF un,vn
+MASS %1 rou*vol rou*vol 0 0
+FUNC ux uy uz vx vy vz div pa
+$CC double rou,emu,fx,fy,penalty,gx,gy,fgx,fgy;
+$CC double unx,uny,unz,vnx,vny,vnz,r;
+MATE r rou emu fx fy penalty 1.0 1.0 0.1 0.0 0.0 1.0e3
+@L singular.so n
+$FVS nsxy%1
+VECT un un vn
+VECT e ux uy uz vx vy vz
+VECT div div
+VECT u u v
+VECT x s o
+VECT f fx fy
+VECT g gx gy
+VECT fg fgx fgy
+VECT vgun unx uny vnx vny unz vnz
+MATRIX mgun
+ unx uny
+ vnx vny
+ 
+
+FUNC
+@L vol.so n
+@L gradv.so v vgun r s o un vn
+$CV g_i = +mgun_i_j*un_j
+$CV fg_i = f_i+g_i
+FVECT fdiv 1
+@L div.so f fdiv
+@W div fdiv
+FVECT fvgu 6
+@L gradv.so f fvgu r s o u v
+@W e fvgu
+FMATR fmgu 2 2
+@S fmgu fvgu 1 2 4 5
+pa = +[p]-[a]
+
+STIF
+DIST=+[e_i;e_i]*emu*vol+[u_j;u_i]*mgun_i_j*rou*vol
+     +[div;p]*vol-[p;div]*vol+[pa;pa]*penalty*vol
+
+LOAD=+[u_i]*fg_i*rou*vol
+
+END
+

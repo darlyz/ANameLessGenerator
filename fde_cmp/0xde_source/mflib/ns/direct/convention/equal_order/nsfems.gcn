@@ -1,0 +1,9 @@
+DEFI
+a nell
+
+START a
+while (end==0)
+{
+SOLVC a bicgstab ilu
+}
+gidres(coor0);

@@ -1,0 +1,9 @@
+d:\mflib\ns\convention\fvs
+class convention
+coordinate xy
+static nsfvss nsfvs c 
+elemtype q4
+for nsxyq nsxyt
+solver umf
+
+

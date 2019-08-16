@@ -1,0 +1,152 @@
+\ -------------3d elasto_plastic model for displacement--------------
+\ Notation:
+\ s           .... denotes stress
+\ sn          .... denotes the iteration value of s
+\ q           .... denotes inner variable
+\ qn          .... denotes the iteration value of q
+\ e           .... denotes strain
+\ ep          .... denotes plastic strain
+\ D           .... denotes elastic constitutive matrix
+\ f = f(s,q)  .... denotes yield function
+\ de          .... denotes the increment of e or the virtual of e
+\ du          .... denotes the virtual displacement of u
+\ ds          .... denotes the increment of s
+\ dep         .... denotes the increment of ep
+\ df/ds       .... denotes the derivative of f with respect to s
+\ df/dq       .... denotes the derivative of f with respect to q
+\ (f1;f2)     .... denotes the inner product of two functions 
+\                  (f1 and f2) in the solution domain. 
+\ dep = dlambda*df/ds
+\ dq = dlambda*m(s,q)
+\ s = D*(e-ep)
+\ f(s,q) = 0 or dlambda = 0 and
+\ dlambda>=0 & f(s,q)<=0
+\ ds = D*(de-dep) = D*(de - dlambda*df/ds)
+\ f(s,q) = fn + df/ds*D*de + (df/dq*m-df/ds*D*df/ds)*dlambda
+\ -------------------------------------------------------------------
+\ Yield equation:
+\ (df/ds*D*df/ds - df/dq*m)*dlambda - df/ds*D*de = fn
+\ where fn = f(sn,qn)
+\ -------------------------------------------------------------------
+\ Balance equation:
+\ (-div(s);du) = (F;du)
+\ (s;de) = (F;du) + stress boundary condition
+\ (ds;de) = (F;du) - (sn;de) + stress boundary condition
+\ -------------------------------------------------------------------
+\ Displacement equation:
+\ (D*de;de) - (df/ds*D*dlambda;de) = (F;du) - (sn;de)
+\ + stress boundary condition
+\ -------------------------------------------------------------------
+\ By Newton-Raphson method:
+\ dlambda = (df/ds*D*de + fn)/A
+\ where A = (df/ds*D*df/ds - df/dq*m) + alpha
+\ alpha = 2.5*df/ds*D*df/ds  if df/dq*m <= -df/ds*D*df/ds
+\ alpha = -2*df/ds*D*df/ds   if df/dq*m  > -df/ds*D*df/ds
+\ substitute dlambda into the displacement equation
+\ -------------------------------------------------------------------
+\ New displacement equation:
+\ (D*de;de) + (1/A*df/ds*D*de;df/ds*D*de) =
+\ (F;du) - (sn;de) + (fn/A;df/ds*D*de)
+\ -------------------------------------------------------------------
+DISP u v w
+COOR x y z
+COEF un vn wn
+FUNC exx eyy ezz eyz exz exy plast
+COMMON double *inelm%1%2
+VECT evp exx eyy ezz eyz exz exy
+VECT ev exx eyy ezz
+VECT ep eyz exz exy
+VECT plast plast
+VECT ddfv ddf[1] ddf[2] ddf[3]
+VECT ddfp ddf[4] ddf[5] ddf[6]
+VECT str str[1] str[2] str[3] str[4] str[5] str[6]
+VECT strv str[1] str[2] str[3]
+VECT strp str[4] str[5] str[6]
+VECT ds ds[1] ds[2] ds[3] ds[4] ds[5] ds[6]
+VECT dsv ds[1] ds[2] ds[3]
+VECT dsp ds[4] ds[5] ds[6]
+SHAP %1 %2
+GAUS %3
+MASS %1 rou*vol rou*vol rou*vol
+DAMP %1 0.0 0.0 0.0
+$CC double pe,pv,fx,fy,fz,qnn,rou,alpha,t0,time1,a,b,prag,dln;
+$CC int kq,ntime,ialpha;
+$CC extern double getyield(double *,double *,double *,double,double *,
+$CC int,double (*f)(),int);
+$CC extern double %4(double *,double *);
+ARRAY dev[3],dep[3],^e[3][3],^d[3][3]
+$CC double ddf[7],ds[7],str[8],p[5];
+$CC static int init=0;
+$CC int m;
+$I
+$CC m = ngaus*7;
+$CC if (init==0) {
+$CC inelm%1%2 = (double *) calloc(nelem*m+1,sizeof(double));
+$CC for (i=1; i<=nelem*m; ++i) inelm%1%2[i]=0.0;
+$CC init = 1; }
+@L singular.xyz n
+MATE pe pv fx fy fz p[1] p[2] p[4] qnn rou alpha \
+1.0e10;0.3;0;0;0;0.2;1000;0;1;3000;0.6;
+$CC t0 = 0.0;
+$CC ntime=(tmax-t0)/dt;
+$CC time1=time_now/ntime;
+$CC kq=qnn+0.5;
+$CC p[3]=pv;
+VECT u u v w
+VECT f fx fy fz
+MATRIX sm 3 3
+(1.-pv) pv pv
+pv (1.-pv) pv
+pv pv (1.-pv)
+
+
+FUNC
+$CC fact=pe/(1.0+pv)/(1.0-2.0*pv);
+$CC shear=(0.5-pv)*fact;
+$CV ^d_i_j=+sm_i_j*fact
+@L vol.xyz n
+$CC j = (num-1)*ngaus*7+(igaus-1)*7;
+$CC for (i=1; i<=7; ++i) str[i]=inelm%1%2[j+i];
+@L gradv.xyz m ^e x y z un vn wn
+$CV dev_i=+^e_i_i
+$CC dep[1] = ^e[2][3]+^e[3][2];
+$CC dep[2] = ^e[1][3]+^e[3][1];
+$CC dep[3] = ^e[1][2]+^e[2][1];
+$CV dsv_i=+^d_i_j*dev_j
+$CV dsp_i=shear*dep_i
+$CV str_i=str_i+ds_i
+$CC ialpha=1;
+$CC a=getyield(p,str,d,shear,ddf,kq,%4,ialpha);
+$CC prag=%4(p,str);
+$CV dln=+ddfv_i*dev_i+ddfp_i*dep_i
+$CC dln=dln+prag;
+$CC if (dln>0.0) {
+$CC  b=1.0/a;
+$CV dsv_i=+b*ddfv_i*ddfv_j*dev_j
+$CV dsp_i=+b*ddfp_i*ddfp_i*dep_i
+$CV strv_i=strv_i-dsv_i-ddfv_i*prag*b
+$CV strp_i=strp_i-dsp_i-ddfp_i*prag*b
+$CC ialpha=1;
+$CC a=getyield(p,str,d,shear,ddf,kq,%4,ialpha);
+$CC prag=%4(p,str);
+$CC } else {
+$CC  b=0.0;
+$CC }
+FMATR fe 3 3
+@L gradv.xyz f fe
+@W ev fe 1 5 9
+FVECT fev 3
+@S fev fe 1 5 9
+@A fe_i_j=+[fe_i_j]+[fe_j_i]
+@W ep fe 6 3 2
+FVECT fep 3
+@S fep fe 6 3 2
+FVECT fp 1
+@A fp_1=+[fev_i]*ddfv_i+[fep_j]*ddfp_j
+@W plast fp
+STIF
+DIST=+[ev_i;ev_j]*^d_i_j*vol+[ep_i;ep_i]*shear*vol-[plast;plast]*b*vol
+
+LOAD=+[u_i]*f_i*time1*vol-[evp_i]*str_i*vol+[plast]*b*prag*vol
+
+END

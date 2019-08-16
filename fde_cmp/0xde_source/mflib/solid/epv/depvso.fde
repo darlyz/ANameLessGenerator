@@ -1,0 +1,132 @@
+DEFI
+DISP u v
+COOR s o
+COEF un vn
+FUNC exx eyy exy exz eyz plast plastg
+COMMON double *inelm%1%2;
+VECT evp exx eyy exy exz eyz
+VECT ev exx eyy
+VECT ep exy exz eyz
+VECT plast plast
+VECT plastg plastg
+VECT ddfv ddf[1] ddf[2]
+VECT ddfp ddf[3] ddf[4] ddf[5]
+VECT ddgv ddg[1] ddg[2]
+VECT ddgp ddg[3] ddg[4] ddg[5]
+VECT str  str[1] str[2] str[3] str[4] str[5]
+VECT strv str[1] str[2]
+VECT strp str[3] str[4] str[5]
+VECT dsv ds[1] ds[2]
+VECT dsp ds[3] ds[4] ds[5]
+SHAP %1 %2
+GAUS %3
+$CC double pe,pv,fx,fy,rou,alpha,t0,time1,a,b,prag,dln,shearqrev,factqrev;
+$CC double vi,qnn,shearwave,p[5];
+$CC double r,str[6];
+$CC int kq,ntime,ialpha;
+$CC extern double getyield(double *,double *,double *,double,double *,
+$CC int,double (*f)(),int);
+$CC extern double %4(double *,double *);
+MASS %1 rou*vol rou*vol
+DAMP %1 0.0 0.0
+ARRAY dev[2],dep[1],e[6],^d[2][2],^qrev[2][2],^dwave[2][2],^rd[2][2]
+ARRAY ^dsv1[2][2],ddf[5],ddg[5],ds[5]
+$CC static int init=0;
+$CC int m;
+$I
+$CC m = ngaus*5;
+$CC if (init=0) {
+$CC inelm%1%2 = (double *) calloc(nelem*m+1,sizeof(double));
+$CC for (i=1; i<=nelem*m; ++i) inelm%1%2[i]=0.0;
+$CC init = 1; }
+@L singular.so n
+MATE r pe pv vi fx fy p[1] p[2] p[4] qnn rou alpha \
+1.0;1.0e10;0.3;1.0e20;0.;0.;0.2;1000.;0.0;3;3000.;0.6;
+$CC t0 = 0.0;
+$CC ntime=(tmax-t0)/dt;
+$CC time1=time_now/ntime;
+$CC kq=qnn+0.5;
+$CC p[3]=pv;
+VECT u u v
+VECT f fx fy
+MATRIX sm 2 2
+(1.0-pv) pv
+pv (1.0-pv)
+
+MATRIX qrevm 2 2
+1./3.0 -1./6.0
+-1./6.0 1./3.0
+
+
+FUNC
+$CC fact=pe/(1.0+pv)/(1.0-2.0*pv);
+$CC shear=(0.5-pv)*fact;
+$CV ^d_i_j=+sm_i_j*fact
+$CC factqrev=1/vi;
+$CC shearqrev=factqrev;
+$CV ^qrev_i_j=qrevm_i_j*factqrev
+$CC det=invm(2,d,rd);
+$CV ^d_i_j = ^rd_i_j
+$CV ^dwave_i_j=+^d_i_j+^qrev_i_j*dt
+$CC shearwave=1/shear+shearqrev*dt;
+$CC det=invm(2,dwave,d);
+$CC shearwave=1.0/shearwave;
+$CC shear=shearwave;
+@L vol.so n
+$CC j = (num-1)*ngaus*5+(igaus-1)*5;
+$CC for (i=1; i<=5; ++i) str[i]=inelm%1%2[j+i];
+@L gradv.so m e r s o un vn
+$CC dev[1]=+e[1];
+$CC dev[2]=+e[5];
+$CC dep[1]=e[2]+e[4];
+$CC dep[2]=+e[3];
+$CC dep[3]=+e[6];
+$CV dsv_i=+^d_i_j*dev_j
+$CV dsp_i=shear*dep_i
+$CC ialpha=1;
+$CC a=getyield(p,str,d,shear,ddf,kq,%4,ialpha);
+$CC prag=%4(p,str);
+$CC dln=ddf[1]*dev[1]+ddf[2]*dev[2]
+$CC +ddf[4]*dep[1]+ddf[5]*dep[2]+ddf[6]*dep[3]+prag;
+$CV str_i=+str_i+ds_i
+$CC if (dln>0.0) {
+$CC  b=1.0/a;
+$CV dsv_i=+b*ddgv_i*ddfv_j*dev_j
+$CV dsp_i=+b*ddgp_i*ddfp_i*dep_i
+$CV strv_i=+strv_i-dsv_i-ddgv_i*prag*b
+$CV strp_i=+strp_i-dsp_i-ddgp_i*prag*b
+$CC } else {
+$CC  b=0.0;
+$CC }
+$CV dsv_i=+^d_i_j*^qrev_j_k*strv_k*dt
+$CV dsp_i=+shear*shearqrev*strp_i*dt
+$CV str_i=+str_i+ds_i
+$CC ialpha=1;
+$CC a=getyield(p,str,d,shear,ddf,kq,%4,ialpha);
+$CC prag=%4(p,str);
+FVECT fev 2
+FVECT fep 3
+FVECT fp 1
+FVECT gp 1
+FMATR fe 2 3
+FMATR ft 3 3	
+@L gradv.so f fe
+@W ev fe 1 5
+@S fev fe 1 5
+@A ft_i_j = +[fe_i_j ]+[fe_j_i]
+@W ep ft 2 3 4
+@S fep ft 2 3 4
+@A fp_1=+[fev_i]*ddfv_i+[fep_j]*ddfp_j
+@A gp_1=+[fev_i]*ddgv_i+[fep_j]*ddgp_j
+@W plast fp
+@W plastg gp
+
+STIF
+DIST=+[ev_i;ev_j]*^d_i_j*vol+[ep_i;ep_i]*shear*vol-[plast;plastg]*b*vol
+
+LOAD=+[u_i]*f_i*time1*vol-[evp_i]*str_i*vol+[plastg]*b*prag*vol
++[ev_i]*^d_i_j*^qrev_j_k*strv_k*dt+[ep_i]*shear*shearqrev*strp_i*dt
+-[plastg]*b*ddfv_i*^qrev_i_j*strv_j*dt
+-[plastg]*b*ddfp_i*shearqrev*strp_i*dt
+
+END

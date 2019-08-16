@@ -1,0 +1,14 @@
+DEFI
+a nnewmark
+b str a
+
+START a
+l1:
+BFT
+while (end==0)
+{
+SOLVC a
+}
+SOLVSTR b a
+gidres(coor0);
+if (stop==0) goto l1;

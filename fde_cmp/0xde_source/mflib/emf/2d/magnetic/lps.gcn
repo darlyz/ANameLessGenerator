@@ -1,0 +1,12 @@
+defi
+a par b
+b str a
+
+START a
+START b
+L1:
+BFT
+SOLVc a
+SOLVSTR b
+gidres(coor0);
+if (stop==0) goto L1;

@@ -1,0 +1,42 @@
+\--------------------------equation-----------------------------------------------
+\For incompressible fluid in 2dro(two dimensional polar coordinate system).
+\Diffusion_part of Navier-Stokes equations
+\----------------------------------------------------------------------------------
+DISP u,v,p,a
+COOR r o
+SHAP %1 %2
+SHAP %1 %2c a_p 1 2 3 4
+GAUS %3
+MASS %1 rou*vol rou*vol 0 0
+FUNC ux uy vx vy div pa
+$CC double rou,emu,fx,fy,penaly;
+MATE rou emu fx fy penaly 1.0 0.1 0.0 0.0 1.0e3
+@L singular.ro n
+VECT e ux uy vx vy
+VECT div div
+FVECT fdiv 1
+VECT u u v
+VECT x r o
+VECT f fx fy
+FVECT fe 4
+FVECT fgp 2
+VECT gp px py
+
+FUNC
+@L vol.ro n
+@L div.ro f fdiv
+@W div fdiv
+@L gradv.ro f fe
+@W e fe
+@L grad.ro f fgp r o p
+pa = +[p]-[a]
+
+STIF
+DIST=+[e_i;e_i]*emu*vol
+     +[div;p]*vol-[p;div]*vol
+     +[pa;pa]*penaly*vol
+
+LOAD=+[u_i]*f_i*rou*vol
+
+END
+

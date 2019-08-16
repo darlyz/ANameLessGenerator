@@ -1,0 +1,35 @@
+\ ------------------------------- equation --------------------------------------
+\ For harmonic field in 3droz(three dimensional cylindrical coordinate system).
+\ -------------------------------------------------------------------------------
+DISP u
+COOR r o z
+FUNC ux uy uz
+VECT gu ux uy uz
+VECT js fjx fjy fjz
+VECT d dx dy dz
+SHAP %1 %2
+GAUS %3
+$CC double sigma,epsilon,omega,fjxr,fjxi,fjyr,fjyi,fjzr,fjzi,pc;
+$CC double ai,ar,cr,ci,dr,di,dxr,dxi,dyr,dyi,dzr,dzi;
+MATE sigma epsilon omega fjxr fjxi fjyr fjyi fjzr fjzi pc \
+ 5.96e7 8.8541878e-12 3.14159e2 0.0 0.0 0.0 0.0 0.0 0.0 1.0
+$CC ai=-sigma;
+$CC ar=-omega*epsilon;
+$CC cr=0.0;
+$CC ci=1.0;
+$CP d_i=c*js_i;
+@L singular.roz n
+
+FUNC
+@L vol.roz n
+FVECT fgu 3
+@L grad.roz f fgu r o z u
+@W gu fgu
+
+STIF
+DIST=+[gu_i;gu_i]*vol*|ar;ai|
+
+LOAD=+[ux]*vol*|dxr;dxi|+[uy]*vol*|dyr;dyi|+[uz]*vol*|dzr;dzi|
+\+[gu_i]*vol*|dr;di|
+
+END

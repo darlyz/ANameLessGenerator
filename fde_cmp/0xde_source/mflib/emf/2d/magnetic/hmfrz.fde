@@ -1,0 +1,29 @@
+\ ------------------------------- equation --------------------------------------
+\ For harmonic field in 2drz(two dimensional axisymmetric coordinate system).
+\ PS: Find electric field fist, magnetic field second.
+\ -------------------------------------------------------------------------------
+DISP ez
+COOR r z
+FUNC curlezx curlezy
+VECT curlez curlezx curlezy
+SHAP %1 %2
+GAUS %3
+$CC double sigma,epsilon,omega,fmu,fjzr,fjzi,ar,ai,b;
+MATE sigma epsilon omega fmu fjzr fjzi 5.96e7 8.8541878e-12 3.14159e2 12.56637e-7 0.0 0.0
+$CC ar=sigma;
+$CC ai=-omega*epsilon;
+$CC b=1.0/(fmu*omega);
+@L singular.rz n
+
+FUNC
+@L vol.rz n
+FVECT fe 2
+@L vcurl.rz f fe r z ez
+@W curlez fe
+
+STIF
+DIST=+[curlez_i;curlez_i]*vol*|0;b|+[ez;ez]*vol*|ar;ai|
+
+LOAD=-[ez]*vol*|fjzr;fjzi|
+
+END

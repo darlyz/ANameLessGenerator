@@ -1,0 +1,29 @@
+\ ------------------------------- equation --------------------------------------
+\ For magnetic field in 2drs(two dimensional spherical coordinate system).
+\ PS: For static magnetic field, there are no time dependent items in pde and
+\ weak form, thus, there are no "mass" and "damp" rows
+\ -------------------------------------------------------------------------------
+DISP az
+COOR r s
+FUNC curlazx curlazy
+VECT curlaz curlazx curlazy
+SHAP %1 %2
+GAUS %3
+MASS %1 epsilon*vol
+DAMP %1 sigma*vol
+$CC double sigma,epsilon,fmu,fjz;
+MATE sigma epsilon fmu fjz 5.96e7 8.8541878e-12 12.56637e-7 0.0
+@L singular.rs n
+
+FUNC
+@L vol.rs n
+FVECT fe 2
+@L vcurl.rs f fe r s az
+@W curlaz fe
+
+STIF
+DIST=+[curlaz_i;curlaz_i]*vol/fmu
+
+LOAD=+[az]*vol*fjz
+
+END

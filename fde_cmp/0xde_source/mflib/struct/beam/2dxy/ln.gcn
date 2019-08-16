@@ -1,0 +1,11 @@
+DEFI
+a newmarkd
+
+START a
+l1:
+BFT
+SOLVSTRUCT a bicgstab ilu
+gidres(coor0);
+if (stop==0) goto l1;
+
+

@@ -1,0 +1,21 @@
+class a
+class convention
+#
+coordinate s
+x r s  xy xyd rz ro rod rs so  xyz roz rso
+#
+problem l
+static les del c sel n
+dynamic_wave lws del n sel n
+dynamic_newmark lns del n sel n
+#
+elemtype m
+l2 l3 { x r s }
+q4 t3 q9 t6 { xy xyd rz ro rod rs so }
+c8 w4 c27 w10  { xyz roz rso }
+#
+boundary m
+p1 { x r s }
+l2 l3 { xy xyd rz }
+q4 t3 q9 t6 { xyz }
+#

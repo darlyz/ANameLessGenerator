@@ -1,0 +1,54 @@
+\ ................ finite deformation equation .........
+\ sij,j + fi = 0
+\ s = D*e, where eij = (ui,j+uj,i)*aij + uk,i*uk,j*aij
+\ aij = 1/2 if i=j else aij=1
+\ ......................................................
+DISP u v
+VECT u u v
+COOR r o
+COEF un vn
+FUNC exx eyy exy
+FMATR fg 2 2
+VECT ev exx eyy
+VECT ep exy
+VECT f fx fy
+MATRIX en 2 2
+enxx enxy
+enyx enyy
+
+ARRAY ^enn[2][2]
+VECT eng ^enn[1][1] ^enn[2][2]
+VECT enp ^enn[1][2]
+VECT env envx envy
+SHAP %1 %2
+GAUS %3
+$CC double pe,pv,fx,fy,rou,alpha,enxx,enyy,enxy,enyx,envx,envy;
+MASS %1 rou*vol
+DAMP %1 rou*alpha*vol
+@L singular.ro n
+MATE pe pv fx fy rou alpha 1.0e10 0.3 0.0 0.0 3000.0 0.6
+MATRIX sm 2 2
+(1.-pv) pv
+pv (1.-pv)
+
+
+FUNC
+@L vol.ro n
+$CC fact = pe/(1.+pv)/(1.-2.*pv)*vol;
+$CC shear = (0.5-pv);
+@L gradv.ro m en r o un vn
+$CV ^enn_i_j = +en_k_i*en_k_j
+$CV env_i = +sm_i_j*eng_j/2.
+@L gradv.ro f fg
+@A fg_i_j = +[fg_i_j]+[fg_k_i]*^enn_k_j
+@W ev fg 1 4
+@A fg_i_j = +[fg_i_j]+[fg_j_i]
+@W ep fg 2
+STIF
+DIST = +[ev_i;ev_j]*sm_i_j*fact+[ep_i;ep_i]*shear*fact
+
+LOAD = +[u_i]*f_i*vol
+       +[ev_i]*env_i*fact
+       +[ep_i]*enp_i*shear*fact
+
+END

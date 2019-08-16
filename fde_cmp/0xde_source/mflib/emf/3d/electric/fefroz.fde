@@ -1,0 +1,24 @@
+\ ------------------------------- equation --------------------------------------
+\ For static electric field in 3droz(three dimensional cylindrical coordinate system).
+\ Using least square method to compute electric field:
+\                                 E=-grad(u)
+\ -------------------------------------------------------------------------------
+DISP ex ey ez
+VECT e ex ey ez
+COEF u
+COOR r o z
+SHAP %1 %2
+GAUS %3
+$CC double ux,uy,uz;
+MASS %1 vol
+@L singular.roz n
+VECT gu ux uy uz
+
+STIF
+@L vol.roz n
+@L grad.roz v gu r o z u
+DIST=+[ex;ex]*0.0
+
+LOAD=-[e_i]*vol*gu_i
+
+END

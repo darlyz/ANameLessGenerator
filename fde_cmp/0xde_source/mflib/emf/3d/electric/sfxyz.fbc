@@ -1,0 +1,24 @@
+\ ---------------------------------- equation -----------------------------------------
+\ For steady current field in 3dxyz(three dimensional cartesian coordinate system).
+\ The full weak form is
+\                 [sigma*grad(u);grad(u)]=[0.0;u]+|n，(sigma*grad(u));u|
+\ ------------------------ weak form of PDE on the boundary ---------------------------
+\                         [u;u]*0 = +|n，(sigma*grad(u));u|.
+\                                 = -|n，Fj;u|
+\ where Fj := sigma*E = -sigma*grad(u)
+\ PS: Let fjn:=n，Fj, means outer normal current.
+\ -------------------------------------------------------------------------------------
+DISP u
+COOR x y
+SHAP %1 %2
+GAUS %3
+$T n
+$CC double sigma,fjn;
+MATE sigma fjn 5.96e7 0.0
+
+STIF
+DIST=+[u;u]*0.0
+
+LOAD=-[u]*fjn
+
+END

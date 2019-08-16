@@ -1,0 +1,102 @@
+\ ------------------------------------ equation -----------------------------------------
+\ For harmonic field in 3dxyz(three dimensional cartesian coordinate system).
+\ Convect the differential form of maxwell equations:
+\      (i*sigma-omega*epsilon)*E = -curl(1/(omega*mu)*curl(E))-i*Js
+\ convect into weak form as
+\      <(i*sigma-omega*epsilon)*E;E>+<1/(omega*mu)*curl(E);curl(E)>
+\      = |i*n×H;E| -<i*Js;E>.
+\ Computing electromagnetic field by A-phi method set
+\                     E = -i*omega*A-grad(u)
+\                          B = curl(A)
+\ and for the posedness of A, add penalty item derived form coulomb gauge
+\              -pc*omega/mu*<div(A);div(A)> = -pc*omega/mu*|div(A);n·A|
+\ --------------------------------- weak form of pde ------------------------------------
+\               (-i*sigma   -*epsilon*omega)*omega^2*<A;A>
+\               +(  +sigma -i*epsilon*omega)*omega*<grad(u);A>
+\               +(  -sigma +i*epsilon*omega)*omega*<A;grad(u)>
+\               +(-i*sigma   -epsilon*omega)*<grad(u);grad(u)>
+\               +(  omega/mu)*<curl(A);curl(A)>
+\               +(p*omega/mu)*<div(A); div(A)>
+\               = omega*<Js;A>  -i*<Js ;grad(u)>
+\               -omega*|n×H;A| +i*|n×H ;grad(u)|+pc*omega/mu*|div(A);n·A|
+\ ------------------------------ symmetrical weak form ----------------------------------
+\               (-i*sigma   +*epsilon*omega)*omega*<A;A>
+\               +(-i*sigma  +*epsilon*omega)*omega*<grad(u);A>
+\               +(-i*sigma  +*epsilon*omega)*omega*<A;grad(u)>
+\               +(-i*sigma  +*epsilon*omega)*omega*<grad(u);grad(u)>
+\               +(1/mu)*<curl(A);curl(A)>
+\               +(p/mu)*<div(A); div(A)>
+\               = <Js;A>  +<Js ;grad(u)>
+\               -|n×H;A| -|n×H ;grad(u)| +pc/mu*|div(A);n·A|
+\ ---------------------------------------------------------------------------------------
+DISP ax ay az u
+VECT a ax ay az
+COOR x y z
+FUNC curlax curlay curlaz div ux uy uz
+VECT curla curlax curlay curlaz
+VECT gu ux uy uz
+VECT div div
+VECT jss fjx fjy fjz
+VECT d dx dy dz
+SHAP %1 %2
+GAUS %3
+$cc double sigma,epsilon,omega,fmu,fjxr,fjxi,fjyr,fjyi,fjzr,fjzi,pc,sym_form,jstag;
+$cc double ar,ai,br,bi,cr,ci,dr,di,er,ei,ec,dxr,dxi,dyr,dyi,dzr,dzi,loadtag;
+mate sigma epsilon omega fmu fjxr fjxi fjyr fjyi fjzr fjzi pc \
+ 5.96e7 8.8541878e-12 3.14159e2 12.56637e-7 0.0 0.0 0.0 0.0 0.0 0.0 1.0
+$cc sym_form=0; // symmetric weak form when sym_form is not 0
+$cc jstag=1;    // source current not in the conductor when jstag is 0
+$cc if (jstag==0) jstag=0;
+$cc else jstag=1;
+$cc if(sym_form==0){
+$cc   ar = -omega*epsilon*omega;  ai = -sigma*omega;
+$cc   br = -sigma;                bi = +omega*epsilon;
+$cc   cr = +sigma;                ci = -omega*epsilon;
+$cc   dr = -omega*epsilon/omega;  di = -sigma/omega;
+$cc   ec = +omega/fmu;
+$cc   loadtag = omega;
+$cc }
+$cc else{
+$cc   ar = br = cr = dr = +omega*epsilon;
+$cc   ai = bi = ci = di = -sigma;
+$cc   ec = 1/fmu;
+$cc   loadtag = 1;
+$cc }
+$cc er=0.0;
+$cc ei=1.0;
+$cc if(sym_form==0){
+$cp   d_i=e*jss_i;
+$cc }
+$cc else{
+$cp   d_i=jss_i;
+$cc }
+@L singular.xyz n
+
+FUNC
+@L vol.xyz n
+FVECT fe 3
+@L curl.xyz f fe x y z ax ay az
+@W curla fe
+FVECT fdiv 1
+@L div.xyz f fdiv x y z ax ay az
+@W div fdiv
+FVECT fgu 3
+@L grad.xyz f fgu x y z u
+@w gu fgu
+
+STIF
+DIST=+[a_i;a_i]*vol*omega*|ar;ai|
++[a_i;gu_i]*vol*omega*|br;bi|
++[gu_i;a_i]*vol*omega*|cr;ci|
++[gu_i;gu_i]*vol*omega*|dr;di|
++[curla_i;curla_i]*vol*|ec;0|
++[div;div]*vol*pc*|ec;0|
+
+LOAD=+[ax]*vol*loadtag*|fjxr;fjxi|
++[ay]*vol*loadtag*|fjyr;fjyi|
++[az]*vol*loadtag*|fjzr;fjzi|
++[ux]*vol*jstag*|dxr;dxi|
++[uy]*vol*jstag*|dyr;dyi|
++[uz]*vol*jstag*|dzr;dzi|
+
+END

@@ -1,0 +1,27 @@
+\ ------------------------------- equation --------------------------------------
+\ For harmonic field in 2dro(two dimensional polar coordinate system).
+\ PS: Find electric field fist, magnetic field second.
+\ -------------------------------------------------------------------------------
+DISP hx hy
+VECT h hx hy
+COEF ezr ezi
+COOR r o
+SHAP %1 %2
+MASS %1 vol vol
+GAUS %3
+$CC double omega,fmu,curlexr,curlexi,curleyr,curleyi;
+MATE omega fmu 3.14159e2 12.56637e-7
+@L singular.ro n
+VECT curle curlex curley
+VECT curlezr curlexr curleyr
+VECT curlezi curlexi curleyi
+
+STIF
+@L vol.ro n
+@L vcurl.ro v curlezr r o ezr
+@L vcurl.ro v curlezi r o ezi
+DIST=+[hx;hx]*|0;0|
+
+LOAD=+[h_i]*vol/fmu/omega*|curle_ir;curle_ii|
+
+END

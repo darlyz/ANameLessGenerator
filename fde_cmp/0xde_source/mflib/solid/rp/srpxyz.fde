@@ -1,0 +1,47 @@
+\ ------------------------ Rigid-plastic equation -----------------------------------
+\               s = S + p*delta_ij
+\ where s    .... stress;
+\       p    .... pressure;
+\       delta_ij is delta function, delta_ij equals 1 if i=j, else 0;
+\       S = 2/3*pa*se**(pm-1)*e;
+\       se   .... effective strain rate;
+\       e    .... strain.
+\ --------------------PDE in weak form-----------------------------------------------
+\               (s;ds) = (S + p*delta_ij;ds)
+\ where 
+\       ds denotes the variation of s;
+\       ( . ; . ) denotes the inner product of two functions in the solution domain.
+\ -----------------------------------------------------------------------------------
+DISP dxx,dyy,dzz,dyz,dxz,dxy
+COOR x,y,z
+COEF un,vn,wn
+SHAP %1 %2
+GAUS %3
+$CC double pa,pm,pm1,pm3,emid,se;
+$CC double enx,eny,enz,enxx,enyy,enzz,enxy,enyz,enxz,enyx,enzy,enzx;
+MASS %1 vol vol vol vol vol vol
+@L singular.xyz n
+MATE pa pm 1.0e10 3.0
+VECT dv dxx dyy dzz
+VECT dg dyz dxz dxy
+MATRIX en 3 3
+enxx enxy enxz
+enyx enyy enyz
+enzx enzy enzz
+
+VECT env enxx enyy enzz
+VECT eng (enyz+enzy) (enxz+enzx) (enxy+enyx)
+
+STIF
+@L vol.xyz n
+@L gradv.xyz m en x y z un vn wn
+$CV emid=+env_i*env_i+eng_i*eng_i/2.
+$CC emid = emid*2.0/3.+1.0e-010;
+$CC se = sqrt(emid);
+$CC pm1 =pm-1.;
+$CC fact=pa*pow(se,pm1)*vol;
+DIST = +[dxx;dxx]*0.0
+
+LOAD = +[dv_i]*(env_i*fact)*vol+[dg_i]*eng_i/2.*fact*vol
+
+END

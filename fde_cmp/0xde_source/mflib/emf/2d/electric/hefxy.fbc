@@ -1,0 +1,25 @@
+\ ---------------------------------- equation -----------------------------------------
+\ For time harmonic field in 2dxy(two dimensional cartesian coordinate system).
+\ The full weak form is
+\         1/(sigma-i*omega*epsilon)*<curl(Hz);curl(Hz)> -i*omega*fmu*<Hz;Hz>
+\         =<1/(sigma+i*omega*epsilon)*js;curl(Hz)> -|n¡ÁE;Hz|
+\ ------------------------ weak form of PDE on the boundary ---------------------------
+\                                 <Hz;Hz>*0 = -|n¡ÁE;Hz|.
+\ PS: Let fetz:= n¡ÁE to establish neumann condition.
+\ -------------------------------------------------------------------------------------
+DISP hzr hzi
+COOR x
+SHAP %1 %2
+GAUS %3
+$CC double fetzr,fetzi;
+MASS %1 0.0
+DAMP %1 0.0
+$T n
+MATE fetzr fetzi 0.0 0.0
+
+STIF
+DIST=+[hzr;hzr]*(0.0)
+
+LOAD=-[hzr]*(fetzr)-[hzi]*(fetzi)
+
+END

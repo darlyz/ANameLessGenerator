@@ -1,0 +1,30 @@
+\ ------------------------------- equation --------------------------------------
+\ For dynamic electric field in 2dro(two dimensional polar coordinate system).
+\ -------------------------------------------------------------------------------
+DISP hz
+COOR r o
+COEF ex ey
+FUNC curlhzx curlhzy
+VECT curlhz curlhzx curlhzy
+SHAP %1 %2
+GAUS %3
+$CC double sigma,epsilon,fmu,fjx,fjy,fjx2,fjy2,edts1;
+MASS %1 fmu*vol
+MATE sigma epsilon fmu fjx fjy 5.96e7 8.8541878e-12 12.56637e-7 0.0 0.0
+@L singular.ro n
+
+FUNC
+@L vol.ro n
+FVECT fe 2
+@L vcurl.ro f fe r o hz
+@W curlhz fe
+
+STIF
+$CC edts1=epsilon+dt*sigma;
+$CV fjx2=dt*fjx-epsilon*ex;
+$CV fjy2=dt*fjy-epsilon*ey;
+DIST=+[curlhz_i;curlhz_i]*vol*dt/edts1
+
+LOAD=+[curlhzx]*vol*fjx2/edts1+[curlhzy]*vol*fjy2/edts1
+
+END

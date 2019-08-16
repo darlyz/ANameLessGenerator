@@ -1,0 +1,27 @@
+﻿\ ............................heat_equation...............................
+\ For heat field in 3dxyz(three dimensional cartesian coordinate system).
+\ the heat flux
+\                         (ux,uy,uz) = ek*grad(u)
+\ ........................................................................
+DISP ux uy uz
+COOR x y z
+COEF u
+SHAP %1 %2
+GAUS %3
+$CC double ek,ec,q,gux,guy,guz;
+MASS %1 vol vol vol
+@L singular.xyz n
+MATE ek ec q 1.0 1.0 0.0
+VECT u ux uy uz
+VECT gu gux guy guz
+
+FUNC
+@L vol.xyz n
+@L grad.xyz v gu
+
+STIF
+null
+
+LOAD = -[u_i]*gu_i*ek*vol
+
+END

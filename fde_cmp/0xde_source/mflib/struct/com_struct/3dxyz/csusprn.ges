@@ -1,0 +1,49 @@
+csusprn
+\ nx,ny,nz normal vector
+\ ks stiffness
+DEFI
+DISP u,v,w,anx,any,anz
+VAR  u1,v1,w1,anx1,any1,anz1
+REFC p,q,r
+COOR x,y,z
+FUNC s,st
+NODE 1
+$CC double nx,ny,nz,ks,eks;
+MATE nx ny nz ks eks 1. 0. 0. 0. 0.
+$CC ^coorr[1][1] = 1.0;
+$CC ^coorr[2][1] = 1.0;
+$CC ^coorr[3][1] = 1.0;
+
+SHAP
+U=[1]u1
+
+v=[1]v1
+
+w=[1]w1
+
+anx=[1]anx1
+
+any=[1]any1
+
+anz=[1]anz1
+
+TRAN
+x=[p]x(1)
+
+y=[q]y(1)
+
+z=[r]z(1)
+
+GAUS=1  1.,1.,1.,1.;
+
+FUNC
+s = [u]*nx+[v]*ny+[w]*nz
+
+st= [anx]*nx+[any]*ny+[anz]*nz
+
+STIF
+DIST=[s;s]*ks+[st;st]*eks
+
+LOAD=+[u]*0.0
+
+END

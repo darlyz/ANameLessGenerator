@@ -1,0 +1,87 @@
+\ ................ finite deformation equation .........
+\ sij,j + fi = 0
+\ s = D*e, where eij = (ui,j+uj,i)*aij + uk,i*uk,j*aij
+\ aij = 1/2 if i=j else aij=1
+\ where u denote displacement, s denote stress, e denote strain
+\ D denote constitutive matrix
+\ ......................................................
+\ PDE in weak form
+\ (D*e,de) = (f,du)
+\ where de denotes the variation of e
+\ Linearizing e in the PDE
+\ e(u) = el(u)+en(u,u)
+\ where
+\ el(u) = (ui,j+uj,i)*aij
+\ en(u,v) =  uk,i*vk,j*aij
+\ ......................................................
+\ e(un+du) = el(un+du) + en(du,un) + en(un,du) + en(un,un) + en(du,du)
+\         = el(un+du) + en(un+du,un) + en(un,un+du) - en(un,un) + en(du,du)
+\ cancel the second order term en(du,du) we have
+\ e(u) = el(u) + en(u,un) + en(un,u) - en(un,un)
+\ where u = un+du
+\ de = el(du) + en(du,un) + en(un,du)
+\ the Linearizing PDE in the weak form
+\ ......................................................
+\ (D*L(u),L(du)) = (D*enn,L(du)) + (f,du)
+\ ......................................................
+\ where
+\ L(v) = el(v) + en(v,un) + en(un,v)
+\ un is the previous iteration value of u
+\ enn = en(un,un)
+\ Den = D*enn
+\ ......................................................
+DISP u v
+VECT u u v
+COOR r z
+COEF un vn
+FUNC exx eyy ezz exy
+ARRAY ^en[2][2],^enn[2][2],env[3],denv[3]
+VECT en123 ^en[1][1] ^en[1][2] ^en[2][1] ^en[2][2] en33
+VECT env ^enn[1][1] ^enn[2][2] enn33
+VECT enp ^enn[1][2]
+VECT ev exx eyy ezz
+VECT ev12 exx eyy
+VECT ev3 ezz
+VECT ep exy
+SHAP %1 %2
+GAUS %3
+$CC double pe,pv,fx,fy,rou,alpha,en33,enn33,en123;
+MASS %1 rou*vol rou*vol
+DAMP %1 rou*alpha*vol rou*alpha*vol
+@L singular.rz n
+MATE pe pv fx fy rou alpha 1.0e10 0.3 0.0 0.0 3000.0 0.6
+VECT f fx fy
+MATRIX sm 3 3
+(1.-pv) pv pv
+pv (1.-pv) pv
+pv pv (1.-pv)
+
+
+FUNC
+@L vol.rz n
+$CC fact = pe/(1.+pv)/(1.-2.*pv)*vol;
+$CC shear = (0.5-pv);
+@L gradv.rz v en123 r z un vn
+$CV ^enn_i_j = +^en_k_i*^en_k_j
+$CC enn33 = en33*en33;
+$CV denv_i = +sm_i_j*env_j/2.
+FMATR d 2 2
+FVECT dv 5
+FVECT d3 1
+@L gradv.rz f dv
+@S d dv 1 2 3 4
+@A d_i_j = +[d_i_j]+[d_k_i]*^en_k_j
+@W ev12 d 1 3
+@S d3 dv 5
+@A d3_i = +[d3_i]*en33
+@W ev3 d3
+@A d_i_j = +[d_i_j]+[d_j_i]
+@W ep d 2
+STIF
+DIST = +[ev_i;ev_j]*sm_i_j*fact+[ep_i;ep_i]*shear*fact
+
+LOAD = +[u_i]*f_i*vol
+       +[ev_i]*denv_i*fact
+       +[ep_i]*enp_i*shear*fact
+
+END

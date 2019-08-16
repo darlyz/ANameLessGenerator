@@ -1,0 +1,27 @@
+﻿\ ............................heat_equation...............................
+\ For heat field in 2dro(two dimensional polar coordinate system).
+\ the heat flux
+\                         (ur,uo) = ek*grad(u)
+\ ........................................................................
+DISP ux uy
+COOR r o
+COEF u
+SHAP %1 %2
+GAUS %3
+$CC double ek,ec,q,gux,guy;
+MASS %1 vol vol
+@L singular.ro n
+MATE ek ec q 1.0 1.0 0.0
+VECT u ux uy
+VECT gu gux guy
+
+FUNC
+@L vol.ro n
+@L grad.ro v gu
+
+STIF
+null
+
+LOAD = -[u_i]*gu_i*ek*vol
+
+END

@@ -1,0 +1,17 @@
+DEFI
+a parb
+b exp a &a
+
+int i,n;
+STARTMIX a
+l1:
+BFT
+SOLVC a
+n=4; dt=dt/n;
+for (i=1; i<=n; ++i)
+{
+SOLVCBSEXP b a
+}
+dt=dt*n;
+gidres(coor0);
+if (stop==0) goto l1;

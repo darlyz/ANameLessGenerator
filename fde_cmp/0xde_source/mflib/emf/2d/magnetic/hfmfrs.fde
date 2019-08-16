@@ -1,0 +1,27 @@
+\ ------------------------------- equation --------------------------------------
+\ For harmonic field in 2drs(two dimensional spherical coordinate system).
+\ PS: Find electric field fist, magnetic field second.
+\ -------------------------------------------------------------------------------
+DISP hx hy
+VECT h hx hy
+COEF ezr ezi
+COOR r s
+SHAP %1 %2
+MASS %1 vol vol
+GAUS %3
+$CC double omega,fmu,curlexr,curlexi,curleyr,curleyi;
+MATE omega fmu 3.14159e2 12.56637e-7
+@L singular.rs n
+VECT curle curlex curley
+VECT curlezr curlexr curleyr
+VECT curlezi curlexi curleyi
+
+STIF
+@L vol.rs n
+@L vcurl.rs v curlezr r s ezr
+@L vcurl.rs v curlezi r s ezi
+DIST=+[hx;hx]*|0;0|
+
+LOAD=+[h_i]*vol/fmu/omega*|curle_ir;curle_ii|
+
+END

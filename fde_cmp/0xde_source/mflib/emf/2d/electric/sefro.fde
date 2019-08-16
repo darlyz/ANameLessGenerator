@@ -1,0 +1,27 @@
+\ ------------------------------- equation --------------------------------------
+\ For static electric field in 2dxy(two dimensional polar coordinate system).
+\ Convect_part of Maxwell equations, the differential form of Gauss theorem:
+\                               div(D) = rho.
+\ -------------------------------------------------------------------------------
+DISP u
+COOR r o
+FUNC ux uy
+VECT gu ux uy
+SHAP %1 %2
+GAUS %3
+$CC double epsilon,rho;
+MATE epsilon rho 8.8541878e-12 0.0
+@L singular.ro n
+
+FUNC
+@L vol.ro n
+FVECT fe 2
+@L grad.ro f fe r o u
+@W gu fe
+
+STIF
+DIST=+[gu_i;gu_i]*vol*epsilon
+
+LOAD=+[u]*vol*rho
+
+END

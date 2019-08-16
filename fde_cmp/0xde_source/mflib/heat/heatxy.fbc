@@ -1,0 +1,23 @@
+﻿\ ............................heat_equation...............................
+\ For heat field in 2dxy(two dimensional cartesian coordinate system).
+\ full weak form is
+\         [ec*u,t;u]+[ek*grad(u);grad(u)]=[q;u]+|n·(ek*grad(u));u|
+\ ...................weak form of PDE on the boundary.....................
+\                       [lambda*u;u]=[lambda*te;u]
+\ means n·(ek*grad(u)) := lambda*(te-u), which is third kind of b.c.
+\ ........................................................................
+DEFI
+DISP u
+COOR x
+SHAP %1 %2
+GAUS %3
+$CC double lambda,te;
+MASS %1 0.0
+MATE lambda,te;1.0,0.0;
+
+STIF
+DIST=+[u;u]*lambda
+
+LOAD=+[u]*lambda*te
+
+END

@@ -1,0 +1,40 @@
+\--------------------------equation-----------------------------------------------
+\For incompressible fluid in 3drso(three dimensional spherical coordinate system).
+\Diffusion_part of Navier-Stokes equations
+\----------------------------------------------------------------------------------
+DISP u,v,w,p
+COOR r s o
+SHAP %1 %2
+SHAP %1 %4 p 1 2 3 4 5 6 7 8
+GAUS %3
+MASS %1 rou*vol rou*vol rou*vol 0
+FUNC ux uy uz vx vy vz wx wy wz div
+$CC double rou,emu,fx,fy,fz,bata,c2;
+MATE rou emu fx fy fz 1.0 0.1 0.0 0.0 0.0
+@L singular.rso n
+VECT e ux uy uz vx vy vz wx wy wz
+VECT div div
+FVECT fdiv 1
+VECT u u v w
+VECT x r s o
+VECT f fx fy fz
+FVECT fe 9
+$CC c2 = 1.0e-8;
+
+FUNC
+@L vol.rso n
+$CC bata = pow(det,2.0/3.0)*c2;
+@L div.rso f fdiv
+@W div fdiv
+@L gradv.rso f fe
+@W e fe
+
+STIF
+DIST=+[e_i;e_i]*emu*vol
+     +[div;p]*vol-[p;div]*vol
+     +[p;p]*bata*vol
+
+LOAD=+[u_i]*f_i*rou*vol
+
+END
+

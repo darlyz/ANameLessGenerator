@@ -1,0 +1,18 @@
+DEFI
+DISP u,v,w,p
+COOR x,y
+SHAP %1 %2
+SHAP %1 %4 p 1 2 3 4
+GAUS %3
+$CC double rou,emu,fu,fv,fw;
+MASS %1 rou rou rou l 0
+MATE rou emu fw 1.0;0.1;100.0;
+$CC fu=0.0;
+$CC fv=0.0;
+
+STIF
+DIST=+[u;u]*0.0
+
+LOAD=+[u]*fu+[v]*fv+[w]*fw
+
+END

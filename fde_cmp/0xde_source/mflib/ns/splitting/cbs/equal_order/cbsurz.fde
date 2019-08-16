@@ -1,0 +1,43 @@
+\--------------------------equation-----------------------------------------------
+\For incompressible fluid in 2drz(two dimensional axial symmetry coordinate system).
+\convect_part of Navier-Stokes equations
+\----------------------------------------------------------------------------------
+DISP u v p
+COOR r z
+SHAP %1 %2
+GAUS %3
+COEF un vn
+MASS %1 vol vol 0
+FUNC lu lv
+$CC double rou,emu,fx,fy,fu,fv,penaly;
+ARRAY vgun[5]
+MATE rou emu fx fy penaly 1.0 0.1 0.0 0.0 1.0e3
+@L singular.rz n
+VECT l lu lv
+VECT u u v
+VECT un un vn
+VECT x r z
+VECT f fu fv
+MATRIX mgun
+vgun[1] vgun[2]
+vgun[3] vgun[4]
+
+
+FUNC
+@L vol.rz n
+@L gradv.rz m vgun r z un vn
+$CV f_i = +mgun_i_j*un_j
+FVECT fvgu 5
+FMATR fmgu 2 2
+@L gradv.rz f fvgu r z u v
+@S fmgu fvgu 1 2 3 4
+FVECT fl 2
+@A fl_i = +[fmgu_i_j]*un_j
+@W l fl
+
+stiff
+null
+
+LOAD = -[u_i]*f_i*dt*vol-[l_i]*f_i*dt*dt/2*vol
+
+END

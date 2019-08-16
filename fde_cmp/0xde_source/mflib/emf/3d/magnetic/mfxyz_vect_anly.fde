@@ -1,0 +1,32 @@
+disp ax ay az
+vect a ax ay az
+coor x y z
+func axx axy axz ayx ayy ayz azx azy azz
+vect gax axx axy axz
+vect gay ayx ayy ayz
+vect gaz azx azy azz
+shap %1 %2
+gaus %3
+$cc double fmu,fjx,fjy,fjz;
+mate fmu fjx fjy fjz 12.56637e-7 0.0 0.0 0.0
+vect f fjx fjy fjz
+@l singular.xyz n
+ 
+func
+@l vol.xyz n
+fvect fgx 3
+@l grad.xyz f fgx x y z ax
+@w gax fgx
+fvect fgy 3
+@l grad.xyz f fgy x y z ay
+@w gay fgy
+fvect fgz 3
+@l grad.xyz f fgz x y z az
+@w gaz fgz
+ 
+stif
+dist=+[gax_i;gax_i]*vol+[gay_i;gay_i]*vol+[gaz_i;gaz_i]*vol
+ 
+load=+[a_i]*vol*fmu*f_i
+ 
+end

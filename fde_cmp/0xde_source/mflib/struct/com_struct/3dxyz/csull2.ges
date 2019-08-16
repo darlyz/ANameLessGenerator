@@ -1,0 +1,62 @@
+csull2
+DEFI
+DISP u  v  w  anx
+VAR  u1,v1,w1,anx1,any1,anz1,u2,v2,w2,anx2,any2,anz2
+COOR x
+REFC r
+NODE 2
+DORD 1,2,2,1
+$CC double tx,ty,tz,pe,pv,rou,alpha,ea,pa,pix,piy,piz,dfx,dfy,dfz,rmx,rmy,rmz,gj,gjx,eiy,eiz,eyz;
+MATE tx ty tz pe pv pa pix piy piz dfx dfy dfz rmx rmy rmz rou alpha 0. 0. 1. 1.e10 0.2 0.1 2.e-4 1.e-4 1.e-4 0. 0. 0. 0. 0. 0. 1000.0 0.6
+$A
+$CC gj = pe*0.5/(1.+pv);
+$CC ea = pe*pa;
+$CC gjx= gj*pix;
+$CC eiy= pe*piy;
+$CC eiz= pe*piz;
+
+SHAP
+u=
+u1  = (1.-r)/2.
+u2  = (1.+r)/2.
+
+v=
+v1  = (1.-r)*(2.-r-r*r)/4.
+v2  = (1.+r)*(2.+r-r*r)/4.
+anz1= {x/r}*(r+1.)*(r-1.)*(r-1.)/4.
+anz2= {x/r}*(r-1.)*(r+1.)*(r+1.)/4.
+
+w=
+w1  = (1.-r)*(2.-r-r*r)/4.
+w2  = (1.+r)*(2.+r-r*r)/4.
+any1=-{x/r}*(r+1.)*(r-1.)*(r-1.)/4.
+any2=-{x/r}*(r-1.)*(r+1.)*(r+1.)/4.
+
+anx=
+anx1 = (1.-r)/2.
+anx2 = (1.+r)/2.
+
+TRAN
+x=
+x(1) = (1.-r)/2.
+x(2) = (1.+r)/2.
+
+GAUS = 2  \
+ 1.  1.
+-1.  1.
+
+STIF
+DIST = \
+      +[u/x;u/x]*ea
+      +[v/x,x;v/x,x]*eiz
+      +[w/x,x;w/x,x]*eiy
+      +[anx/x;anx/x]*gjx
+
+LOAD = +[u]*dfx
+       +[v]*dfy
+       +[w]*dfz
+       +[v/x]*rmz
+       +[w/x]*rmy
+       +[anx]*rmx
+
+END

@@ -1,0 +1,26 @@
+class a
+class convention
+#
+coordinate s
+xy xyd rz ro rod rs so xyz roz rso
+#
+problem l
+static eps dep c sep n
+dynamic_wave epw dep n sep n
+dynamic_newmark epn dep n sep n
+#
+elemtype m
+q4 t3 q9 t6 { xy xyd rz ro rod rs so }
+c8 w4 c27 w10  { xyz roz rso }
+#
+boundary element m
+l2 l3 { xy xyd rz ro rod rs so }
+q4 t3 q9 t6 { xyz roz rso}
+#
+c++ a
+c get2dyield { xy xyd rz ro rod rs so }
+c get3dyield { xyz roz rso }
+#
+yield function s
+prager emises emohrc soft
+#

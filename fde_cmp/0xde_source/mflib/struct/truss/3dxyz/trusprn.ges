@@ -1,0 +1,41 @@
+trusprn
+\ nx,ny,nz normal vector
+\ ks stiffness
+DEFI
+DISP u,v,w
+VAR  u1,v1,w1
+REFC p,q,r
+COOR x,y,z
+FUNC s
+NODE 1
+$CC double nx,ny,nz,ks;
+MATE nx ny nz ks 1. 0. 0. 0. 0.
+$CC ^coorr[1][1] = 1.0;
+$CC ^coorr[2][1] = 1.0;
+$CC ^coorr[3][1] = 1.0;
+
+SHAP
+U=[1]u1
+
+v=[1]v1
+
+w=[1]w1
+
+TRAN
+x=[p]x(1)
+
+y=[q]y(1)
+
+z=[r]z(1)
+
+GAUS=1  1.,1.,1.,1.;
+
+FUNC
+s = [u]*nx+[v]*ny+[w]*nz
+
+STIF
+DIST=+[s;s]*ks
+
+LOAD=+[u]*0.0
+
+END

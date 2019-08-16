@@ -1,0 +1,19 @@
+coordinate s
+x r s xy rz ro rs so  xyz roz rso
+#
+class a
+class convention
+#
+problem l
+static les lapla c gl n
+#
+elemtype m
+l2 l3 { x r s }
+q4 t3 q9 t6 { xy rz ro rs so }
+c8 w4 c27 w10 { xyz roz rso }
+#
+boundary element m
+p1 { x r s }
+l2 l3 { xy }
+q4 t3 q9 t6 { xyz }
+#

@@ -1,0 +1,76 @@
+\ ............. elastic viscoustic equations ...................
+\ e,t = revD*s,t + revQ*s
+\ e(n+1) - e(n) = revD*(s(n+1)-s(n)) + revQ*s(n)*dt
+\ s(n+1)-s(n) = D*(e(n+1)-e(n)) - D*revQ*s(n)*dt
+\ ds = D*de - D*revQ*s(n)*dt
+\ where ds = s(n+1)-s(n), de = e(n+1)-e(n)
+\ in weak form
+\ (ds,de) = (D*de,de) - (D*revQ*dt*s(n),de)     (1)
+\ stress equation
+\ (s(n+1),de) = (ds,de) + (s(n),de) = (f,du)
+\ (ds,de) = (f,du) - (s(n),de)                  (2)
+\ substitute (1) into (2)
+\ ..............................................................
+\ (D*de,de) = (f,du) - (s(n),de) + (D*revQ*dt*s(n),de)
+\ ..............................................................
+\ for shear term
+\ D = 0.5-pv
+\ revQ = 1/yita
+\ D*revQ = D/yita
+\ ..............................................................
+DISP u v
+VECT u u v
+COOR r o
+VECT sv str[1] str[2]
+VECT sp str[3]
+FUNC exx eyy exy
+COMMON double ^inelm%1%2[nelem][m];
+VECT ev exx eyy
+VECT ep exy
+VECT f fx fy
+SHAP %1 %2
+GAUS %3
+$CC double pe,pv,fx,fy,rou,alpha,yita,csp,str[4];
+ARRAY ^d[2][2],^rq[2][2],snv[2],ssv[2]
+$CC static int init=0;
+$CC int m;
+$I
+$CC m = ngaus*3;
+$CC if (init==0) {
+$CC inelm%1%2 = (double *) calloc(nelem*m,sizeof(double));
+$CC for (i=0; i<nelem*m; ++i) inelm%1%2[i]=0.0;
+$CC init = 1; }
+@L singular.ro n
+MATE pe pv fx fy rou alpha yita 1.0e10 0.3 0.0 0.0 3000.0 0.6 1.0e23
+MATRIX sm 2 2
+1. pv
+pv 1.
+
+MATRIX revq 2 2
+1./4. (-1./4.)
+(-1./4.) 1./4.
+
+$CV ^rq_i_j = revq_i_j/yita
+
+FUNC
+@L vol.ro n
+$CC fact = pe/(1.+pv)/(1.-pv)*vol;
+$CC shear = (1.-pv)/2.*fact;
+$CC j = (igaus-1)*3;
+$CC for (i=1; i<=3; ++i) str[i]=^inelm%1%2[num][j+i];
+$CV ^d_i_j = sm_i_j*fact
+$CV snv_i = +^rq_i_j*sv_j
+$CV ssv_i = +^d_i_j*snv_j
+$CV ssv_i = ssv_i*dt - sv_i
+$CV csp = shear/yita*dt - 1.0
+FMATR fe 2 2
+@L gradv.ro f fe
+@W ev fe 1 4
+@A fe_i_j = +[fe_i_j]+[fe_j_i]
+@W ep fe 2
+STIF
+DIST = +[ev_i;ev_j]*^d_i_j*vol+[ep_i;ep_i]*shear*vol
+
+LOAD = +[u_i]*f_i*vol+[ev_i]*ssv_i+[ep_i]*csp*sp_i*vol
+
+END

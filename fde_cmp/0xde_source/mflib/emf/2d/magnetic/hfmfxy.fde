@@ -1,0 +1,29 @@
+\ ------------------------------- equation --------------------------------------
+\ For harmonic field in 2dxy(two dimensional cartesian coordinate system).
+\ Using least square method to compute electric field
+\                          H=-curl(Ez)/(i*omega*fmu)
+\ PS: Find electric field fist, magnetic field second.
+\ -------------------------------------------------------------------------------
+DISP hx hy
+VECT h hx hy
+COEF ezr ezi
+COOR x y
+SHAP %1 %2
+MASS %1 vol vol
+GAUS %3
+$CC double omega,fmu,curlexr,curlexi,curleyr,curleyi;
+MATE omega fmu 3.14159e2 12.56637e-7
+@L singular.xy n
+VECT curle curlex curley
+VECT curlezr curlexr curleyr
+VECT curlezi curlexi curleyi
+
+STIF
+@L vol.xy n
+@L vcurl.xy v curlezr x y ezr
+@L vcurl.xy v curlezi x y ezi
+DIST=+[hx;hx]*|0;0|
+
+LOAD=+[h_i]*vol/fmu/omega*|-curle_ii;curle_ir|
+
+END

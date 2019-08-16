@@ -1,0 +1,97 @@
+\2d elasto_plastic model for stress
+DISP sxx syy sxy sq did
+COOR r o
+COEF un vn
+COMMON extern double *inelm%1%2
+VECT s sxx syy sxy
+\ .... where ddf denote d*df/ds
+VECT ddfv ddf[1] ddf[2]
+VECT ddfp ddf[3]
+VECT uk sq did
+VECT fk str[4] eid
+VECT str str[1] str[2] str[3]
+VECT strv str[1] str[2]
+VECT strp str[3]
+VECT dsv ds[1] ds[2]
+VECT dsp ds[3]
+SHAP %1 %2
+GAUS %3
+$CC double pe,pv,fx,fy,qnn,rou,alpha,t0,time1,a,b,prag,dln,eid,cv,cp,epp,eyp,wpp;
+$CC int kq,ntime,ialpha;
+$CC extern double getyield(double *,double *,double *,double,double *,
+$CC int,double (*f)(),int);
+$CC extern double %4(double *,double *);
+MASS %1 vol
+ARRAY dev[2],dep[1],ds[3],dspv[2],dspp[1],dpv[2],dpp[1],^e[2][2],^d[2][2]
+$CC double ddf[4],p[5],str[5];
+@L singular.ro n
+MATE pe pv fx fy p[1] p[2] p[4] qnn rou alpha \
+1.0e10;0.3;0;0;0.2;1000;0;2;3000;0.6;
+$CC kq=qnn+0.5;
+$CC p[3]=0.0;
+MATRIX sm 2 2
+1. pv
+pv 1.
+
+
+STIF
+$CC fact=pe/(1.0+pv)/(1.0-pv);
+$CC shear=(0.5-0.5*pv)*fact;
+$CV ^d_i_j=+sm_i_j*fact
+@L vol.ro n
+$CC j = (num-1)*ngaus*4+(igaus-1)*4;
+$CC for (i=1; i<=4; ++i) str[i]=inelm%1%2[j+i];
+@L gradv.ro m ^e r o un vn
+$CV dev_i=+^e_i_i
+$CC dep[1]=^e[1][2]+^e[2][1];
+$CV dsv_i=+^d_i_j*dev_j
+$CV dsp_i=shear*dep_i
+$CV str_i=str_i+ds_i
+$CC ialpha=0;
+$CC a=getyield(p,str,d,shear,ddf,kq,%4,ialpha);
+$CC prag=%4(p,str);
+$CC dln=ddf[1]*dev[1]+ddf[2]*dev[2]+ddf[3]*dep[1]+prag;
+$CC if (dln>0.0) {
+$CC  b=1.0/a;
+$CC  eid=-1.0;
+$CV dsv_i=+b*ddfv_i*ddfv_j*dev_j
+$CV dsp_i=+b*ddfp_i*ddfp_i*dep_i
+$CV strv_i=strv_i-dsv_i-ddfv_i*prag*b
+$CV strp_i=strp_i-dsp_i-ddfp_i*prag*b
+$CC a=getyield(p,str,d,shear,ddf,kq,%4,ialpha);
+$CV cv=+ddfv_i*dev_i
+$CV cp=+ddfp_i*dep_i
+$CV dspv_i=ddfv_i*(cv+cp)*b
+$CV dspp_i=ddfp_i*(cv+cp)*b
+$CC  det = invm(2,d,e);
+$CV ^d_i_j = ^e_i_j
+$CV dpv_i=+^d_i_j*dspv_j
+$CV dpp_i=dspp_i/shear
+$CC switch (kq)
+$CC {
+$CC case 2:
+$CV epp=+dpv_i
+$CC str[4]=epp+str[4];
+$CC  break;
+$CC case 3:
+$CV eyp=+dpv_i*dpv_i
+$CV eyp=eyp+dpp_i*dpp_i
+$CC str[4]=sqrt(eyp)+str[4];
+$CC  break;
+$CC default:
+$CV wpp=+dpv_i*strv_i
+$CV wpp=wpp+dpp_i*strp_i
+$CC str[4]=wpp+str[4];
+$CC  break;
+$CC }
+$CC } else {
+$CC  b=0.0;
+$CC  eid=1.0;
+$CC }
+$CC j = (num-1)*ngaus*4+(igaus-1)*4;
+$CC for (i=1; i<=4; ++i) inelm%1%2[j+i]=str[i];
+DIST=+[sxx;sxx]*0.0
+
+LOAD=+[s_i]*str_i*vol+[uk_i]*fk_i*vol
+
+END

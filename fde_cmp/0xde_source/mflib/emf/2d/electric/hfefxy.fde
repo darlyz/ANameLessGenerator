@@ -1,0 +1,34 @@
+\ ------------------------------- equation --------------------------------------
+\ For time harmonic field in 2dxy(two dimensional cartesian coordinate system).
+\ Using least square method to compute electric field
+\                 E = 1/(sigma+i*omega*epsilon)*(curl(Hz)-js)
+\ PS: Find magnetic field fist, electric field second.
+\ -------------------------------------------------------------------------------
+DISP ex ey
+COEF hzr hzi
+COOR x y
+SHAP %1 %2
+GAUS %3
+MASS %1 vol vol
+$CC double sigma,epsilon,omega,fjxr,fjxi,fjyr,fjyi;
+$CC double ai,ar,curlhxr,curlhxi,curlhyr,curlhyi,fxr,fxi,fyr,fyi;
+MATE sigma epsilon omega fjxr fjxi fjyr fjyi 5.96e7 8.8541878e-12 3.14159e2 0.0 0.0 0.0 0.0
+@L singular.xy n
+VECT curlh curlhx curlhy
+VECT curlhzr curlhxr curlhyr
+VECT curlhzi curlhxi curlhyi
+VECT js fjx fjy
+VECT f fx fy
+$CC ar=sigma;
+$CC ai=omega*epsilon;
+
+STIF
+@L vol.xy n
+@L vcurl.xy v curlhzr x y hzr
+@L vcurl.xy v curlhzi x y hzi
+$CP f_i=+curlh_i/a-js_i/a
+DIST=+[ex;ex]*|0;0|
+
+LOAD=+[ex]*vol*|fxr;fxi|+[ey]*vol*|fyr;fyi|
+
+END
