@@ -806,6 +806,9 @@ def write_func(ges_dict, xde_dict, gesfile):
     if 'func' in ges_dict['code']:
         for strs in ges_dict['code']['func']:
 
+            if re.match(r'array', strs, re.I) != None:
+                strs = strs.replace('array','').lstrip()
+
             if strs[0] == '$':
                 gesfile.write(strs)
 
@@ -1033,6 +1036,8 @@ def xde2ges(ges_info, xde_dict, ges_dict, gesfile):
     # 7 write code after mate declaration
     if 'AFmate' in ges_dict['code']:
         for strs in ges_dict['code']['AFmate']: 
+            if re.match(r'array', strs, re.I) != None:
+                strs = strs.replace('array','').lstrip()
             gesfile.write(strs)
 
     if 'singular' in xde_dict:
@@ -1103,6 +1108,8 @@ def xde2ges(ges_info, xde_dict, ges_dict, gesfile):
 
             if key_word in ges_dict['code']:
                 for strs in ges_dict['code'][key_word]:
+                    if re.match(r'array', strs, re.I) != None:
+                        strs = strs.replace('array','').lstrip()
                     gesfile.write(strs)
             
             if   ges_dict[key_word][0] == 'dist':
