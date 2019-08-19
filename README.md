@@ -1,7 +1,4 @@
-# NewFelacGenerator
-New Felac Generator 
-
-A new generator for felac
+# A NameLess Generator
 
 use like:
 
