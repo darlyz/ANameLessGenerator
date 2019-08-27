@@ -1,6 +1,6 @@
 '''
  Copyright: Copyright (c) 2019
- Created: 2019-3-30
+ Created: 2019-8-15
  Author: Zhang_Licheng
  Title: parse the sch file and check it
  All rights reserved
@@ -27,7 +27,7 @@ def parse_sch(sch_dict, sch_addr, schfile):
 
     # a simple parsing feature sentence to list
     # and check the duplicated of some feature declaration
-    #sec_parse(sch_dict, sch_addr)
+    sec_parse(sch_dict, sch_addr)
     
     # fully check all features 
     #if gen_obj['check'] > 0:
@@ -82,7 +82,7 @@ def pre_parse(sch_dict, sch_addr, schfile):
             key_match = matched_key.group()
             key_lower = key_match.lower()
 
-            if key_lower in ['equation', 'solution', '@subet', '@head', '@nbde']:
+            if key_lower in ['equation', '@subet', '@head', '@nbde']:
 
                 keywd_tag['paragraph'] = key_lower
 
@@ -106,6 +106,17 @@ def pre_parse(sch_dict, sch_addr, schfile):
                 sch_dict['coef'] = line.replace(key_match,'').lstrip()
                 sch_addr['coef'] = line_i
 
+            elif key_lower == 'solution':
+
+                keywd_tag['paragraph'] = 'solution'
+
+                if 'solution' not in sch_dict:
+                    sch_dict['solution'] = []
+                    sch_addr['solution'] = []
+
+                sch_dict['solution'].append( line.replace(key_match,'').lstrip() )
+                sch_addr['solution'].append( line_i )
+
 
         # find the non-keyword-head line in 'EQUATION' 'SOLUTION' '@SUBET', '@head' and '@NBDE' paragraph
         else:
@@ -116,6 +127,89 @@ def pre_parse(sch_dict, sch_addr, schfile):
 
     export_parsing_result('pre', sch_dict, sch_addr)
 # end pre_parse()
+
+def sec_parse(sch_dict, sch_addr):
+
+    # parse equation paragraph
+    equa_list = sch_dict['equation'].copy()
+    equa_addr = sch_addr['equation'].copy()
+
+    sch_dict['equation'] = {}
+    sch_addr['equation'] = {}
+
+    equa_pattern = re.compile(r'VECT|READ|MATRIX|FORC',re.I)
+
+    for equa_i, equa_str in enumerate(equa_list):
+
+        matched_key = equa_pattern.match(equa_str).group()
+        
+        if matched_key != None:
+
+            key_lower = matched_key.lower()
+
+            equa_str  = equa_str.replace(matched_key,'').lstrip()
+
+            if key_lower == 'vect':
+
+                if 'vect' not in sch_dict['equation']:
+                    sch_dict['equation']['vect'] = []
+                    sch_addr['equation']['vect'] = []
+
+                sch_dict['equation']['vect'].append(equa_str.split(','))
+                sch_addr['equation']['vect'].append(equa_addr[equa_i])
+
+            elif key_lower == 'read':
+
+                if 'read' not in sch_dict['equation']:
+                    sch_dict['equation']['read'] =[]
+                    sch_addr['equation']['read'] =[]
+
+                sch_dict['equation']['read'].append(equa_str)
+                sch_addr['equation']['read'].append(equa_addr[equa_i])
+
+            elif key_lower in ['matrix','forc']:
+
+                if key_lower not in sch_dict['equation']:
+                    sch_dict['equation'][key_lower] = []
+                    sch_addr['equation'][key_lower] = []
+
+                sch_dict['equation'][key_lower].append(equa_str.lstrip('=').lstrip())
+                sch_addr['equation'][key_lower].append(equa_addr[equa_i])
+
+    # parse solution paragraph
+    equa_list = sch_dict['solution'].copy()
+    equa_addr = sch_addr['solution'].copy()
+
+    sch_dict['solution'] = {}
+    sch_addr['solution'] = {}
+
+    for equa_i, equa_str in enumerate(equa_list):
+
+        if equa_i == 0:
+            sch_dict['solution']['obj'] = equa_str
+            sch_addr['solution']['obj'] = equa_addr[equa_i]
+
+        else:
+            if re.match(r'VECT',equa_str, re.I) != None:
+
+                if 'vect' not in sch_dict['solution']:
+                    sch_dict['solution']['vect'] = []
+                    sch_addr['solution']['vect'] = []
+
+                sch_dict['solution']['vect'].append(equa_str[4:].lstrip().split(','))
+                sch_addr['solution']['vect'].append(equa_addr[equa_i])
+
+            else:
+
+                if 'code' not in sch_dict['solution']:
+                    sch_dict['solution']['code'] = []
+                    sch_addr['solution']['code'] = []
+
+                sch_dict['solution']['code'].append(equa_str)
+                sch_addr['solution']['code'].append(equa_addr[equa_i])
+
+    export_parsing_result('sec', sch_dict, sch_addr)
+# end sec_parse()
 
 
 def export_parsing_result(stage, xde_dict, xde_addr):

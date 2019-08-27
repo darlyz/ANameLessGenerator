@@ -22,7 +22,7 @@ gen_obj = { 'Ccode': 1, \
             'md'   : 0, \
             'check': 1, }
 
-def gensch(schname, fieldSN):
+def gensch(schname, fieldSN, objname, elem_func_list):
 
     # start parsing
     start = time()
@@ -39,11 +39,15 @@ def gensch(schname, fieldSN):
     if error: return
 
     # generate c by ges_dict
-    #if gen_obj['Ccode'] > 0:
-    #    from sch2c import sch2c
-    #    cfile = open(c_folder + schname + '.c', mode = 'w')
-    #    ges2c(sch_dict, cfile)
-    #    cfile.close()
+    if gen_obj['Ccode'] > 0:
+        from sch2c import sch2ec
+        cfile = open(c_folder + f'e{objname}{fieldSN}.c', mode = 'w')
+        sch2ec(sch_dict, fieldSN, objname, elem_func_list, cfile)
+        cfile.close()
+        #from sch2c import sch2uc
+        #cfile = open(c_folder + 'u' + schname + '.c', mode = 'w')
+        #sch2uc(sch_dict, cfile)
+        #cfile.close()
 
     # generate html by xde element to preview
     #if gen_obj['html'] > 0:
@@ -81,8 +85,10 @@ def main(argvs=None):
 
     schname = argvs[1].replace('\\','/').rstrip('/')
     fieldSN = argvs[2]
+    objname = argvs[3]
+    elem_func_list = argvs[4:]
 
-    gensch(schname, fieldSN)
+    gensch(schname, fieldSN, objname, elem_func_list)
 
 if __name__ == "__main__":
     exit(main())
