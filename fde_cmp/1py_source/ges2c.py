@@ -5,6 +5,7 @@
  Title: generate c code file from ges
  All rights reserved
 '''
+# need to improve at tag @!
 import re
 
 tab = ' '*4
@@ -239,12 +240,12 @@ def ges2c(ges_info, ges_dict, cfile):
     cfile.write(f'{tab}{tab}/* .... the following is the shape function transformation\n')
     cfile.write(f'{tab}{tab}      .... from reference coordinates to original coordinates */\n')
     for disp in ges_dict['disp']:
-        cfile.write(f'{tab}{tab}shapn(nrefc,ncoor,{node_num},&r{disp}[ig_{disp}],c{disp},crtr,{1},{4},{4});\n') # need to certify '1 4 4' means
+        cfile.write(f'{tab}{tab}shapn(nrefc,ncoor,{node_num},&r{disp}[ig_{disp}],c{disp},crtr,{1},{4},{4});\n') # need to certify '1 4 4' means @!
 
     if 'coef' in ges_dict:
         cfile.write(f'{tab}{tab}/* .... the coef function transformation\n')
         cfile.write(f'{tab}{tab}  .... from reference coordinates to original coordinates */\n')
-        cfile.write(f'{tab}{tab}shapc(nrefc,ncoor,{coef_num},coefd,coefc,crtr,{2},{9},{9});\n') # need to certify '2 9 9' means
+        cfile.write(f'{tab}{tab}shapc(nrefc,ncoor,{coef_num},coefd,coefc,crtr,{2},{9},{9});\n') # need to certify '2 9 9' means @!
 
     cfile.write( f'{tab}{tab}weigh=det*gaus[igaus];\n')
 
@@ -316,7 +317,7 @@ def ges2c(ges_info, ges_dict, cfile):
         cfile.write(f"double *refc,shpr[{(dim+1)*gaus_num}];\n")
         cfile.write("{\n")
         cfile.write(f"    double (*shap)(double *,int)=&fshap_{shap};\n")
-        cfile.write(f"    dshap(shap,refc,shpr,{dim},{gaus_num},{1});\n") # 1 maybe the derivative order
+        cfile.write(f"    dshap(shap,refc,shpr,{dim},{gaus_num},{1});\n") # 1 maybe the derivative order @!
         cfile.write(f"    return;\n")
         cfile.write("}\n")
 
@@ -349,7 +350,7 @@ def ges2c(ges_info, ges_dict, cfile):
     cfile.write(f"static void tran_coor(double *refc,double *coor,double *coorr,double *rc)\n")
     cfile.write("{\n")
     cfile.write(f"{tab}double (*shap)(double *,int)=&ftran_coor;\n")
-    cfile.write(f"{tab}dcoor(shap,refc,coor,rc,{dim},{dim},{1});\n") # 1 maybe the derivative order
+    cfile.write(f"{tab}dcoor(shap,refc,coor,rc,{dim},{dim},{1});\n") # 1 maybe the derivative order @!
     cfile.write(f"{tab}return;\n")
     cfile.write("}\n")
 

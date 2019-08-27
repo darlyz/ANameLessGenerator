@@ -72,12 +72,35 @@ def check_xde(ges_info, xde_dict, xde_addr):
 
     # check mate
     if 'mate' in xde_dict:
+
         var_not_declare = set()
+        mate_var_list = []
+        mate_val_list = []
+
         for var in xde_dict['mate']:
-            if re.match(r'\^?[a-z]\w*(?:\[\d\])*', var, re.I) != None :
+
+            if not is_number(var) :
+                mate_var_list.append(var)
                 add_var_not_declared(var, c_declares['BFmate'], var_not_declare)
+
+            else:
+                mate_val_list.append(var)
+
+        line_num   = xde_addr['mate']
+
+        if len(mate_val_list) > len(mate_var_list):
+            sgest_info = f"redundant values, {Empha_color}" \
+                       + f"'{','.join(mate_val_list[mate_var_list.index(mate_var_list[-1])+1:])}' " \
+                       + f"{Warnn_color}will be discarded.\n"
+            report_warn('MWN01',line_num, sgest_info)
+
+        elif len(mate_val_list) < len(mate_var_list):
+            sgest_info = f"lack values, {Empha_color}" \
+                       + f"'{','.join(mate_var_list[mate_val_list.index(mate_val_list[-1])+1:])}' " \
+                       + f"{Warnn_color}will be assigned by {Empha_color}'0.0'.\n"
+            report_warn('MWN02',line_num, sgest_info)
+
         if len(var_not_declare) != 0:
-            line_num   = xde_addr['mate']
             error_type = not_declared(','.join(var_not_declare), 'Error')
             sgest_info = f"Must be declared befor {line_num}.\n"
             report_error('MND01', line_num, error_type + '\n')
