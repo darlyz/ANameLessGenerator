@@ -1,0 +1,119 @@
+{
+    "defi": {
+        "stif": "s",
+        "mass": "m",
+        "damp": "c",
+        "load": "f",
+        "type": "w",
+        "mdty": "l",
+        "init": "2"
+    },
+    "coef": [
+        "uu1"
+    ],
+    "equation": {
+        "vect": [
+            [
+                "u1",
+                "v1",
+                "u",
+                "du",
+                "uu1"
+            ]
+        ],
+        "read": [
+            "(s,unod) u1,v1,u,du,uu1"
+        ],
+        "matrix": [
+            "[s]*dt*dt/4+[c]*dt/2+[m]"
+        ],
+        "forc": [
+            "[f]*dt*dt/2+[m*u1]+[m*v1]*dt+[c*u1]*dt/2-[s*u1]*dt*dt/4+[s*u]*dt*dt/2"
+        ]
+    },
+    "solution": {
+        "obj": "v",
+        "vect": [
+            [
+                "v",
+                "gu"
+            ],
+            [
+                "u",
+                "u1",
+                "v1",
+                "ue",
+                "du",
+                "uu1",
+                "v"
+            ]
+        ],
+        "code": [
+            "READ(s,unod) u1,v1,u,du,uu1",
+            "[ue]=[v]-[u]",
+            "$CC if (it==1 && itn==1) {",
+            "[du]=0.0",
+            "$CC }",
+            "$CC aa = 0.0;",
+            "$CC ab = 0.0;",
+            "$CC bb = 0.0;",
+            "%NOD",
+            "%DOF",
+            "aa = aa+[ue]*[ue];",
+            "ab = ab+[ue]*[du];",
+            "bb = bb+[du]*[du];",
+            "%DOF",
+            "%NOD",
+            "#sum double aa ab bb",
+            "$CC err = aa;",
+            "$CC if (itn==1) cc = 1.0;",
+            "$CC if (itn>1) {",
+            "$CC rab = sqrt(aa)*sqrt(bb);",
+            "$CC if (ab>0.5*rab) cc = cc*2.0;",
+            "$CC if (ab>0.8*rab) cc = cc*2.0;",
+            "$CC if (ab<0.0) cc = cc*0.5;",
+            "$CC if (ab<-0.40*rab) cc = cc*0.5;",
+            "$CC if (ab<-0.80*rab) cc = cc*0.5;",
+            "$CC }",
+            "$CC if (cc>1.0) cc = 1.0;",
+            "$CC ul = 0.0;",
+            "%NOD",
+            "%DOF",
+            "[ue] = [ue]*cc;",
+            "[v] = [u]+[ue];",
+            "ul = ul + [u]*[u];",
+            "%DOF",
+            "%NOD",
+            "#sum double ul",
+            "[v1]=[v]/dt-[u1]/dt",
+            "[u]=[v]",
+            "[uu1]=[u]-[u1]",
+            "$CC if (err<tolerance || err<tolerance*ul || itn>itnmax) end = 1;",
+            "#min int end",
+            "$CC if (end==1){",
+            "[u1]=[v]",
+            "$CC if (time_now<1.5*dt) {",
+            "[gu]=0.0",
+            "WRITE(n,unodg) gu",
+            "$CC } else {",
+            "READ(s,unodg) gu",
+            "$CC }",
+            "[gu]=[gu]+[u1]",
+            "WRITE(o,unodg) gu",
+            "$CC itn=1;",
+            "[du] = 0.0",
+            "$CC } else {",
+            "[du] = [ue]",
+            "$CC itn=itn+1;",
+            "$CC }",
+            "WRITE(o,unod) u1,v1,u,du,uu1"
+        ]
+    },
+    "@subet": [
+        "double aa,bb,ab,rab,err,ul;",
+        "static double cc;"
+    ],
+    "@head": [
+        "double *unodg;"
+    ]
+}
