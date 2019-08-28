@@ -22,7 +22,7 @@ gen_obj = { 'Ccode': 1, \
             'md'   : 0, \
             'check': 1, }
 
-def gensch(schname, fieldSN, objname, elem_func_list):
+def gensch(schname, fieldSN, objname, elem_func_list, coef_vars_list):
 
     # start parsing
     start = time()
@@ -33,8 +33,8 @@ def gensch(schname, fieldSN, objname, elem_func_list):
 
     # parse sch
     from parse_sch import parse_sch
-    schfile = open(sch_folder + schname + '.sch', mode='r',encoding='gb18030', errors='ignore')
-    error = parse_sch(sch_dict, sch_addr, schfile)
+    schfile = open(sch_folder + schname, mode='r',encoding='gb18030', errors='ignore')
+    error = parse_sch(sch_dict, sch_addr, coef_vars_list, schfile)
     schfile.close()
     if error: return
 
@@ -83,12 +83,45 @@ def main(argvs=None):
     #    command_help()  
     #    return
 
-    schname = argvs[1].replace('\\','/').rstrip('/')
-    fieldSN = argvs[2]
-    objname = argvs[3]
-    elem_func_list = argvs[4:]
+    elem_func_list = []
+    coef_vars_list = []
+    objname = 'untitled'
+    fieldSN = 'a'
+    schname = ''
 
-    gensch(schname, fieldSN, objname, elem_func_list)
+    key_pattern = re.compile(r'-(?:sch|SN|obj|efunc|coef)=',re.I)
+
+    for strs in argvs[1:]:
+
+        key_matched = key_pattern.match(strs)
+
+        if key_matched != None:
+
+            key_matched = key_matched.group()
+            key_lower   = key_matched.lower()
+
+            if key_lower == '-sch=':
+                schname = strs.replace(key_matched,'').replace('\\','/').rstrip('/')
+
+            elif key_lower == '-sn=':
+                fieldSN = strs.replace(key_matched,'')
+
+            elif key_lower == '-obj=':
+                objname = strs.replace(key_matched,'')
+
+            elif key_lower == '-efunc=':
+                elem_func_list = strs.replace(key_matched,'').split(',')
+
+            elif key_lower == '-coef=':
+                coef_vars_list = strs.replace(key_matched,'').split(',')
+
+    if schname == '':
+        return
+
+    if len(elem_func_list) == 0:
+        return
+
+    gensch(schname, fieldSN, objname, elem_func_list, coef_vars_list)
 
 if __name__ == "__main__":
     exit(main())

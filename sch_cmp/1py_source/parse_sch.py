@@ -18,7 +18,7 @@ from gensch import gen_obj, ifo_folder
 dict_check = {'pre':1, 'sec':1, 'fnl':1}
 addr_check = {'pre':1, 'sec':1, 'fnl':1}
 
-def parse_sch(sch_dict, sch_addr, schfile):
+def parse_sch(sch_dict, sch_addr, coef_vars_list, schfile):
 
     # parse xde to features and workflow features
     # just push the sentence into dict
@@ -35,7 +35,7 @@ def parse_sch(sch_dict, sch_addr, schfile):
     #        return True
  
     # parse features into a readable and transable style
-    #fnl_parse(sch_dict, sch_addr)
+    fnl_parse(sch_dict, sch_addr, coef_vars_list)
 
     return False
 
@@ -137,7 +137,7 @@ def sec_parse(sch_dict, sch_addr):
     sch_dict['equation'] = {}
     sch_addr['equation'] = {}
 
-    equa_pattern = re.compile(r'VECT|READ|MATRIX|FORC',re.I)
+    equa_pattern = re.compile(r'VECT|VAR|READ|MATRIX|FORC',re.I)
 
     for equa_i, equa_str in enumerate(equa_list):
 
@@ -149,14 +149,14 @@ def sec_parse(sch_dict, sch_addr):
 
             equa_str  = equa_str.replace(matched_key,'').lstrip()
 
-            if key_lower == 'vect':
+            if key_lower in ['vect', 'var']:
 
                 if 'vect' not in sch_dict['equation']:
-                    sch_dict['equation']['vect'] = []
-                    sch_addr['equation']['vect'] = []
+                    sch_dict['equation'][key_lower] = []
+                    sch_addr['equation'][key_lower] = []
 
-                sch_dict['equation']['vect'].append(equa_str.split(','))
-                sch_addr['equation']['vect'].append(equa_addr[equa_i])
+                sch_dict['equation'][key_lower].append(equa_str.split(','))
+                sch_addr['equation'][key_lower].append(equa_addr[equa_i])
 
             elif key_lower == 'read':
 
@@ -208,8 +208,133 @@ def sec_parse(sch_dict, sch_addr):
                 sch_dict['solution']['code'].append(equa_str)
                 sch_addr['solution']['code'].append(equa_addr[equa_i])
 
+    # parse coef paragraph
+    sch_dict['coef'] = sch_dict['coef'].split(',')
+
     export_parsing_result('sec', sch_dict, sch_addr)
 # end sec_parse()
+
+def fnl_parse(sch_dict, sch_addr, coef_vars_list):
+
+    # set default defi if not declared
+    if 'stif' not in sch_dict['defi']:
+        sch_dict['defi']['stif'] = 's'
+
+    if 'mass' not in sch_dict['defi']:
+        sch_dict['defi']['mass'] = 'm'
+
+    if 'damp' not in sch_dict['defi']:
+        sch_dict['defi']['damp'] = 'c'
+
+    if 'load' not in sch_dict['defi']:
+        sch_dict['defi']['load'] = 'f'
+
+    if 'type' not in sch_dict['defi']:
+        sch_dict['defi']['type'] = 'w'
+
+    if 'mdty' not in sch_dict['defi']:
+        sch_dict['defi']['mdty'] = 'l'
+
+    if 'init' not in sch_dict['defi']:
+        sch_dict['defi']['init'] = '0'
+
+    # add coef var defined by gcn
+    if len(coef_vars_list) != 0:
+
+        if 'coef' not in sch_dict:
+            sch_dict['coef']  = coef_vars_list.copy()
+
+        else:
+            sch_dict['coef'] += coef_vars_list.copy()
+
+        if 'var' not in sch_dict['equation']:
+            sch_dict['equation']['var'] = []
+            sch_addr['equation']['var'] = []
+
+        sch_dict['equation']['var'] .append( coef_vars_list.copy() )
+        sch_addr['equation']['var'] .append( -1 )
+
+    stif = sch_dict['defi']['stif']
+    mass = sch_dict['defi']['mass']
+    damp = sch_dict['defi']['damp']
+    load = sch_dict['defi']['load']
+
+    # parse matrix to split stif, mass, damp
+    matr_item = re.split  (r'[+-]', sch_dict['equation']['matrix'][0])
+    matr_sign = re.findall(r'[+-]', sch_dict['equation']['matrix'][0])
+
+    for m, sign in enumerate(matr_sign):
+        matr_item[m+1] = sign + matr_item[m+1]
+
+    if matr_item[0] == '':
+        matr_item.pop(0)
+
+    if matr_item[0][0] == '[':
+        matr_item[0] = '+' + matr_item[0]
+
+    sch_dict['equation']['matrix'].clear()
+    sch_dict['equation']['matrix'] = {}
+
+    matr_pattern = f"\\[(?:{stif}|{mass}|{damp})\\]"
+    matr_pattern = re.compile(matr_pattern)
+
+    for matr in matr_item:
+
+        matr_str = matr_pattern.search(matr)
+
+        if matr_str is not None:
+
+            matr_str = matr_str.group()
+            matr_str = matr_str.lstrip('[').rstrip(']')
+
+            for smatr in ['stif', 'mass', 'damp']:
+
+                if matr_str == sch_dict['defi'][smatr]:
+
+                    if smatr not in sch_dict['equation']['matrix']:
+                        sch_dict['equation']['matrix'][smatr] = []
+
+                    sch_dict['equation']['matrix'][smatr].append(matr)
+
+    # parse matrix to split stif, mass, damp, load
+    matr_item = re.split  (r'[+-]', sch_dict['equation']['forc'][0])
+    matr_sign = re.findall(r'[+-]', sch_dict['equation']['forc'][0])
+
+    for m, sign in enumerate(matr_sign):
+        matr_item[m+1] = sign + matr_item[m+1]
+
+    if matr_item[0] == '':
+        matr_item.pop(0)
+
+    if matr_item[0][0] == '[':
+        matr_item[0] = '+' + matr_item[0]
+
+    sch_dict['equation']['forc'].clear()
+    sch_dict['equation']['forc'] = {}
+
+    matr_pattern = f"\\[(?:{load}|{stif}\\*\\w+|{mass}\\*\\w+|{damp}\\*\\w+)\\]"
+    matr_pattern = re.compile(matr_pattern)
+
+    for matr in matr_item:
+
+        matr_str = matr_pattern.search(matr)
+
+        if matr_str is not None:
+
+            matr_str = matr_str.group()
+            matr_str = matr_str.lstrip('[').rstrip(']').split('*')[0]
+
+            for smatr in ['stif', 'mass', 'damp', 'load']:
+
+                if matr_str == sch_dict['defi'][smatr]:
+
+                    if smatr not in sch_dict['equation']['forc']:
+                        sch_dict['equation']['forc'][smatr] = []
+
+                    sch_dict['equation']['forc'][smatr].append(matr)
+
+    export_parsing_result('fnl', sch_dict, sch_addr)
+# end fnl_parse()
 
 
 def export_parsing_result(stage, xde_dict, xde_addr):
