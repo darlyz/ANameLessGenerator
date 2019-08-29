@@ -1,7 +1,7 @@
-# NewFelacGenerator
-New Felac Generator
+# Generator
+A Generator
 
-A new generator for felac
+A new generator
 
 need python3.6 or updated version
 
@@ -38,9 +38,6 @@ need python3.6 or updated version
 | ./fde_cmp/ges             |    generated ges file by this version                           |
 | ./fde_cmp/temp            |    some middle file to check python source                      |
 | ./fde_cmp/felac_lib       |    gaussian, shape functions, operators library                 |
-
-#### Contact: 
-support@yuanjisuan.cn
 
 #### Note：
 not all function released
