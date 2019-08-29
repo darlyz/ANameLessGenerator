@@ -1,0 +1,1 @@
+pyinstaller -i test.ico -F expr.py genxde.py parse_xde.py xde2ges.py -n genxde.exe

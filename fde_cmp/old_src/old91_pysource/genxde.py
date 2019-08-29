@@ -11,10 +11,10 @@ from time import time
 import re
 
 # default folder
-xde_folder = '../scripts/check/'
-ges_folder = '../ges/'
-c_folder   = '../Ccode/'
-ifo_folder = '../temp/'
+xde_folder = '../0xde_source/'
+ges_folder = '../2ges_target/'
+c_folder   = '../3c_target/'
+ifo_folder = '../4other_gen_file/'
 
 gen_obj = { 'ges'  : 1, \
             'Ccode': 0, \
@@ -83,7 +83,7 @@ def genxde(xdename, gesname, coortype):
     error = parse_xde(ges_info, xde_dict, xde_addr, xdefile)
     xdefile.close()
     if error: return
-    
+
     # parse ges
     from xde2ges import xde2ges_dict
     error = xde2ges_dict(ges_info, xde_dict, xde_addr, ges_dict)
@@ -135,34 +135,34 @@ def command_help():
     from os import get_terminal_size
     maxcol = get_terminal_size().columns - 10
 
-    print('\n')
-    print("Command as 'genxde (parameter) (address)[xdename] (address)[gesname] [coortype]',")
-    print("where 'address' is file address if necessary, and 'parameter' is optional as:\n")
+    print("* command as \n  'genxde (parameter) (address)[xdename] (address)[gesname] [coortype]',")
+    print(               "  'genxde (parameter) (address)[mdiname] (address)[xdename]',")
+    print("  where 'address' is file address if necessary, and 'parameter' is optional as:\n")
 
-    auto_line_break_print(maxcol, 12, '  -ges[=1]', \
+    auto_line_break_print(maxcol, 10, '-ges[=1]', \
         "generate ges file when '-ges=1' or '-ges', no ges output when '-ges=0', and default by '-ges=1'.")
-    '''
-    auto_line_break_print(maxcol, 12, '  -Ccode[=1]', \
+
+    auto_line_break_print(maxcol, 10, '-Ccode[=1]', \
         "generate c code file when '-Ccode=1' or '-Ccode', and default by '-Ccode=0'.")
 
-    auto_line_break_print(maxcol, 12, '  -Fcode[=1]', \
+    auto_line_break_print(maxcol, 10, '-Fcode[=1]', \
         "generate c code file when '-Fcode=1' or '-Fcode', and default by '-Fcode=0'.")
 
-    auto_line_break_print(maxcol, 12, '  -xml[=1]', \
+    auto_line_break_print(maxcol, 10, '-xml[=1]', \
         "generate xml file when '-xml=1' or '-xml', and default by '-xml=0'.")
 
-    auto_line_break_print(maxcol, 12, '  -html[=1]', \
+    auto_line_break_print(maxcol, 10, '-html[=1]', \
         "generate html file to preview when '-html=1' or '-html', and default by '-html=0'.")
 
-    auto_line_break_print(maxcol, 12, '  -md[=1]', \
+    auto_line_break_print(maxcol, 10, '-md[=1]', \
         "generate html file to preview when '-md=1' or '-md', and default by '-md=0'.")
-    '''
-    auto_line_break_print(maxcol, 12, '  -check[=1]', \
-        "check xde file when '-check=1' or '-check', no check when '-check=0', and default by '-check=1'.")
 
-    print("It could get help of xde key type as\n  'genxde -h [key]'\n")
+    auto_line_break_print(maxcol, 10, '-check[=1]', \
+        "check xde file when '-check=1' or '-check', and default by '-check=1'.")
 
-    auto_line_break_print(maxcol, 12, '  -h [key]', \
+    print("\n* and it could get help of xde key type as\n  'genxde -h [key]'\n")
+
+    auto_line_break_print(maxcol, 10, '-h [key]', \
         "help of xde key, also it could use '--h', '-H', '--H', '-help', " \
         +"'--help' insteed of '-h', and use '-h all' could print all of key help.")
 
@@ -238,39 +238,38 @@ def main(argvs=None):
             if gesname.find('/')  != -1 \
             or gesname.find('\\') != -1 :
                 gesname = re.split(r'/|\\', nonfunc_params[1])[-1]
-                global ges_folder, ifo_folder, c_folder
+                global ges_folder, ifo_folder
                 ges_folder = nonfunc_params[1].replace(gesname, '')
                 ifo_folder = nonfunc_params[1].replace(gesname, '')
-                c_folder   = nonfunc_params[1].replace(gesname, '')
 
-        #elif len(nonfunc_params) == 2:
-        #    
-        #    xdename = nonfunc_params[1].replace('\\','/').rstrip('/')
-        #    xdename = xdename.split('/')[-1]
-        #    xdename, xdetype = xdename.split('.')[:2]
-        #
-        #    mdifile = open(nonfunc_params[0]+'.mdi', mode='r')
-        #
-        #    for strings in mdifile.readlines():
-        #
-        #        fieldSN = re.search(r'#[a-z]', strings, re.I)
-        #        if fieldSN != None:
-        #            fieldnum = fieldSN.group().lstrip('#')
-        #
-        #        axi = re.search(r'[123]d[xyzrozs]{1,3}', strings, re.I)
-        #        if axi != None:
-        #            coortype = axi.group()
-        #
-        #        if  re.search(xdename, strings, re.I) != None \
-        #        and re.search(xdetype, strings, re.I) != None :
-        #            ges_list = re.findall(r'[ltqwc]\d+(?:g\d+)?', strings, re.I)
-        #            gesname = f'{fieldnum}e{ges_list[0]}'
-        #
-        #    xdename = nonfunc_params[1]
+        elif len(nonfunc_params) == 2:
+            
+            xdename = nonfunc_params[1].replace('\\','/').rstrip('/')
+            xdename = xdename.split('/')[-1]
+            xdename, xdetype = xdename.split('.')[:2]
+
+            mdifile = open(nonfunc_params[0]+'.mdi', mode='r')
+
+            for strings in mdifile.readlines():
+
+                fieldSN = re.search(r'#[a-z]', strings, re.I)
+                if fieldSN != None:
+                    fieldnum = fieldSN.group().lstrip('#')
+
+                axi = re.search(r'[123]d[xyzrozs]{1,3}', strings, re.I)
+                if axi != None:
+                    coortype = axi.group()
+
+                if  re.search(xdename, strings, re.I) != None \
+                and re.search(xdetype, strings, re.I) != None :
+                    ges_list = re.findall(r'[ltqwc]\d+(?:g\d+)?', strings, re.I)
+                    gesname = f'{fieldnum}e{ges_list[0]}'
+
+            xdename = nonfunc_params[1]
 
         else:
-            print('type as: python genxde.py (address)[xdename] (address)[gesname] [coortype]')
-            #print('      or python genxde.py [mdiname] [xdename]')
+            print('type as: python genxde.py [xdename] [gesname] [coortype]')
+            print('      or python genxde.py [mdiname] [xdename]')
             return
 
     from felac_data import get_felac_data
