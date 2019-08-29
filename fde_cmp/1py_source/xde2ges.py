@@ -1006,9 +1006,8 @@ def xde2ges(ges_info, xde_dict, ges_dict, gesfile):
     # 3 write func declare
     if 'func' in ges_dict:
         gesfile.write('\nfunc = ')
-        for lists in ges_dict['func']:
-            for strs in lists:
-                gesfile.write(strs+',')
+        for strs in ges_dict['func']:
+            gesfile.write(strs+',')
 
     # 4 write dord and node declare
     if 'dord' in ges_dict:
