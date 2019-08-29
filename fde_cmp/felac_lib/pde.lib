@@ -1,0 +1,644 @@
+sub grad.xyz(x,y,z,u)
++[u/x]
++[u/y]
++[u/z]
+end grad.xyz
+
+sub grad.xy(x,y,u)
++[u/x]
++[u/y]
+end grad.xy
+
+sub grad.x(x,u)
++[u/x]
+end grad.x
+
+sub grad.roz(r,o,z,u)
++[u/r]
++[u/o]/r
++[u/z]
+end grad.roz
+
+sub grad.ro(r,o,u)
++[u/r]
++[u/o]/r
+end grad.ro
+
+sub grad.rz(r,z,u)
++[u/r]
++[u/z]
+end grad.rz
+
+sub grad.oz(r,o,z,u)
++[u/o]/r
++[u/z]
+end grad.oz
+
+sub grad.r(r,u)
++[u/r]
+end grad.r
+
+sub grad.rso(r,s,o,u)
++[u/r]
++[u/s]/r
++[u/o]/(r*sin(s))
+end grad.rso
+
+sub grad.rs(r,s,u)
++[u/r]
++[u/s]/r
+end grad.rs
+
+sub grad.so(r,s,o,u)
++[u/s]/r
++[u/o]/(r*sin(s))
+end grad.so
+
+sub grad.s(r,u)
++[u/r]
+end grad.s
+
+sub gradv.xyz(x,y,z,u,v,w)
++[u/x]
++[u/y]
++[u/z]
++[v/x]
++[v/y]
++[v/z]
++[w/x]
++[w/y]
++[w/z]
+end gradv.xyz
+
+sub gradv.xy(x,y,u,v)
++[u/x]
++[u/y]
++[v/x]
++[v/y]
+end gradv.xy
+
+sub gradv.x(x,u)
++[u/x]
+end gradv.x
+
+sub gradv.roz(r,o,z,u,v,w)
++[u/r]
++[u/o]/r-[v]/r
++[u/z]
++[v/r]
++[v/o]/r+[u]/r
++[v/z]
++[w/r]
++[w/o]/r
++[w/z]
+end gradv.roz
+
+sub gradv.ro(r,o,u,v)
++[u/r]
++[u/o]/r-[v]/r
++[v/r]
++[v/o]/r+[u]/r
+end gradv.ro
+
+sub gradv.rz(r,z,u,v)
++[u/r]
++[u/z]
++[v/r]
++[v/z]
++[u]/r
+end gradv.rz
+
+sub gradv.oz(r,o,z,u,v)
++[u/o]/r
++[u/z]
++[v/o]/r
++[v/z]
+-[u]/r
+end gradv.oz
+
+sub gradv.r(r,u)
++[u/r]
++[u]/r
+end gradv.r
+
+sub gradv.rso(r,s,o,u,v,w)
++[u/r]
++[u/s]/r-[v]/r
++[u/o]/(r*sin(s))-[w]/r
++[v/r]
++[v/s]/r+[u]/r
++[v/o]/(r*sin(s))-[w]/(r*tan(s))
++[w/r]
++[w/s]/r
++[w/o]/(r*sin(s))+[u]/r+[v]/(r*tan(s))
+end gradv.rso
+
+sub gradv.rs(r,s,u,v)
++[u/r]
++[u/s]/r-[v]/r
++[v/r]
++[v/s]/r+[u]/r
++[u]/r+[v]/(r*tan(s))
+end gradv.rs
+
+sub gradv.so(r,s,o,u,v)
++[u/s]/r
++[u/o]/(r*sin(s))-[v]/(r*tan(s))
+-[u]/r
++[v/s]/r
++[v/o]/(r*sin(s))+[u]/(r*tan(s))
+-[v]/r
+end gradv.so
+
+sub gradv.s(r,u)
++[u/r]
++[u]/r
++[u]/r
+end gradv.s
+
+sub div.xyz(x,y,z,u,v,w)
++[u/x]+[v/y]+[w/z]
+end div.xyz
+
+sub div.xy(x,y,u,v)
++[u/x]+[v/y]
+end div.xy
+
+sub div.x(x,u)
++[u/x]
+end div.x
+
+sub div.roz(r,o,z,u,v,w)
++[u/r]+[u]/r+[v/o]/r+[w/z]
+end div.roz
+
+sub div.ro(r,o,u,v)
++[u/r]+[u]/r+[v/o]/r
+end div.ro
+
+sub div.rz(r,z,u,v)
++[u/r]+[u]/r+[v/z]
+end div.rz
+
+sub div.oz(r,o,z,u,v)
++[u/o]/r+[v/z]
+end div.oz
+
+sub div.r(r,u)
++[u/r]+[u]/r
+end div.r
+
+sub div.rso(r,s,o,u,v,w)
++[u/r]+[u]*2/r+[v/s]/r+[v]/(r*tan(s))+[w/o]/(r*sin(s))
+end div.rso
+
+sub div.rs(r,s,u,v)
++[u/r]+[u]*2/r+[v/s]/r+[v]/(r*tan(s))
+end div.rs
+
+sub div.so(r,s,o,u,v)
++[u/s]/r+[u]/(r*tan(s))+[v/o]/(r*sin(s))
+end div.so
+
+sub div.s(r,u)
++[u/r]+[u]*2/r
+end div.s
+
+sub curl.xyz(x,y,z,u,v,w)
++[w/y]-[v/z]
++[u/z]-[w/x]
++[v/x]-[u/y]
+end curl.xyz
+
+sub curl.xy(x,y,u,v)
++[v/x]-[u/y]
+end curl.xy
+
+sub curl.roz(r,o,z,u,v,w)
++[w/o]/r-[v/z]
++[u/z]-[w/r]
++[v/r]+[v]/r-[u/o]/r
+end curl.roz
+
+sub curl.ro(r,o,u,v)
++[v/r]+[v]/r-[u/o]/r
+end curl.ro
+
+sub curl.rz(r,z,u,v)
++[u/z]-[v/r]
+end curl.rz
+
+sub curl.oz(r,o,z,u,v)
++[v/o]/r-[u/z]
++[u]/r
+end curl.oz
+
+sub curl.rso(r,s,o,u,v,w)
++[w/s]/r+[w]/(r*tan(s))-[v/o]/(r*sin(s))
++[u/o]/(r*sin(s))-[w/r]-[w]/r
++[v/r]+[v]/r-[u/s]/r
+end curl.rso
+
+sub curl.rs(r,s,u,v)
++[v/r]+[v]/r-[u/s]/r
+end curl.rs
+
+sub curl.so(r,s,o,u,v)
++[v/s]/r+[v]/(r*tan(s))-[u/o]/(r*sin(s))
+-[v]/r
++[u]/r
+end curl.so
+
+sub deform.oz(r,o,z,u,v,w)
++[u/o]/r
++[v/z]
++[u/z]+[v/o]/r
+-[u]/r
+end deform.oz
+
+sub deform.r(r,u)
++[u/r]
++[u]/r
+end deform.r
+
+sub deform.ro(r,o,u,v)
++[u/r]
++[v/o]/r+[u]/r
++[u/o]/r+[v/r]-[v]/r
+end deform.ro
+
+sub deform.roz(r,o,z,u,v,w)
++[u/r]
++[v/o]/r+[u]/r
++[w/z]
++[v/z]+[w/o]/r
++[w/r]+[u/z]
++[u/o]/r+[v/r]-[v]/r
+end deform.roz
+
+sub deform.rs(r,s,u,v)
++[u/r]
++[v/s]/r+[u]/r
++[u]/r+[v]/(r*tan(s))
++[u/s]/r+[v/r]-[v]/r
+end deform.rs
+
+sub deform.rso(r,s,o,u,v,w)
++[u/r]
++[v/s]/r+[u]/r
++[w/o]/(r*sin(s))+[u]/r+[v]/(r*tan(s))
++[v/o]/(r*sin(s))+[w/s]/r-[w]/(r*tan(s))
++[u/o]/(r*sin(s))+[w/r]-[w]/r
++[u/s]/r+[v/r]-[v]/r
+end deform.rso
+
+sub deform.rz(r,z,u,v)
++[u/r]
++[u]/r
++[v/z]
++[v/r]+[u/z]
+end deform.rz
+
+sub deform.s(r,u)
++[u/r]
++[u]/r
++[u]/r
+end deform.s
+
+sub deform.so(r,s,o,u,v)
++[u/s]/r
++[v/o]/(r*sin(s))+[u]/(r*tan(s))
++[u/o]/(r*sin(s))+[v/s]/r-[v]/(r*tan(s))
+-[v]/r
+-[u]/r
+end deform.so
+
+sub deform.x(x,u)
++[u/x]
+end deform.x
+
+sub deform.xy(x,y,u,v)
++[u/x]
++[v/y]
++[u/y]+[v/x]
+end deform.xy
+
+sub deform.xyz(x,y,z,u,v,w)
++[u/x]
++[v/y]
++[w/z]
++[v/z]+[w/y]
++[w/x]+[u/z]
++[u/y]+[v/x]
+end deform.xyz
+
+sub isotropi.1d(sm)
+$CC fact = pe/(1.+pv)/(1.-pv*2);
+$CC shear = (0.5-pv);
+matrix sm 1 1
+(1.-pv)
+
+end isotropi.1d
+
+sub isotropi.1ds(sm)
+$CC fact = pe/(1.+pv)/(1.-pv);
+$CC shear = (1.-pv)/2;
+matrix sm 1 1
+1.
+
+end isotropi.1ds
+
+sub isotropi.2d(sm)
+$CC fact = pe/(1.+pv)/(1.-pv*2);
+$CC shear = (0.5-pv);
+matrix sm 2 2
+(1.-pv) pv
+pv (1.-pv)
+
+end isotropi.2d
+
+sub isotropi.2ds(sm)
+$CC fact = pe/(1.+pv)/(1.-pv);
+$CC shear = (1.-pv)/2;
+matrix sm 2 2
+1. pv
+pv 1.
+
+end isotropi.2ds
+
+sub isotropi.3d(sm)
+$CC fact = pe/(1.+pv)/(1.-pv*2);
+$CC shear = (0.5-pv);
+matrix sm 3 3
+(1.-pv) pv pv
+pv (1.-pv) pv
+pv pv (1.-pv)
+
+end isotropi.3d
+
+sub laplaces.oz(r,o,z,u)
++[u/o,o]/(r*r)+[u/z,z]
+end laplaces.oz
+
+sub laplaces.r(r,u)
++[u/r,r]+[u/r]/r
+end laplaces.r
+
+sub laplaces.ro(r,o,u)
++[u/r,r]+[u/o,o]/(r*r)+[u/r]/r
+end laplaces.ro
+
+sub laplaces.roz(r,o,z,u)
++[u/r,r]+[u/o,o]/(r*r)+[u/r]/r+[u/z,z]
+end laplaces.roz
+
+sub laplaces.rs(r,s,u)
++[u/r,r]+[u/s,s]/(r*r)+[u/r]*2.0/r+[u/s]/(r*r*tan(s))
+end laplaces.rs
+
+sub laplaces.rso(r,s,o,u)
++[u/r,r]+[u/s,s]/(r*r)+[u/r]*2.0/r+[u/s]/(r*r*tan(s))+[u/o,o]/(r*sin(s)*r*sin(s))
+end laplaces.rso
+
+sub laplaces.rz(r,z,u)
++[u/r,r]+[u/r]/r+[u/z,z]
+end laplaces.rz
+
+sub laplaces.s(r,u)
++[u/r,r]+[u/r]*2.0/r
+end laplaces.s
+
+sub laplaces.so(r,s,o,u)
++[u/s,s]/(r*r)+[u/s]/(r*r*tan(s))+[u/o,o]/(r*sin(s)*r*sin(s))
+end laplaces.so
+
+sub laplaces.x(x,u)
++[u/x,x]
+end laplaces.x
+
+sub laplaces.xy(x,y,u)
++[u/x,x]+[u/y,y]
+end laplaces.xy
+
+sub laplaces.xyz(x,y,z,u)
++[u/x,x]+[u/y,y]+[u/z,z]
+end laplaces.xyz
+
+sub laplacev.oz(r,o,z,u,v)
++[u/o,o]/(r*r)+[u/z,z]-[u]/(r*r)
++[v/o,o]/(r*r)+[v/z,z]
+end laplacev.oz
+
+sub laplacev.ro(r,o,u,v)
++[u/r,r]+[u/o,o]/(r*r)+[u/r]/r
++[v/r,r]+[v/o,o]/(r*r)+[v/r]/r
+end laplacev.ro
+
+sub laplacev.roz(r,o,z,u,v,w)
++[u/r,r]+[u/o,o]/(r*r)+[u/r]/r+[u/z,z]-[u]/(r*r)-[v/o]*2/(r*r)
++[v/r,r]+[v/o,o]/(r*r)+[v/r]/r+[v/z,z]-[v]/(r*r)+[u/o]*2/(r*r)
++[w/r,r]+[w/o,o]/(r*r)+[w/r]/r+[w/z,z]
+end laplacev.roz
+
+sub laplacev.rs(r,s,u,v)
++[u/r,r]+[u/s,s]/(r*r)+[u/r]*2.0/r+[u/s]/(r*r*tan(s)) \
+-[v/s]*2/(r*r)-[u]*2/(r*r)-[v]*2/(r*r*tan(s))
++[v/r,r]+[v/s,s]/(r*r)+[v/r]*2.0/r+[v/s]/(r*r*tan(s)) \
+-[v]/(r*r*sin(s))
+end laplacev.rs
+
+sub laplacev.rso(r,s,o,u,v,w)
++[u/r,r]+[u/s,s]/(r*r)+[u/r]*2.0/r+[u/s]/(r*r*tan(s))+[u/o,o]/(r*r*sin(s)*sin(s)) \
+-[v/s]*2/(r*r)-[u]*2/(r*r)-[v]*2/(r*r*tan(s))-[w/o]*2/(r*r*sin(s))
++[v/r,r]+[v/s,s]/(r*r)+[v/r]*2.0/r+[v/s]/(r*r*tan(s))+[v/o,o]/(r*r*sin(s)*sin(s)) \
++[w/s]*2/(r*r)-[v]/(r*r*sin(s))-[w/o]*2/(r*r*tan(s))
++[w/r,r]+[w/s,s]/(r*r)+[w/r]*2.0/r+[w/s]/(r*r*tan(s))+[w/o,o]/(r*r*sin(s)*sin(s)) \
++[u/o]*2/(r*r*sin(s))+[v/o]*2/(r*r*tan(s))-[w]/(r*r*sin(s)*sin(s))
+end laplacev.rso
+
+sub laplacev.rz(r,z,u,v)
++[u/r,r]+[u/r]/r+[u/z,z]-[u]/(r*r)
++[v/r,r]+[v/r]/r+[v/z,z]
+end laplacev.rz
+
+sub laplacev.so(r,s,o,u,v)
++[u/s,s]/(r*r)+[u/s]/(r*r*tan(s))+[u/o,o]/(r*r*sin(s)*sin(s)) \
++[v/s]*2/(r*r)-[u]/(r*r*sin(s))-[v/o]*2/(r*r*tan(s))
++[v/s,s]/(r*r)+[v/s]/(r*r*tan(s))+[v/o,o]/(r*r*sin(s)*sin(s)) \
++[u/o]*2/(r*r*tan(s))-[v]/(r*r*sin(s))
+end laplacev.so
+
+sub laplacev.xy(x,y,u,v)
++[u/x,x]+[u/y,y]
++[v/x,x]+[v/y,y]
+end laplacev.xy
+
+sub laplacev.xyz(x,y,z,u,v,w)
++[u/x,x]+[u/y,y]+[u/z,z]
++[v/x,x]+[v/y,y]+[v/z,z]
++[w/x,x]+[w/y,y]+[w/z,z]
+end laplacev.xyz
+
+sub singular.oz()
+end singular.oz
+
+sub singular.r()
+$i
+$CC r0=0.0;
+$CC for (i=1; i<=nnode; ++i) r0+=^coorr[1][i];
+$CC r0*=1.0e-003/nnode;
+$CC for (i=1; i<=nnode; ++i) {
+$CC if (^coorr[1][i]<r0) ^coorr[1][i]=r0; }
+end singular.r
+
+sub singular.ro()
+$i
+$CC r0=0.0;
+$CC for (i=1; i<=nnode; ++i) r0+=^coorr[1][i];
+$CC r0*=1.0e-003/nnode;
+$CC for (i=1; i<=nnode; ++i) {
+$CC if (^coorr[1][i]<r0) ^coorr[1][i]=r0; }
+end singular.ro
+
+sub singular.roz()
+$i
+$CC r0=0.0;
+$CC for (i=1; i<=nnode; ++i) r0+=^coorr[1][i];
+$CC r0*=1.0e-003/nnode;
+$CC for (i=1; i<=nnode; ++i) {
+$CC if (^coorr[1][i]<r0) ^coorr[1][i]=r0; }
+end singular.roz
+
+sub singular.rs()
+$i
+$CC r0=0.0;
+$CC for (i=1; i<=nnode; ++i) r0+=^coorr[1][i];
+$CC r0*=1.0e-003/nnode;
+$CC for (i=1; i<=nnode; ++i) {
+$CC if (^coorr[1][i]<r0) ^coorr[1][i]=r0;
+$CC if (^coorr[2][i]<1.0e-003) ^coorr[2][i]=1.0e-003; }
+end singular.rs
+
+sub singular.rso()
+$i
+$CC r0=0.0;
+$CC for (i=1; i<=nnode; ++i) r0+=^coorr[1][i];
+$CC r0*=1.0e-003/nnode;
+$CC for (i=1; i<=nnode; ++i) {
+$CC if (^coorr[1][i]<r0) ^coorr[1][i]=r0;
+$CC if (^coorr[2][i]<1.0e-003) ^coorr[2][i]=1.0e-003; }
+end singular.rso
+
+sub singular.rz()
+$i
+$CC r0=0.0;
+$CC for (i=1; i<=nnode; ++i) r0+=^coorr[1][i];
+$CC r0*=1.0e-003/nnode;
+$CC for (i=1; i<=nnode; ++i) {
+$CC if (^coorr[1][i]<r0) ^coorr[1][i]=r0; }
+end singular.rz
+
+sub singular.s()
+$i
+$CC r0=0.0;
+$CC for (i=1; i<=nnode; ++i) r0+=^coorr[1][i];
+$CC r0*=1.0e-003/nnode;
+$CC for (i=1; i<=nnode; ++i) {
+$CC if (^coorr[1][i]<r0) ^coorr[1][i]=r0; }
+end singular.s
+
+sub singular.so()
+$i
+$CC r0=0.0;
+$CC for (i=1; i<=nnode; ++i) r0+=^coorr[1][i];
+$CC r0*=1.0e-003/nnode;
+$CC for (i=1; i<=nnode; ++i) {
+$CC if (^coorr[1][i]<r0) ^coorr[1][i]=r0; }
+end singular.so
+
+sub singular.x()
+end singular.x
+
+sub singular.xy()
+end singular.xy
+
+sub singular.xyz()
+end singular.xyz
+
+sub vcurl.oz(r,o,z,u)
++[u/z]
+-[u/o]/r
+end vcurl.oz
+
+sub vcurl.ro(r,o,u)
++[u/o]/r
+-[u/r]
+end vcurl.ro
+
+sub vcurl.rs(r,s,u)
++[u/s]/r+[u]/(r*tan(s))
+-[u/r]-[u]/r
+end vcurl.rs
+
+sub vcurl.rz(r,z,u)
+-[u/z]
++[u/r]+[u]/r
+end vcurl.rz
+
+sub vcurl.so(r,s,o,u)
++[u/o]/(r*sin(s))
+-[u/s]/r
+end vcurl.so
+
+sub vcurl.xy(x,y,u)
++[u/y]
+-[u/x]
+end vcurl.xy
+
+sub vol.oz(r)
+$CC vol = r;
+end vol.oz
+
+sub vol.r(r)
+$CC vol = r;
+end vol.r
+
+sub vol.ro(r)
+$CC vol = r;
+end vol.ro
+
+sub vol.roz(r)
+$CC vol = r;
+end vol.roz
+
+sub vol.rs(r,s)
+$CC vol = r*r*sin(s);
+end vol.rs
+
+sub vol.rso(r,s)
+$CC vol = r*r*sin(s);
+end vol.rso
+
+sub vol.rz(r)
+$CC vol = r;
+end vol.rz
+
+sub vol.s(r)
+$CC vol = r*r;
+end vol.s
+
+sub vol.so(r,s)
+$CC vol = r*r*sin(s);
+end vol.so
+
+sub vol.x()
+$CC vol = 1.0;
+end vol.x
+
+sub vol.xy()
+$CC vol = 1.0;
+end vol.xy
+
+sub vol.xyz()
+$CC vol = 1.0;
+end vol.xyz

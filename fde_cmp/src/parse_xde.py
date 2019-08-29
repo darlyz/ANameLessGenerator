@@ -16,8 +16,8 @@ import json
 from genxde import gen_obj, ifo_folder
 from check_xde import check_xde
 
-dict_check = {'pre':0, 'sec':0, 'fnl':1}
-addr_check = {'pre':0, 'sec':0, 'fnl':1}
+dict_check = {'pre':0, 'sec':0, 'fnl':0}
+addr_check = {'pre':0, 'sec':0, 'fnl':0}
 
 scalar = 0
 vector = 1

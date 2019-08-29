@@ -18,7 +18,7 @@ from felac_data import operator_data, \
 
 from genxde import gen_obj, ifo_folder
 
-ges_dict_check = 1
+ges_dict_check = 0
 
 scalar = 0
 vector = 1
@@ -564,7 +564,7 @@ def release_array_code(code_strs, code_place, ges_dict):
 
     code_strs = re.sub(r'(?P<index>\w+\[\d+\](?!\[\d+\]))', mdfy_indx, code_strs)
 
-    ges_dict['code'][code_place].append(code_strs.replace('ARRAY', '$cc array double') + ';\n')
+    ges_dict['code'][code_place].append(code_strs.replace('ARRAY', '$cc double') + ';\n')
 # end release_array_code()
 
 def parse_disp_var(ges_info, xde_dict, ges_dict):

@@ -16,13 +16,13 @@ shapfunc_data = {}
 oprt_name_list = []
 shap_name_list = []
 
-pfelacpath = os.environ['pfelacpath']
+pfelacpath = '../felac_lib/'
 
 call_count = 0
 
 def get_operator_data():
 
-    file_opr = open(pfelacpath + 'ges/pde.lib', mode='r')
+    file_opr = open(pfelacpath + 'pde.lib', mode='r')
     opr_find = 0
 
     for strings in file_opr.readlines():
@@ -103,7 +103,7 @@ def get_gaussian_data():
 
 def read_gaus_file(gaus_file, shap_type, pattern):
 
-    file_gaus = open(pfelacpath + f'ges/{gaus_file}.pnt', mode='r')
+    file_gaus = open(pfelacpath + f'{gaus_file}.pnt', mode='r')
     gaussian_data[shap_type] = {}
 
     gaus_find = 0
@@ -158,7 +158,7 @@ def print_gaussian_data():
 
 def get_shapfunc_data():
 
-    file_shap = open(pfelacpath + 'ges/ges.lib', mode='r')
+    file_shap = open(pfelacpath + 'ges.lib', mode='r')
     shap_find = 0
 
     for strings in file_shap.readlines():
