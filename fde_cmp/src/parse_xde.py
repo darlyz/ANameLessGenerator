@@ -14,8 +14,9 @@ Empha_color = Fore.GREEN
 import re
 import json
 from genxde import gen_obj, ifo_folder
-from check_xde import check_xde
+from src.check_xde import check_xde
 
+# check xde_dict and line_number, after xxx_parse, when 'xxx' > 1
 dict_check = {'pre':0, 'sec':0, 'fnl':0}
 addr_check = {'pre':0, 'sec':0, 'fnl':0}
 
@@ -733,7 +734,7 @@ def parse_mate_declaration(xde_dict):
     mate_var = []
     mate_val = []
 
-    from check_xde import is_number
+    from src.check_xde import is_number
     for strs in xde_dict['mate']:
 
         if is_number(strs) :

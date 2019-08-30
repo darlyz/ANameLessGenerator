@@ -17,10 +17,10 @@ color = {'Error': Error_color, \
 import re
 import os
 
-from felac_data import operator_data, oprt_name_list,\
+from src.felac_data import operator_data, oprt_name_list,\
                        shapfunc_data, shap_name_list
 
-from expr import split_bracket_expr
+from src.expr import split_bracket_expr
 
 error = False
 scalar = 0
@@ -160,8 +160,10 @@ def check_xde(ges_info, xde_dict, xde_addr):
         if len( matr_not_used )!= 0:
             report_warn('VND01', ','.join(matr_not_used_addr), ','.join(matr_not_used) + ' not used\n')
 
-
-    print('Error=',error)
+    if error == True:
+        print('Error=',error)
+    else:
+        print('No error.')
     return error
 # end check_xde()
 
@@ -350,6 +352,9 @@ def check_shap(ges_info, xde_dict, xde_addr):
                 pan_name_list   = []
 
                 for var_comp in shap_list[2:]:
+
+                    if var_comp.isnumeric():
+                        continue
 
                     if var_comp.count('_') == 1:
                         var_name, pan_name = var_comp.split('_')
@@ -582,9 +587,30 @@ def gather_declare(code_strs, line_num, assist_dict, c_declares):
                     var = re.sub(r'=.*', '', var)
 
                 if var.find('[') != -1:
-                    idx_list = re.findall(r'\[\d+\]',var,re.I)
-                    var = '*'*len(idx_list) + var.split('[')[0].strip()
 
+                    idx_list = list( map ( lambda x: int( x.lstrip('[').rstrip(']') ), re.findall(r'\[\d+\]',var,re.I) ) )
+
+                    var = var.split('[')[0].strip()
+
+                    '''
+                    var_list = []
+
+                    temp_var = var
+
+                    for i in range(len(idx_list)):
+                        temp_var += f'[{str(i)}]'
+
+                    def addtensor(temp_var, idx_list, var_list, dim):
+                        dim -= 1
+                        
+
+                        if dim != 0:
+                            sub_dim = addtensor(temp_var, idx_list, var_list, dim)
+
+                        return sub_dim
+                    '''
+                    var = '*'*len(idx_list) + var
+                    
                 c_declares['all'].add(var)
                 if assist_dict['addrss'] == 'BFmate':
                     c_declares['BFmate'].add(var)
@@ -611,6 +637,10 @@ def gather_array_declare(code_strs, line_num, assist, c_declares):
 
             insert_array_declare(c_declares, assist, 'vect', vect_list, var_name)
 
+            c_declares['all'].add('*'+var_name)
+            if assist['addrss'] == 'BFmate':
+                c_declares['BFmate'].add('*'+var_name)
+
         elif len(idx_list) == 2:
             
             matr_row  = idx_list[0].lstrip('[').rstrip(']')
@@ -620,6 +650,10 @@ def gather_array_declare(code_strs, line_num, assist, c_declares):
                                 for ii in range(int(matr_row))]
 
             insert_array_declare(c_declares, assist, 'matrix', matr_list, var_name)
+
+            c_declares['all'].add('*'+var_name)
+            if assist['addrss'] == 'BFmate':
+                c_declares['BFmate'].add('*'+var_name)
 
         else:
             wrong_form_list.append(var_strs)
@@ -961,11 +995,11 @@ def check_operator_content(opr_features, code_strs, line_num, xde_dict, xde_addr
 
         if 'disp' in xde_dict \
         and opr_deed == 'f':
-            opr_parameters += xde_dict['disp'][:opr_default_disp_length]
+            opr_parameters += xde_dict['disp'][:opr_default_disp_length].copy()
 
         elif 'coef' in xde_dict \
         and opr_deed in ['c','v','m']:
-            opr_parameters += xde_dict['coef'][:opr_default_disp_length]
+            opr_parameters += xde_dict['coef'][:opr_default_disp_length].copy()
 
         if   opr_axis in ['oz', 'so']:
             opr_parameters.insert(0,'r')
@@ -998,7 +1032,7 @@ def check_operator_content(opr_features, code_strs, line_num, xde_dict, xde_addr
                     report_error('OND07', line_num, error_type + sgest_info)
 
                 else:
-                    opr_parameters += xde_dict['vect'][vect]
+                    opr_parameters += xde_dict['vect'][vect].copy()
 
             else:
                 error_type = unsuitable_form(strs, 'Error')
@@ -1078,6 +1112,9 @@ def check_operator_content(opr_features, code_strs, line_num, xde_dict, xde_addr
                 sgest_info = "it must be declared by 'VECT' or 'ARRAY'.\n"
                 report_error('OND14', line_num, error_type + sgest_info)
 
+            else:
+                c_declares['tnsr_used']['vect'].add(opr_object)
+
         # 'm' means resault of operator assigned to matrix (matrix declared)
         elif opr_deed == 'm':
             if  'matrix' in xde_dict \
@@ -1086,6 +1123,9 @@ def check_operator_content(opr_features, code_strs, line_num, xde_dict, xde_addr
                 error_type = not_declared(opr_object, 'Error')
                 sgest_info = "it must be declared by 'MATRIX' or 'ARRAY'.\n"
                 report_error('OND15', line_num, error_type + sgest_info)
+
+            else:
+                c_declares['tnsr_used']['matrix'].add(opr_object)
 
     # 'f' means resault of operator assigned to fvect or fmatr
     elif opr_deed == 'f':
@@ -1104,6 +1144,11 @@ def check_operator_content(opr_features, code_strs, line_num, xde_dict, xde_addr
         # check object of operator is declared by 'FVECT' or 'FMATR'
         fvect = 'fvect' in xde_dict and opr_object in xde_dict['fvect']
         fmatr = 'fmatr' in xde_dict and opr_object in xde_dict['fmatr']
+
+        if fvect:
+            c_declares['tnsr_used']['vect'].add(opr_object)
+        if fmatr:
+            c_declares['tnsr_used']['matrix'].add(opr_object)
 
         # object of operator not allowed to be declared by 'FVECT' or 'FMATR' at the same time
         if  fvect and fmatr:
@@ -1549,21 +1594,23 @@ def classify_var_in_fassign(righ_expr, var_dict, c_declares, xde_dict):
 # end classify_var_in_fassign()
 
 def classify_variable(var, var_dict, var_type, tensor_type, c_declares, xde_dict):
+
     tensor = var.split('_')[0]
+
     if   tensor_type == scalar:
         var_dict[var_type+'scal'].add(var)
 
     elif tensor_type == vector:
         var_dict[var_type+'vect'].add(tensor)
 
-        if var_type != 'f' and 'fvect' in xde_dict and tensor not in xde_dict['fvect']:
-            c_declares['tnsr_used']['vect'].add(var.split('_')[0])
+        if var_type != 'f' and not ('fvect' in xde_dict and tensor in xde_dict['fvect']):
+            c_declares['tnsr_used']['vect'].add(tensor)
 
     elif tensor_type == matrix:
         var_dict[var_type+'matr'].add(tensor)
 
-        if var_type != 'f' and 'fvect' in xde_dict and tensor not in xde_dict['fmatr']:
-            c_declares['tnsr_used']['matrix'].add(var.split('_')[0])
+        if var_type != 'f' and not ('fmatr' in xde_dict and tensor in xde_dict['fmatr']):
+            c_declares['tnsr_used']['matrix'].add(tensor)
 
     else:
         var_dict['error'].add(var)
@@ -1633,9 +1680,13 @@ def check_fassign_right_expression_var(var_dict, line_num, xde_dict, xde_addr, c
                     var_not_declare = set()
         
                     for var in xde_dict[tensor_type][tensor]:
-                        add_var_not_declared(var, var_search_list, var_not_declare)
+                        
+                        for sub_var in re.findall(r'\^?\w+(?:\[\w*\])?',var):
+                            if is_number(sub_var):
+                                continue
+                            add_var_not_declared(sub_var, var_search_list, var_not_declare)
 
-                    belong_descript = f" of {tensor}({xde_addr[tensor_type][tensor]})"
+                    belong_descript = f" of {tensor}(line {xde_addr[tensor_type][tensor]})"
                     add_not_declare_report(var_not_declare, belong_descript, declaration_type, error_report_list)
 
             elif tensor_type == 'matr':
@@ -1655,15 +1706,18 @@ def check_fassign_right_expression_var(var_dict, line_num, xde_dict, xde_addr, c
 
                     for row in xde_dict[tensor_type][tensor][2:]:
                         for var in row:
-                            add_var_not_declared(var, var_search_list, var_not_declare)
+                            for sub_var in re.findall(r'\^?\w+(?:\[\w*\])?',var):
+                                if is_number(sub_var):
+                                   continue
+                                add_var_not_declared(sub_var, var_search_list, var_not_declare)
 
-                    belong_descript = f" of {tensor}({xde_addr[tensor_type][tensor]})"
+                    belong_descript = f" of {tensor}(line {xde_addr[tensor_type][tensor]})"
                     add_not_declare_report(var_not_declare, belong_descript, declaration_type, error_report_list)
 
     # check unknown type of tensor
     solv_var_search_list = []
     if 'disp' in xde_dict:
-        solv_var_search_list += xde_dict['disp']
+        solv_var_search_list += xde_dict['disp'].copy()
     if 'func' in xde_dict:
         for func_list in xde_dict['func']:
             solv_var_search_list += func_list
@@ -1699,9 +1753,12 @@ def check_fassign_right_expression_var(var_dict, line_num, xde_dict, xde_addr, c
                 var_not_declare = set()
 
                 for var in xde_dict['vect'][tensor]:
-                    add_var_not_declared(var, solv_var_search_list, var_not_declare)
+                    for sub_var in re.findall(r'\^?\w+(?:\[\w*\])?',var):
+                        if is_number(sub_var):
+                            continue
+                        add_var_not_declared(sub_var, solv_var_search_list, var_not_declare)
 
-                belong_descript = f" of {tensor}({xde_addr['vect'][tensor]})"
+                belong_descript = f" of {tensor}(line {xde_addr['vect'][tensor]})"
                 add_not_declare_report(var_not_declare, belong_descript, 'disp or func', error_report_list)
 
     if len(var_dict['matr']) != 0:
@@ -1715,11 +1772,14 @@ def check_fassign_right_expression_var(var_dict, line_num, xde_dict, xde_addr, c
 
                 var_not_declare = set()
 
-                for row in xde_dict[tensor_type][tensor][2:]:
+                for row in xde_dict['matrix'][tensor][2:]:
                     for var in row:
-                        add_var_not_declared(var, solv_var_search_list, var_not_declare)
+                        for sub_var in re.findall(r'\^?\w+(?:\[\w*\])?',var):
+                            if is_number(sub_var):
+                                continue
+                            add_var_not_declared(sub_var, solv_var_search_list, var_not_declare)
 
-                belong_descript = f" of {tensor}({xde_addr['matr'][tensor]})"
+                belong_descript = f" of {tensor}(line {xde_addr['matr'][tensor]})"
                 add_not_declare_report(var_not_declare, belong_descript, 'disp or func', error_report_list)
 
     # check error items
@@ -1935,9 +1995,12 @@ def check_var_in_weak_forms(var_dict, line_num, xde_dict, xde_addr, c_declares):
                     var_not_declare = set()
         
                     for var in xde_dict[tensor_type][tensor]:
-                        add_var_not_declared(var, var_search_list, var_not_declare)
+                        for sub_var in re.findall(r'\^?\w+(?:\[\w*\])?',var):
+                            if is_number(sub_var):
+                                continue
+                            add_var_not_declared(sub_var, var_search_list, var_not_declare)
 
-                    belong_descript = f" of {tensor}({xde_addr[tensor_type][tensor]})"
+                    belong_descript = f" of {tensor}(line {xde_addr[tensor_type][tensor]})"
                     add_not_declare_report(var_not_declare, belong_descript, declaration_type, error_report_list)
 
             elif tensor_type == 'matr':
@@ -1957,15 +2020,18 @@ def check_var_in_weak_forms(var_dict, line_num, xde_dict, xde_addr, c_declares):
 
                     for row in xde_dict[tensor_type][tensor][2:]:
                         for var in row:
-                            add_var_not_declared(var, var_search_list, var_not_declare)
+                            for sub_var in re.findall(r'\^?\w+(?:\[\w*\])?',var):
+                                if is_number(sub_var):
+                                    continue
+                                add_var_not_declared(sub_var, var_search_list, var_not_declare)
 
-                    belong_descript = f" of {tensor}({xde_addr[tensor_type][tensor]})"
+                    belong_descript = f" of {tensor}(line {xde_addr[tensor_type][tensor]})"
                     add_not_declare_report(var_not_declare, belong_descript, declaration_type, error_report_list)
 
     # check unknown type of tensor
     solv_var_search_list = []
     if 'disp' in xde_dict:
-        solv_var_search_list += xde_dict['disp']
+        solv_var_search_list += xde_dict['disp'].copy()
     if 'func' in xde_dict:
         for func_list in xde_dict['func']:
             solv_var_search_list += func_list
@@ -1993,9 +2059,12 @@ def check_var_in_weak_forms(var_dict, line_num, xde_dict, xde_addr, c_declares):
             var_not_declare = set()
 
             for var in xde_dict['vect'][tensor]:
-                add_var_not_declared(var, solv_var_search_list, var_not_declare)
+                for sub_var in re.findall(r'\^?\w+(?:\[\w*\])?',var):
+                    if is_number(sub_var):
+                        continue
+                    add_var_not_declared(sub_var, solv_var_search_list, var_not_declare)
 
-            belong_descript = f" of {tensor}({xde_addr['vect'][tensor]})"
+            belong_descript = f" of {tensor}(line {xde_addr['vect'][tensor]})"
             add_not_declare_report(var_not_declare, belong_descript, 'disp or func', error_report_list)
 
     if len(var_dict['matr']) != 0:
@@ -2007,11 +2076,14 @@ def check_var_in_weak_forms(var_dict, line_num, xde_dict, xde_addr, c_declares):
 
             var_not_declare = set()
 
-            for row in xde_dict[tensor_type][tensor][2:]:
+            for row in xde_dict['matrix'][tensor][2:]:
                 for var in row:
-                    add_var_not_declared(var, solv_var_search_list, var_not_declare)
+                    for sub_var in re.findall(r'\^?\w+(?:\[\w*\])?',var):
+                        if is_number(sub_var):
+                            continue
+                        add_var_not_declared(sub_var, solv_var_search_list, var_not_declare)
 
-            belong_descript = f" of {tensor}({xde_addr['matr'][tensor]})"
+            belong_descript = f" of {tensor}(line {xde_addr['matr'][tensor]})"
             add_not_declare_report(var_not_declare, belong_descript, 'disp or func', error_report_list)
 
     # check error items

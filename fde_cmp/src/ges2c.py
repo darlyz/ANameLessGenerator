@@ -432,7 +432,7 @@ def ges2c(ges_info, ges_dict, cfile):
         cfile.write("}\n")
         
 
-from expr import split_bracket_expr
+from src.expr import split_bracket_expr
 def release_code(indentation, keywd, ges_dict, ges_info, cfile):
 
     disp_num = len(ges_dict['disp'])

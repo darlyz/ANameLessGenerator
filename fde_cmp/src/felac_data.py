@@ -16,7 +16,7 @@ shapfunc_data = {}
 oprt_name_list = []
 shap_name_list = []
 
-pfelacpath = '../felac_lib/'
+pfelacpath = './felac_lib/'
 
 call_count = 0
 

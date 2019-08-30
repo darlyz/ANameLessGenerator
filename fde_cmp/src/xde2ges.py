@@ -8,16 +8,17 @@
 import re
 import os
 import math
-from expr import split_bracket_expr, \
+from src.expr import split_bracket_expr, \
                  idx_summation, \
                  cmplx_expr, \
                  expr
-from felac_data import operator_data, \
+from src.felac_data import operator_data, \
                        shapfunc_data, \
                        gaussian_data
 
 from genxde import gen_obj, ifo_folder
 
+# check ges_dict if ges_dict_check > 0
 ges_dict_check = 0
 
 scalar = 0
@@ -279,7 +280,7 @@ def release_operator_code(code_strs, code_place, pfelacpath, xde_dict, ges_dict)
 
             elif left_vara_type == vector:
                 for ii in range(len(expr_list)):
-                    xde_dict['fvect'][left_vara_name][ii+1] = expr_list[ii]
+                    xde_dict['fvect'][left_vara_name][ii] = expr_list[ii]
 
             elif left_vara_type == matrix:
                 row, clm = xde_dict['fmatr'][left_vara_name][:2]

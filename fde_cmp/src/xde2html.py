@@ -7,7 +7,7 @@
 '''
 import re
 import os
-from expr import split_bracket_expr
+from src.expr import split_bracket_expr
 
 def xde2html(ges_info, xde_dict, xde_addr, file):
     pfelacpath = os.environ["pfelacpath"].replace("\\","/")
