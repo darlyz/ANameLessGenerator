@@ -1,0 +1,94 @@
+aew4g2
+defi
+disp u,v,w,
+var u1 v1 w1 u2 v2 w2 u3 v3 w3 u4
+var v4 w4
+refc rx,ry,rz,
+coor x,y,z,
+func = exx,eyy,ezz,eyz,exz,exy,
+dord 1,1,1,
+node 4
+$cc double pe,pv,fx,fy,fz,rou,alpha;
+mate pe pv fx fy fz rou alpha 1.0e10 0.3 0.0 0.0 0.0 3000.0 0.6
+
+shap
+u=
+u1=rx
+u2=ry
+u3=rz
+u4=(1.-rx-ry-rz)
+
+v=
+v1=rx
+v2=ry
+v3=rz
+v4=(1.-rx-ry-rz)
+
+w=
+w1=rx
+w2=ry
+w3=rz
+w4=(1.-rx-ry-rz)
+
+tran
+x=
+x(1)=rx
+x(2)=ry
+x(3)=rz
+x(4)=(1.-rx-ry-rz)
+
+y=
+y(1)=rx
+y(2)=ry
+y(3)=rz
+y(4)=(1.-rx-ry-rz)
+
+z=
+z(1)=rx
+z(2)=ry
+z(3)=rz
+z(4)=(1.-rx-ry-rz)
+
+gaus = 4
+  0.585410196624969  0.138196601125011  0.138196601125011  1./24.
+  0.138196601125011  0.585410196624969  0.138196601125011  1./24.
+  0.138196601125011  0.138196601125011  0.585410196624969  1./24.
+  0.138196601125011  0.138196601125011  0.138196601125011  1./24.
+
+
+func
+$CC vol = 1.0;
+$cc fact = pe/(1.0+pv)/(1.0-pv*2.0)*vol;
+$cc shear = (0.5-pv);
+exx=+[u/x]
+
+eyy=+[v/y]
+
+ezz=+[w/z]
+
+eyz=+[v/z]+[w/y]
+
+exz=+[u/z]+[w/x]
+
+exy=+[u/y]+[v/x]
+
+
+stif
+dist=+[exx;exx]*(1.-pv)*fact
++[exx;eyy]*pv*fact
++[exx;ezz]*pv*fact
++[eyy;exx]*pv*fact
++[eyy;eyy]*(1.-pv)*fact
++[eyy;ezz]*pv*fact
++[ezz;exx]*pv*fact
++[ezz;eyy]*pv*fact
++[ezz;ezz]*(1.-pv)*fact
++[eyz;eyz]*shear*fact
++[exz;exz]*shear*fact
++[exy;exy]*shear*fact
+
+load=+[u]*fx*vol
++[v]*fy*vol
++[w]*fz*vol
+
+end

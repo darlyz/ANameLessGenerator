@@ -1,0 +1,7 @@
+3.0    tmax
+1.0    dt
+1      nstep
+1000   itnmax
+1.0e-8 tolerance
+1.0e-3 dampalfa
+1.0e-4 dampbeta

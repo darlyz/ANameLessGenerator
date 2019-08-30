@@ -13,7 +13,7 @@ import re
 # default folder
 xde_folder = './scripts/check/'
 ges_folder = './ges/'
-c_folder   = './temp/'
+c_folder   = './Ccode/'
 ifo_folder = './temp/'
 
 gen_obj = { 'ges'  : 1, \
